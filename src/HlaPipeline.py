@@ -19,11 +19,18 @@ from pbtools.pbhla.io.BlasrIO import parse_blasr
 from pbtools.pbhla.io.GffIO import create_annotation, create_var_annotation
 from pbtools.pbhla.stats.SubreadStats import SubreadStats
 from pbtools.pbhla.align.MultiSequenceAligner import MSA_aligner
+from pbtools.pbhla.smrtanalysis.SmrtAnalysisTools import SmrtAnalysisRunner
 from pbtools.pbhla.utils import make_rand_string, getbash, runbash, create_directory
 from pbtools.pbhla.fasta.Utils import write_fasta, fasta_size, extract_sequence, trim_fasta
 
 __version__ = "0.1.0"
  
+file_info = namedtuple('file_info', 'fasta_fn, ref_name, locus')
+info = namedtuple('info', 'canonical_pos, feature, codon' )
+
+SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
+NUM_PROC = 4
+
 class HlaPipeline( PBMultiToolRunner ):
 
     def __init__(self):
@@ -61,8 +68,9 @@ class HlaPipeline( PBMultiToolRunner ):
                             help="Only extract subreads longer than this from bas.h5 files")
         parser.add_argument("--phasr-args", dest="phasr_args", nargs='*', default=[''],
                 help="pass these args to phasr.")
-        parser.add_argument("--nproc", dest="nproc", default=int(1),
-                help="Number of processors to use for parallelized computing")
+        parser.add_argument("--nproc", type=int, 
+                            dest="nproc", default=NUM_PROC,
+                            help="Number of processors to use for parallelized computing")
         parser.add_argument("--log", dest="log", action='store_true', default=False,
                 help="Create log file.")
         parser.add_argument("--HGAP_dilute", dest="HGAP_dilute", default=int(1),
@@ -112,13 +120,25 @@ class HlaPipeline( PBMultiToolRunner ):
             h2.setLevel( logging.INFO )
             self.logger.addHandler( h2 )
         # Begin by logging both the invocation and welcome message
-        self.logger.info( "hla_pipeline envoked:\n\t%s" % " ".join(sys.argv) )
+        self.logger.info( "hla_pipeline invoked:\n\t%s" % " ".join(sys.argv) )
         self.logger.info( self.welcome_msg )
 
     def validate_settings( self ):
         if float(self.args.dilute_factor) <= float(0.0) or float(self.args.dilute_factor) > float(1.0):
             self.logger.info("Dilute factor must be between 0 and 1")
             raise SystemExit
+        # parse phasr args
+        self.phasr_argstring = ''
+        for argument in self.args.phasr_args:
+            if ':' in argument:
+                param, value = argument.split(":")
+                self.phasr_argstring += '--%s %s ' % (param, value)
+            elif 'output' in argument or 'cname' in argument:
+                pass    
+            else:
+                self.phasr_argstring += '--%s ' % argument
+        # Initialize the SmrtAnalysisTools
+        self.smrt_analysis = SmrtAnalysisRunner( SMRT_ANALYSIS, self.args.nproc )
 
     def getVersion(self):
         return __version__
@@ -126,10 +146,11 @@ class HlaPipeline( PBMultiToolRunner ):
     def __call__( self ):
         self.validate_bash5_files()
         self.extract_subreads()
-        self.sort_subreads()
-        self.summarize_subreads()
-        #self.phasing()   
-        #self.resequence()
+        self.create_locus_reference()
+        self.align_subreads()
+        self.summarize_aligned_subreads()
+        self.phase_subreads()   
+        self.resequence()
         #self.annotate()
 
     def validate_bash5_files( self ):
@@ -171,45 +192,54 @@ class HlaPipeline( PBMultiToolRunner ):
                 runbash( dump_reads_cline )
         self.logger.info('Finished the extraction of subread data\n')
 
-    def sort_subreads( self ):
+    def create_locus_reference( self ):
         # Assign reads to specific loci
-        self.logger.info("Assuming all bash5 files belong to the same sample, reads will be assigned to each locus based on best alignment..")
-        self.locus_dict={}
+        self.logger.info("Creating locus reference file for the data")
+        self.locus_dict = {}
         self.reference_sequences = self.args.proj + "/subreads/reference_sequences.fasta"
-        if self.args.choose_ref == None and not os.path.isfile( self.reference_sequences ):
+        self.locus_key = self.args.proj + "/subreads/locus_key.txt"
+        # First we check whether
+        if os.path.isfile( self.reference_sequences ) and os.path.isfile( self.locus_key ):
+            self.logger.info("Found existing locus reference panel, reading...")
+            with open(self.locus_key, "r") as handle:
+                for line in handle:
+                    gene, locus = line.strip().split()
+                    self.locus_dict[gene] = locus
+            self.logger.info("Finished reading locus reference panel")
+        # If no locus key and Choose_Ref is None, read the locus from the regular reference
+        elif self.args.choose_ref is None:
+            self.logger.info("No locus reference panel found, creating one...")
+            self.logger.info("Choose-Ref option not specified, using default references")
             ### get list of loci in reference fasta
-            with open(self.args.refs, "r") as f:
-                for line in f:
-                    fasta_fn = line.split()[0]
-                    locus = line.split()[1]
+            with open(self.args.refs, "r") as handle:
+                for line in handle:
+                    fasta_file, locus = line.strip().split()
                     try:
-                        f2 = FastaReader(fasta_fn)
-                        for r in f2:
-                            write_fasta([r], self.reference_sequences, "a")
-                            self.locus_dict[r.name]=locus
-                            with open(self.args.proj+"/subreads/locus_key.txt", "a") as of:
-                                print>>of, "%s %s" % (r.name, locus)
-                        break
+                        for record in FastaReader( fasta_file ):
+                            write_fasta([record], self.reference_sequences, "a")
+                            self.locus_dict[record.name] = locus
+                            with open(self.locus_key, "a") as of:
+                                print>>of, "%s %s" % (record.name, locus)
+                            break
                     except:
-                        self.logger.info("Could not read from reference fasta ( %s )" % fasta_fn )
-        
-        ### bin out reads based on which reference they align to
-        if self.args.choose_ref != None and not os.path.isfile(self.reference_sequences):
-            with open(self.args.choose_ref, "r") as f:          
-                ### if the --choose-ref option is selected we will choose two reference sequences
-                ### from the multifasta of sanger references for each locus, based on which two sequences aligned the most reads
-                ### we will only choose two references if the two sequences that aligned the most
-                ### reads are significantly different, this prevents us from splitting up 
-                ### our CLRs if the sample is really homozygous at that locus.
-                for line in f:
-                    reffasta = line.strip().split()[0]
-                    locus = line.strip().split()[1]
-                    if os.path.isfile(reffasta):
+                        msg = 'Could not read reference fasta "%s"' % fasta_file
+                        self.logger.info( msg )
+                        raise IOError( msg )
+        # If no locus key and Choose_Ref is set, read the loci from the Choose_Ref file
+        else:
+            ### if the --choose-ref option is selected we will choose two reference sequences
+            ### from the multifasta of sanger references for each locus, based on which two sequences aligned the most reads
+            ### we will only choose two references if the two sequences that aligned the most
+            ### reads are significantly different, this prevents us from splitting up 
+            ### our CLRs if the sample is really homozygous at that locus.
+            # TODO: Refactor this block
+            with open(self.args.choose_ref, "r") as handle:          
+                for line in handle:
+                    reffasta, locus = line.strip().split()
+                    if os.path.isfile( reffasta ):
                         pass
                     else:
                         self.logger.info("Cound not open multifasta ( %s )" % ( reffasta ) )
-                        continue
-                    
                     nCandidates = fasta_size(reffasta)
                     blasr_output = self.args.proj+"/subreads/"+reffasta.split("/")[-1].split(".")[0]+".blasr"
                     if not os.path.isfile(blasr_output):
@@ -231,12 +261,12 @@ class HlaPipeline( PBMultiToolRunner ):
                     best_ref = ref_align_counts.pop(0)
                     sequence = extract_sequence(reffasta, [ best_ref[1] ])
                     write_fasta(sequence, self.reference_sequences, "a")
-                    self.locus_dict[sequence[0].name]=locus
-                    with open(self.args.proj+"/subreads/locus_key.txt", "a") as of:
+                    self.locus_dict[sequence[0].name] = locus
+                    with open(self.locus_key, "a") as of:
                         print>>of, "%s %s" % (sequence[0].name, locus)
                     ref_fn = self.args.proj+"/subreads/"+reffasta.split("/")[-1]+"_ref"
                     self.logger.info("Best ref ( %s ) aligned ( %s ) reads at score < -10000." % (best_ref[1], best_ref[0]) )
-                    while 1:
+                    while True:
                         try:
                             potential_ref = ref_align_counts.pop(0)
                             self.logger.info("( %s ) aligned ( %s ) reads at score < -10000." % (potential_ref[1], potential_ref[0]) ) 
@@ -259,129 +289,284 @@ class HlaPipeline( PBMultiToolRunner ):
                             sequence = extract_sequence(reffasta, [second_best_ref[1] ] )
                             write_fasta(sequence, self.reference_sequences, "a")
                             self.locus_dict[sequence[0].name] = locus
-                            with open(self.args.proj+"/subreads/locus_key.txt", "a") as of:
+                            with open(self.locus_key, "a") as of:
                                 print>>of, "%s %s" % (sequence[0].name, locus)
                             break
+        self.logger.info("Finished creating locus reference\n")
 
-        if os.path.isfile(self.reference_sequences) and os.path.isfile(self.args.proj+"/subreads/locus_key.txt"):
-            with open(self.args.proj+"/subreads/locus_key.txt", "r") as f:
-                for line in f:
-                    self.locus_dict[line.strip().split()[0]] = line.strip().split()[1]
-            self.logger.info("Already found reference panel.")
-            
+    def align_subreads( self ):
+        self.logger.info("Beginning alignment of data to selected references")
         self.sam_file = self.args.proj+"/subreads/read_dump.sam"   
-        if not os.path.isfile( self.sam_file ):
-            f = FastaReader( self.reference_sequences )
-            ref_count = fasta_size( self.reference_sequences )
-            self.logger.info( "Aligning all raw reads to ( %s ) reference sequences" % ref_count)
-            blasr_cline = "blasr %s %s -bestn 1 -nCandidates %s -noSplitSubreads -sam -nproc %s -out %s" % (self.read_dump_file, 
-                                                                                                            self.reference_sequences, 
-                                                                                                            ref_count, 
-                                                                                                            self.args.nproc, 
-                                                                                                            self.sam_file)
-            runbash( blasr_cline )
-            if not os.path.isfile( self.sam_file ):
-                self.logger.info("Blasr returned no output for locus assignment. Exiting subread extraction step.")
-                return 
-        else:
-            self.logger.info("Already found sam file at ( %s ). Will skip locus assignment." %  self.sam_file )
+        if os.path.isfile( self.sam_file ):
+            self.logger.info("Found existing SAM file, skipping alignment step...")
+            return
+        ref_count = fasta_size( self.reference_sequences )
+        self.logger.info( "Aligning all raw reads to ( %s ) reference sequences" % ref_count)
+        # TODO: Move Blasr calls to their own module
+        blasr_cline = "blasr %s %s -bestn 1 -nCandidates %s -noSplitSubreads -sam -nproc %s -out %s" % (self.read_dump_file, 
+                                                                                                        self.reference_sequences, 
+                                                                                                        ref_count, 
+                                                                                                        self.args.nproc, 
+                                                                                                        self.sam_file)
+        runbash( blasr_cline )
+        try:
+            assert os.path.isfile( self.sam_file )
+        except:
+            msg = 'Blasr returned no output for locus assignment'
+            self.logger.info( msg )
+            raise IOError( msg )
+        self.logger.info("Finished aligning data to selected references")
 
-    def summarize_subreads( self ):
-        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
+    def summarize_aligned_subreads( self ):
+        self.logger.info("Assigning subreads to their")
         self.subread_files = self.args.proj + "/subreads/subread_files.txt"
+        self.unmapped_reads = self.args.proj + "/subreads/unmapped_reads.fasta"
+        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
         if os.path.isfile( self.subread_files ):
             self.logger.info("Already found subread files at ( %s )" % self.subread_files )
-        else:
-            read_cluster_map = {}
-            subread_files = {}
-            stats = SubreadStats( self.reference_sequences, self.locus_dict )
-            f = SamReader( self.sam_file )
-            for alignment in f:
-                stats.loci[self.locus_dict[alignment.rname]]['aligned_reads']+=1
-                if 'fp' in alignment.qname: stats.loci[self.locus_dict[alignment.rname]]['aligned_fp_reads']+=1
-                stats.loci[self.locus_dict[alignment.rname]]['aligned_bp']+=alignment.aln_length
-                if 'fp' in alignment.qname: stats.loci[self.locus_dict[alignment.rname]]['aligned_bp']+=alignment.aln_length
-                read_cluster_map[alignment.qname]=alignment.rname
-            
-            f = FastaReader( self.read_dump_file )
-            for r in f:
-                stats.total_reads+=1
-                if 'fp' in r.name: stats.total_fp_reads+=1
-                try:
-                    name=read_cluster_map[r.name]
-                    locus=self.locus_dict[read_cluster_map[r.name]]
-                    stats.loci[locus]['raw_bp']+=len(r.sequence)
-                    if 'fp' in r.name: stats.loci[locus]['raw_fp_bp']+=len(r.sequence)
-                    write_fasta([r], self.args.proj+"/subreads/"+name+"_mapped_reads.fasta", "a")
-                    subread_files[name] = [ self.args.proj+"/subreads/"+name+"_mapped_reads.fasta", name, locus]
-                except KeyError:
-                    write_fasta([r], self.args.proj+"/subreads/unmapped_reads.fasta", "a")
-            ### write out a text file that can act a legend for which fasta file of clustered reads
-            ### corresponds to which template from the reference file and which locus
-            with open( self.subread_files , "w") as of:
-                for item in subread_files.itervalues():
-                    print >>of, "%s %s %s" % ( item[0], item[1], item[2]  )
-                print >>of, "%s %s %s" % ( self.args.proj+"/subreads/unmapped_reads.fasta", "unmapped", "unmapped") 
-            
-            ### finally write out the subread statistics
-            create_directory( self.args.proj+"/statistics" )
-            stats.write( self.args.proj+"/statistics/" )
+            return
+        read_cluster_map = {}
+        cluster_files = {}
+        stats = SubreadStats( self.reference_sequences, self.locus_dict )
+        # First
+        for alignment in SamReader( self.sam_file ):
+            stats.loci[self.locus_dict[alignment.rname]]['aligned_reads'] += 1
+            read_cluster_map[alignment.qname] = alignment.rname
+            if alignment.qname.startswith('fp'): 
+                stats.loci[self.locus_dict[alignment.rname]]['aligned_fp_reads'] += 1
+                stats.loci[self.locus_dict[alignment.rname]]['aligned_bp'] += alignment.aln_length
+        # Next
+        for record in FastaReader( self.read_dump_file ):
+            stats.total_reads += 1
+            if record.name.startswith('fp'): 
+                stats.total_fp_reads += 1
+            try:
+                name = read_cluster_map[record.name]
+                locus = self.locus_dict[read_cluster_map[record.name]]
+                stats.loci[locus]['raw_bp'] += len(record.sequence)
+                if record.name.startswith('fp'):
+                    stats.loci[locus]['raw_fp_bp'] += len(record.sequence)
+                cluster_file = self.args.proj + "/subreads/" + name + "_mapped_reads.fasta"
+                write_fasta([record], cluster_file, "a")
+                cluster_files[name] = [ cluster_file, name, locus ]
+            except KeyError:
+                write_fasta([record], self.unmapped_reads, "a")
+        ### write out a text file that can act a legend for which fasta file of clustered reads
+        ### corresponds to which template from the reference file and which locus
+        with open( self.subread_files , "w") as of:
+            for item in cluster_files.itervalues():
+                print >>of, "%s %s %s" % ( item[0], item[1], item[2]  )
+            print >>of, "%s %s %s" % ( self.unmapped_reads, "unmapped", "unmapped") 
+        ### finally write out the subread statistics
+        create_directory( self.args.proj+"/statistics" )
+        stats.write( self.args.proj+"/statistics/" )
 
-"""
-    def phasing(self):
-        if not os.path.isfile( self.subread_files ):
-        self.logger.info("Phasing skipped.")
-        return 0    
-        self.logger.info("Phasing begun.")
+    def phase_subreads( self ):
+        self.logger.info("Starting the sub-read phasing process...")
         try:
-            os.mkdir(self.args.proj+"/phased")
-        except:
-            pass
-        with open( self.subread_files ) as f:
-            subread_files=[]
-            file_info = namedtuple('file_info', 'fasta_fn, ref_name, locus')
-            for line in f:
-            subread_files.append(file_info._make(line.strip().split()))
-        phasr_output_files=[]
-
+            assert os.path.isfile( self.subread_files )
+        except AssertionError:
+            msg = "No Subread File found!"
+            self.logger.info( msg )
+            raise IOError( msg )
+        # First 
+        create_directory( self.args.proj+"/phased" )
+        subread_files = []
+        with open( self.subread_files ) as handle:
+            for line in handle:
+                info_tuple = file_info._make( line.strip().split() )
+                subread_files.append( info_tuple )
         ### run through the subreads files to figure out which loci should actually be run through phasr
         ### if there are already two subread files for a single locus, theres little point in running through phasr
         ### as the two alleles are already well separated
         loci_count = Counter([ x.locus for x in subread_files ])
         to_be_phased={}
         for item in loci_count.iteritems():
-        if item[1] == 1:
-            to_be_phased[item[0]] = False
-        else:
-            to_be_phased[item[0]] = True
-        seq_to_locus={}
+            if item[1] == 1:
+                to_be_phased[item[0]] = False
+            else:
+                to_be_phased[item[0]] = True
         
+        seq_to_locus={}
+        backbone_fasta = self.args.proj+"/phased/backbone.fa"
+        self.hap_con_fasta = self.args.proj + "/phased/haplotype_consensus_sequences.fasta"
         for item in subread_files:
-        ref_name = item.ref_name
-        locus = item.locus
-        fasta_fn = item.fasta_fn
-        ### if these are the unmapped reads we are going to run them through HGAp
-        if locus == "unmapped":
-            if not self.args.HGAP:
-            continue
+            ref_name = item.ref_name
+            locus = item.locus
+            fasta_file = item.fasta_fn
+            ### if these are the unmapped reads we are going to run them through HGAp
+            if locus == "unmapped":
+                if self.args.HGAP:
+                    pass
+                    #phase_unmapped_reads()
+                continue
+            
+            phasr_output = self.args.proj+"/phased/"+ref_name+"_haplotype_consensus.fa"
+
+            ### extract the reference sequence that was used to "cluster" this group of reads
+            sequence = extract_sequence(self.reference_sequences, [ ref_name ] )
+            write_fasta(sequence, backbone_fasta, "w")
+            
             try:
-            os.mkdir(self.args.proj+"/unmapped")    
+                assert os.path.isfile( fasta_file )
             except:
-            pass
-            num_unmapped_reads = fasta_size(fasta_fn)
-            self.logger.info("There are ( %s ) unmapped reads, ( %s ) percent will be passed to HGAP." % ( num_unmapped_reads, self.args.HGAP_dilute) )
-            f = FastaReader(fasta_fn)
-            with open(self.args.proj+"/unmapped/HGAP_input.fasta", "w") as of:
+                msg = "Could not open ( %s ). Skipping." % fasta_file
+                self.logger.info( msg )
+                raise IOError( msg )
+
+            if os.path.isfile(phasr_output):
+                for record in FastaReader(phasr_output):
+                    seq_to_locus[record.name] = locus
+                self.logger.info("Found phasr output for ( %s ) in ( %s ). Skipping." % (fasta_file, phasr_output))
+                continue
+            
+            ### if this locus is not to be phased, we can just set max recursion level to 0, and phasr will build regular consensus
+            if self.args.avoid_phasr and not to_be_phased[locus]:
+                self.logger.info('Running Gcon instead of Phasr for "%s"' % fasta_file)
+                argstring = re.sub('--max_recursion_level [0-9]',
+                                   '--max_recursion_level 0',
+                                   self.phasr_argstring)
+                argstring += ' --max_recursion_level 0'
+            else:
+                self.logger.info('Running  Phasr on "%s"' % fasta_file)
+                argstring = self.phasr_argstring
+            phasr_cmd = "phasr %s --ref %s\
+                --output %s \
+                --log \
+                %s" % ( fasta_file, backbone_fasta, phasr_output, self.phasr_argstring)
+            ### run phasr
+            self.logger.info("phasr invoked: %s" % phasr_cmd)
+            check_output(". /home/UNIXHOME/jquinn/HGAP_env/bin/activate; %s" % (phasr_cmd),  
+                         executable='/bin/bash', shell=True)
+            if os.path.isfile( phasr_output ):
+                output_count = fasta_size(phasr_output)
+                self.logger.info('Phasr output %s seqs to "%s"' % ( output_count, phasr_output) )
+                ### append results to multifasta
+                runbash( "cat %s >> %s" % (phasr_output, self.hap_con_fasta) )
+                for record in FastaReader(phasr_output):
+                    seq_to_locus[record.name] = locus
+                ### create record of files created
+                with open(self.args.proj+"/phased/phasr_output_files.txt", "a") as of:
+                    print >>of, "%s %s %s" % (phasr_output, ref_name, locus)
+        # Finally, we write a summary of our Phasr outputs to file
+        with open(self.args.proj+"/phased/phasr_output_seqs.txt", "w") as of:
+            for item in seq_to_locus.iteritems():
+                print >>of, "%s %s" % (item[0], item[1])
+        phasr_output_count = fasta_size( self.hap_con_fasta )
+        self.logger.info("Phasr created %s sequence(s) total" % phasr_output_count )
+        self.logger.info("Phasing complete.")
+
+    def resequence(self, step=1):
+        ### TODO: maybe adjust compare seq options so that euqal mapping are not assigned randomly...
+        ### we resequence once, elminate redundant clusters, then resequence the remaining clusters
+        ### to avoid splitting our CLRs over clusters that respresent the same template 
+        self.logger.info("Resequencing step %s begun." % ( str(step) ))
+        create_directory( self.args.proj+"/reseq" )
+        
+        reseq_references = self.args.proj+"/reseq/reseq_references_%s.fasta" % step
+        reseq_output = self.args.proj+"/reseq/reseq_output_%s" % step
+        reseq_fasta = reseq_output + ".fasta"
+        reseq_fastq = reseq_output + ".fastq"
+        reseq_variant_gff = reseq_output + "_variants.gff"
+        reseq_coverage_gff = reseq_output + "_coverage.gff"
+        reseq_coverage = reseq_output + "_coverage.txt"
+        if os.path.isfile( reseq_output+".fasta" ):
+            self.logger.info("Already found reseq output at ( %s )." % ( reseq_output+".fasta") )
+        if not os.path.isfile( reseq_references ):
+            if step == 1:
+                ### combine the denovo preassembled trimmed reads with the phasr output
+                try:
+                    runbash(" cat %s %s > %s" % (self.args.proj+"/unmapped/pre_assembled_reads_trimmed.fasta", self.hap_con_fasta, reseq_references) ) 
+                except:
+                    runbash(" cat %s > %s" % (self.hap_con_fasta, reseq_references) )
+
+        ### create a .cmp.h5
+        self.reference_alignment = os.path.join(self.args.proj + "/reseq/reference.cmp.h5")
+        if not os.path.isfile( self.reference_alignment ):
+            self.smrt_analysis.compare_sequences( self.args.bash5, 
+                                                  self.reference_alignment,
+                                                  reseq_references )
+
+            self.smrt_analysis.load_pulses( self.args.bash5, self.reference_alignment )
+            self.smrt_analysis.sort_cmpH5( self.reference_alignment )
+        
+        ### run quiver 
+        if not os.path.isfile( reseq_fasta ):
+            self.smrt_analysis.quiver( self.reference_alignment,
+                                       reseq_references, 
+                                       reseq_fasta, 
+                                       reseq_fastq,
+                                       reseq_gff)
+        
+        ## Summarize the coverage
+        self.consensus_alignment = self.args.proj + "/reseq/consensus.cmp.h5",
+        if not os.path.isfile( self.consensus_alignment ):
+            self.smrt_analysis.compare_sequences( self.args.bash5,
+                                                  self.consensus_alignment,
+                                                  reseq_fasta )
+            self.smrt_analysis.sort_cmpH5( self.consensus_alignment )
+
+        ref_dir = "reseq_references_" + str(step)
+        ref_dir_path = os.path.join(self.args.proj, 'reseq', ref_dir)
+        if not os.path.exists( ref_dir ):
+            self.smrt_analysis.reference_uploader( reseq_fasta, ref_dir, reseq_dir ) 
+        
+        if not os.path.isfile( reseq_coverage_gff ):
+            self.smrt_analysis.summarize_coverage( self.consensus_alignment,
+                                                   ref_dir, 
+                                                   reseq_coverage_gff ) 
+
+        if not os.path.isfile( reseq_coverage ):
+            runbash("sed \'/^#/d\' %s | awk \'function getcov (entry) { split(entry,a,\",\"); out=substr(a[1],6,length(a[1])); return out } \
+                BEGIN{ n=0; t=0; print \"Seq_Name\",\"Avg_Cov\" }\
+                { if( NR == 1) { n+=1; t+=getcov($9); last=$1 } else { if( $1 == last ) { n+=1; t+=getcov($9) } else { print last,(t/n) ; n=0; t=0; n+=1; t+=getcov($9); last=$1 } } }\
+                END{ print last,(t/n) }\' > %s" % ( reseq_coverage_gff, 
+                                                    reseq_coverage ))
+
+"""
+        if not os.path.isfile(self.args.proj+"/reseq/quality_summary_%s.txt" % ( step) ):
+        ### create a .txt with average consensus Qv for each sequence
+        f = FastqReader(reseq_output+".fastq")
+        with open(self.args.proj+"/reseq/quality_summary_%s.txt" % ( step), "w" ) as of:
             for r in f:
-                if random.random() < float(self.args.HGAP_dilute):
-                print>>of, ">"+r.name
-                print>>of, r.sequence
-            fasta_fn = self.args.proj+"/unmapped/HGAP_input.fasta"
-                
-            ### these are the options that get passed to HGAP
-            ### ive chosen not to make them available at the command line because theres too damn many
-            ### and I dont know what most of them do anyway
-            HGAP_config = """
+            print>>of, "%s %s" % (r.name, sum([ (ord(x) - 33 ) for x in r.quality ])/float(len(r.quality)))
+
+        ### separate out resequenced HLA sequences from the nonspecific ones, by sequence name, store in two different files
+        ### TODO: read fastq output, parse consnesus QV, store somewhere the annotator can get at it
+        target_seq_names=[]
+        for record in FastaReader(self.hap_con_fasta):
+        target_seq_names.append( record.name )
+        with FastaWriter(self.args.proj+"/reseq/resequenced_hap_con.fasta") as on_target: 
+        with FastaWriter(self.args.proj+"/reseq/resequenced_nonspecific.fasta") as off_target:
+            for record in FastaReader(reseq_output+".fasta"):
+            if record.name.split("|")[0] in target_seq_names:
+                on_target.writeRecord( record )
+            else:
+                off_target.writeRecord( record )
+        with FastqWriter(self.args.proj+"/reseq/resequenced_hap_con.fastq") as on_target:
+        with FastqWriter(self.args.proj+"/reseq/resequenced_nonspecific.fastq") as off_target:
+            for record in FastqReader(reseq_output+".fastq"):
+            if record.name.split("|")[0] in target_seq_names:
+                on_target.writeRecord( record )
+            else:   
+                off_target.writeRecord( record )
+        
+    def phase_unmapped_reads( self ):
+        create_directory( self.args.proj+"/unmapped" )
+        num_unmapped_reads = fasta_size(fasta_fn)
+        self.logger.info("There are ( %s ) unmapped reads, ( %s ) percent will be passed to HGAP." % ( num_unmapped_reads, self.args.HGAP_dilute) )
+        f = FastaReader(fasta_fn)
+        with open(self.args.proj+"/unmapped/HGAP_input.fasta", "w") as of:
+        for r in f:
+            if random.random() < float(self.args.HGAP_dilute):
+            print>>of, ">"+r.name
+            print>>of, r.sequence
+        fasta_fn = self.args.proj+"/unmapped/HGAP_input.fasta"
+            
+        ### these are the options that get passed to HGAP
+        ### ive chosen not to make them available at the command line because theres too damn many
+        ### and I dont know what most of them do anyway
+        HGAP_config = """
 """
 [General]
 input_fofn = %s
@@ -409,232 +594,23 @@ chunk_bestn = 5
 q_nproc = 4 
 """
 """     % ( self.args.proj+"/unmapped/input.fofn" )     
-            with open(self.args.proj+"/unmapped/HGAP.cfg", "w") as of: print>>of, HGAP_config
-            with open(self.args.proj+"/unmapped/input.fofn", "w") as of: print>>of, fasta_fn
-            ### this is the HGAp I hacked to allow a fasta as input
-            HGAP_executable = '/home/UNIXHOME/jquinn/HLA/HGAp/HGAP_JQ.py' 
-            self.logger.info("HGAP envoked")
-            output = check_output( "source /home/UNIXHOME/jchin/Share/HGA_env/bin/activate; cd %s/unmapped; %s %s" % (self.args.proj, HGAP_executable, self.args.proj+"/unmapped/HGAP.cfg"), executable='/bin/bash', shell=True )       
-            self.logger.info("HGAP exited with the following output:\n%s" % output )
-            runbash("cat %s > %s" % (self.args.proj+"/unmapped/dist_map/pre_assembled_reads_*.fa", self.args.proj+"/unmapped/pre_assembled_reads.fasta") )
-            self.logger.info("HGAP created ( %s ) PLRs." % ( fasta_size(self.args.proj+"/unmapped/pre_assembled_reads.fasta") ) )
-            trim_fasta(self.args.proj+"/unmapped/pre_assembled_reads.fasta", 
-                self.args.proj+"/unmapped/pre_assembled_reads_trimmed.fasta", 
-                mode="redundant", 
-                pctid_threshold=float(90), 
-                coverage=None, 
-                aln_portion=float(0.50) )   
-            self.logger.info("After trimming there are ( %s ) unique PLRs" % ( fasta_size(self.args.proj+"/unmapped/pre_assembled_reads_trimmed.fasta") ) )
-            continue
-                
-            
-        backbone_fasta=self.args.proj+"/phased/backbone.fa"
-        phasr_output=self.args.proj+"/phased/"+ref_name+"_haplotype_consensus.fa"
+        with open(self.args.proj+"/unmapped/HGAP.cfg", "w") as of: print>>of, HGAP_config
+        with open(self.args.proj+"/unmapped/input.fofn", "w") as of: print>>of, fasta_fn
+        ### this is the HGAp I hacked to allow a fasta as input
+        HGAP_executable = '/home/UNIXHOME/jquinn/HLA/HGAp/HGAP_JQ.py' 
+        self.logger.info("HGAP envoked")
+        output = check_output( "source /home/UNIXHOME/jchin/Share/HGA_env/bin/activate; cd %s/unmapped; %s %s" % (self.args.proj, HGAP_executable, self.args.proj+"/unmapped/HGAP.cfg"), executable='/bin/bash', shell=True )       
+        self.logger.info("HGAP exited with the following output:\n%s" % output )
+        runbash("cat %s > %s" % (self.args.proj+"/unmapped/dist_map/pre_assembled_reads_*.fa", self.args.proj+"/unmapped/pre_assembled_reads.fasta") )
+        self.logger.info("HGAP created ( %s ) PLRs." % ( fasta_size(self.args.proj+"/unmapped/pre_assembled_reads.fasta") ) )
+        trim_fasta(self.args.proj+"/unmapped/pre_assembled_reads.fasta", 
+            self.args.proj+"/unmapped/pre_assembled_reads_trimmed.fasta", 
+            mode="redundant", 
+            pctid_threshold=float(90), 
+            coverage=None, 
+            aln_portion=float(0.50) )   
+        self.logger.info("After trimming there are ( %s ) unique PLRs" % ( fasta_size(self.args.proj+"/unmapped/pre_assembled_reads_trimmed.fasta") ) )
 
-        ### extract the reference sequence that was used to "cluster" this group of reads
-        sequence = extract_sequence(self.reference_sequences, [ ref_name ] )
-        write_fasta(sequence, backbone_fasta, "w")
-        
-        if not os.path.isfile(fasta_fn):
-            self.logger.info("Could not open ( %s ). Skipping." % (fasta_fn) )
-            continue
-        if os.path.isfile(phasr_output):
-            f = FastaReader(phasr_output)
-            for r in f:
-            seq_to_locus[r.name] = locus
-            self.logger.info("Already found phasr output for ( %s ) in ( %s ). Skipping." % (fasta_fn, phasr_output))
-            continue
-        
-        ### parse phasr args
-        argstring=''
-        for argument in self.args.phasr_args:
-            if ':' in argument:
-                argument = argument.split(":")
-                argstring+='--'+argument[0]+' '+argument[1]+' '
-            elif 'output' in argument or 'cname' in argument:
-                pass    
-            else:
-                argstring+='--'+argument+' '
-        ### if this locus is not to be phased, we can just set max recursion level to 0, and phasr will build regular consensus
-        if self.args.avoid_phasr:
-            if not to_be_phased[locus]:
-            argstring = re.sub('--max_recursion_level [0-9]','--max_recursion_level 0',argstring)
-            argstring+=' --max_recursion_level 0'
-            self.logger.info("Phasr will not be run on ( %s ). Will run graph consensus." % fasta_fn )
-        phasr_cmd = "phasr %s --ref %s\
-            --output %s \
-            --log \
-            %s" % ( fasta_fn, backbone_fasta, phasr_output, argstring)
-        ### run phasr
-        self.logger.info("phasr envoked: %s" % phasr_cmd)
-        check_output(". /home/UNIXHOME/jquinn/HGAP_env/bin/activate; %s" % (phasr_cmd),  executable='/bin/bash', shell=True)
-        if os.path.isfile(phasr_output):
-            self.logger.info("Phasr output ( %s ) seqs to ( %s )" % ( fasta_size(phasr_output), phasr_output) )
-
-            ### append results to multifasta
-            runbash("cat %s >> %s" % (phasr_output, self.args.proj+"/phased/haplotype_consensus_sequences.fasta") )
-            f = FastaReader(phasr_output)
-            for r in f:
-            seq_to_locus[r.name] = locus
-                
-
-            ### create record of files created
-            with open(self.args.proj+"/phased/phasr_output_files.txt", "a") as of:
-            print >>of, "%s %s %s" % (phasr_output, ref_name, locus)
-        with open(self.args.proj+"/phased/phasr_output_seqs.txt", "w") as of:
-        for item in seq_to_locus.iteritems():
-            print >>of, "%s %s" % (item[0], item[1])
-        self.logger.info("Phasr created ( %s ) sequence(s) total" % ( fasta_size(self.args.proj+"/phased/haplotype_consensus_sequences.fasta") ) )
-        
-        self.logger.info("Phasing complete.")
-        return 0
-        
-
-    def resequence(self, step=1):
-        ### TODO: maybe adjust compare seq options so that euqal mapping are not assigned randomly...
-        ### we resequence once, elminate redundant clusters, then resequence the remaining clusters
-        ### to avoid splitting our CLRs over clusters that respresent the same template 
-        self.logger.info("Resequencing step %s begun." % ( str(step) ))
-        try:
-        os.mkdir(self.args.proj+"/reseq")
-        except:
-        pass
-            
-        reseq_references=self.args.proj+"/reseq/reseq_references_%s.fasta" % (step)
-        reseq_output=self.args.proj+"/reseq/reseq_output_%s" % (step)
-        if os.path.isfile(reseq_output+".fasta"): 
-        self.logger.info("Already found reseq output at ( %s )." % ( reseq_output+".fasta") )
-        if not os.path.isfile(reseq_references):
-        if step == 1:
-            ### combine the denovo preassembled trimmed reads with the phasr output
-            try:
-            runbash(" cat %s %s > %s" % (self.args.proj+"/unmapped/pre_assembled_reads_trimmed.fasta", self.args.proj+"/phased/haplotype_consensus_sequences.fasta", reseq_references) ) 
-            except:
-            runbash(" cat %s > %s" % (self.args.proj+"/phased/haplotype_consensus_sequences.fasta", reseq_references) )
-
-        ### create a .cmp.h5
-        if not os.path.isfile(self.args.proj+"/reseq/reads.cmp.h5"):
-        self.logger.info("compareSequences.py begun.")
-        output = check_output("source /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-        compareSequences.py \
-            --minAccuracy=0.75 \
-            --minLength=50 \
-            --placeRepeatsRandomly \
-            --minLength=500 \
-            --useQuality \
-            --h5pbi \
-            --info \
-            --nproc=4 \
-            -x -bestn 1 -x -nCandidates 30 \
-            --refSeqName=HLA \
-            --algorithm=blasr \
-            --noiseData=\"-77.27,0.08654,0.00121\" \
-            --h5fn=%s  \
-            %s \
-            %s" % ( self.args.proj+"/reseq/reads.cmp.h5", 
-                self.args.bash5, 
-                reseq_references ), executable='/bin/bash', shell=True) 
-        self.logger.info("Compare sequences executed with the following messages:\n%s" % output)
-
-        ### load pulses to .cmp.h5
-        self.logger.info("Load pulses begun.")
-        output = check_output("source /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-        loadPulses \
-        %s \
-        %s \
-        -metrics DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag" % \
-        ( self.args.bash5, self.args.proj+"/reseq/reads.cmp.h5" ), executable='/bin/bash', shell=True )
-        self.logger.info("Load pulses executed with the following messages:\n%s" % output)
-
-        if not os.path.isfile(reseq_output+".fastq"):
-        ### run quiver 
-        output = check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-            cmph5tools.py sort %s; \
-            variantCaller.py \
-                --noEvidenceConsensusCall reference \
-                --algorithm=quiver \
-                -j4  \
-                -r %s \
-                -o %s \
-                -o %s \
-                -o %s \
-                %s " % \
-            ( self.args.proj+"/reseq/reads.cmp.h5",
-            reseq_references, 
-            self.args.proj+"/reseq/variants.gff", 
-            reseq_output+".fasta", 
-            reseq_output+".fastq",
-            self.args.proj+"/reseq/reads.cmp.h5" ), executable='/bin/bash', shell=True)
-        self.logger.info("Variant caller executed with the following messages:\n%s" % output)
-
-        if not os.path.isfile(self.args.proj+"/reseq/coverage_summary_%s.txt" % ( step) ):
-        ### make new cmph5 after this previous seq cleaning step
-        self.logger.info("compareSequences.py begun.")
-        output = check_output("source /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-        compareSequences.py \
-            --minAccuracy=0.75 \
-            --placeRepeatsRandomly \
-            --minLength=500 \
-            --useQuality \
-            --h5pbi \
-            --info \
-            --nproc=4 \
-            -x -bestn 1 -x -nCandidates 30 \
-            --refSeqName=HLA \
-            --algorithm=blasr \
-            --noiseData=\"-77.27,0.08654,0.00121\" \
-            --h5fn=%s  \
-            %s \
-            %s" % ( self.args.proj+"/reseq/reads.cmp.h5",
-                self.args.bash5,
-                reseq_output+".fasta" ), executable='/bin/bash', shell=True)
-        self.logger.info("Compare sequences executed with the following messages:\n%s" % output)
-
-        ### get coverage info
-        self.logger.info("Coverage summary begun.")
-        output = check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-            referenceUploader -c -f %s -n %s -p %s 2>&1" % (reseq_output+".fasta", "reseq_references_"+str(step), self.args.proj+"/reseq/"), 
-            executable='/bin/bash', shell=True)
-        ref_dir = self.args.proj+"/reseq/reseq_references_"+str(step)
-        output = check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-                    cmph5tools.py sort %s; \
-        summarizeCoverage.py %s --reference %s --regionSize 1 > %s" % (self.args.proj+"/reseq/reads.cmp.h5", self.args.proj+"/reseq/reads.cmp.h5", ref_dir, self.args.proj+"/reseq/coverage_%s.gff" % ( step) ),
-            executable='/bin/bash', shell=True)
-
-        ### create a .txt with two space delimited columns, column 1 = seq name, column 2 = avg coverage
-        ### TODO: maybe make this not be an awk oneliner for readability
-        runbash("sed \'/^#/d\' %s | awk \'function getcov (entry) { split(entry,a,\",\"); out=substr(a[1],6,length(a[1])); return out } \
-            BEGIN{ n=0; t=0; print \"Seq_Name\",\"Avg_Cov\" }\
-            { if( NR == 1) { n+=1; t+=getcov($9); last=$1 } else { if( $1 == last ) { n+=1; t+=getcov($9) } else { print last,(t/n) ; n=0; t=0; n+=1; t+=getcov($9); last=$1 } } }\
-            END{ print last,(t/n) }\' > %s" % ( self.args.proj+"/reseq/coverage_%s.gff" % (step), self.args.proj+"/reseq/coverage_summary_%s.txt" % (step) ) )
-
-        if not os.path.isfile(self.args.proj+"/reseq/quality_summary_%s.txt" % ( step) ):
-        ### create a .txt with average consensus Qv for each sequence
-        f = FastqReader(reseq_output+".fastq")
-        with open(self.args.proj+"/reseq/quality_summary_%s.txt" % ( step), "w" ) as of:
-            for r in f:
-            print>>of, "%s %s" % (r.name, sum([ (ord(x) - 33 ) for x in r.quality ])/float(len(r.quality)))
-
-        ### separate out resequenced HLA sequences from the nonspecific ones, by sequence name, store in two different files
-        ### TODO: read fastq output, parse consnesus QV, store somewhere the annotator can get at it
-        target_seq_names=[]
-        for record in FastaReader(self.args.proj+"/phased/haplotype_consensus_sequences.fasta"):
-        target_seq_names.append( record.name )
-        with FastaWriter(self.args.proj+"/reseq/resequenced_hap_con.fasta") as on_target: 
-        with FastaWriter(self.args.proj+"/reseq/resequenced_nonspecific.fasta") as off_target:
-            for record in FastaReader(reseq_output+".fasta"):
-            if record.name.split("|")[0] in target_seq_names:
-                on_target.writeRecord( record )
-            else:
-                off_target.writeRecord( record )
-        with FastqWriter(self.args.proj+"/reseq/resequenced_hap_con.fastq") as on_target:
-        with FastqWriter(self.args.proj+"/reseq/resequenced_nonspecific.fastq") as off_target:
-            for record in FastqReader(reseq_output+".fastq"):
-            if record.name.split("|")[0] in target_seq_names:
-                on_target.writeRecord( record )
-            else:   
-                off_target.writeRecord( record )
-        
     def annotate(self):     
         if not self.args.annotate:
         return 0
@@ -686,7 +662,6 @@ q_nproc = 4
         ### read in profile features
         MSA_info_fn = MSA_info_fn_dict[locus]
         MSA_info = {}
-        info = namedtuple('info', 'canonical_pos, feature, codon' )
         with open(MSA_info_fn, "r") as f2:
             for line in f2:
             line = line.strip().split()
