@@ -12,16 +12,16 @@ from collections import namedtuple, Counter
 from pbcore.util.ToolRunner import PBMultiToolRunner
 from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 
-from pbtools.pbhla.io.SamIO import SamReader
-from pbtools.pbhla.io.FastaIO import FastaReader, FastaWriter
-from pbtools.pbhla.io.FastqIO import FastqReader, FastqWriter
-from pbtools.pbhla.io.BlasrIO import parse_blasr
-from pbtools.pbhla.io.GffIO import create_annotation, create_var_annotation
-from pbtools.pbhla.stats.SubreadStats import SubreadStats
-from pbtools.pbhla.align.MultiSequenceAligner import MSA_aligner
-from pbtools.pbhla.smrtanalysis.SmrtAnalysisTools import SmrtAnalysisRunner
-from pbtools.pbhla.utils import make_rand_string, getbash, runbash, create_directory
-from pbtools.pbhla.fasta.Utils import write_fasta, fasta_size, extract_sequence, trim_fasta
+from pbhla.io.SamIO import SamReader
+from pbhla.io.FastaIO import FastaReader, FastaWriter
+from pbhla.io.FastqIO import FastqReader, FastqWriter
+from pbhla.io.BlasrIO import parse_blasr
+from pbhla.io.GffIO import create_annotation, create_var_annotation
+from pbhla.stats.SubreadStats import SubreadStats
+from pbhla.align.MultiSequenceAligner import MSA_aligner
+from pbhla.smrtanalysis.SmrtAnalysisTools import SmrtAnalysisRunner
+from pbhla.utils import make_rand_string, getbash, runbash, create_directory
+from pbhla.fasta.Utils import write_fasta, fasta_size, extract_sequence, trim_fasta
 
 __version__ = "0.1.0"
  

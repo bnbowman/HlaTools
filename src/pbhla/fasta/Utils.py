@@ -1,8 +1,8 @@
 #!/home/UNIXHOME/jquinn/HGAP_env/bin/python
 from pbcore.io.FastaIO import FastaReader
 
-from pbtools.pbhla.io.BlasrIO import parse_blasr
-from pbtools.pbhla.utils import make_rand_string, getbash, runbash
+from pbhla.io.BlasrIO import parse_blasr
+from pbhla.utils import make_rand_string, getbash, runbash
 
 def write_fasta(fasta_obj, outfile, mode = "w"):
     with open(outfile, mode) as of:
