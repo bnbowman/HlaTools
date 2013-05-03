@@ -53,10 +53,12 @@ class HlaPipeline( PBMultiToolRunner ):
                 help="This is a space delimited text file with two columns: (path to fasta) (locus) \n \
                 Path to fasta points to a single sequence fasta file. \n \
                 Sequences will be used to sort reads into groups, and as a backbone for the phasing of each cluster.")
-        parser.add_argument("--choose-ref", default=None,
+        parser.add_argument("--choose_ref",
                 help="Fofn of multifasta files that contain multiple reference sequences for each locus. \n \
                 HLA pipeline will examine the data and choose appropriate references from this multifasta. \n \
                 This should be a space delimited text file with two columns: (path to multifasta) (locus)")
+        parser.add_argument("--by_locus",
+                            help="Separate reads by locus rather than by reference")
         parser.add_argument("--MSA",
                 help="This is a fofn which describes which prealigned MSA corresponds to each locus.")
         parser.add_argument("--dilute", dest="dilute_factor", default=str(1.0),
@@ -166,8 +168,8 @@ class HlaPipeline( PBMultiToolRunner ):
         self.create_locus_reference()
         self.align_subreads()
         self.summarize_aligned_subreads()
-        self.phase_subreads()   
-        self.resequence()
+        #self.phase_subreads()   
+        #self.resequence()
         #self.annotate()
 
     def validate_bash5_files( self ):
@@ -194,7 +196,7 @@ class HlaPipeline( PBMultiToolRunner ):
         self.read_dump_file = self.subread_dir + "/read_dump.fasta"
         if os.path.isfile( self.read_dump_file ):
             self.logger.info('Subread dump-file exists ( %s )' % self.read_dump_file)
-            self.logger.info('Skipping subread extraction step\n')
+            self.logger.info('Skipping subread extraction step')
         else:
             self.logger.info('Extracting reads according to the following criteria:')
             self.logger.info('\t\tMinimum Subread Length: %s' % self.args.min_read_length)
@@ -222,7 +224,7 @@ class HlaPipeline( PBMultiToolRunner ):
                     gene, locus = line.strip().split()
                     self.locus_dict[gene] = locus
         # If no locus key and Choose_Ref is None, read the locus from the regular reference
-        elif self.args.choose_ref is None:
+        elif self.args.choose_ref:
             self.logger.info("No locus reference panel found, creating one...")
             self.logger.info("Choose-Ref option not specified, using default references")
             ### get list of loci in reference fasta
@@ -240,6 +242,8 @@ class HlaPipeline( PBMultiToolRunner ):
                         msg = 'Could not read reference fasta "%s"' % fasta_file
                         self.logger.info( msg )
                         raise IOError( msg )
+        elif self.args.by_locus:
+            raise IOError("Not Yet Implemented")
         # If no locus key and Choose_Ref is set, read the loci from the Choose_Ref file
         else:
             ### if the --choose-ref option is selected we will choose two reference sequences
@@ -337,6 +341,7 @@ class HlaPipeline( PBMultiToolRunner ):
         self.logger.info("Assigning subreads to their associated locus")
         self.subread_files = self.args.proj + "/subreads/subread_files.txt"
         self.unmapped_reads = self.args.proj + "/subreads/unmapped_reads.fasta"
+        self.subread_stats = os.path.join(self.stats_dir, "subread_statistics.csv")
         ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
         if os.path.isfile( self.subread_files ):
             self.logger.info("Already found subread files ( %s )" % self.subread_files )
@@ -347,22 +352,14 @@ class HlaPipeline( PBMultiToolRunner ):
         stats = SubreadStats( self.reference_sequences, self.locus_dict )
         # First
         for alignment in SamReader( self.sam_file ):
-            stats.loci[self.locus_dict[alignment.rname]]['aligned_reads'] += 1
             read_cluster_map[alignment.qname] = alignment.rname
-            if alignment.qname.startswith('fp'): 
-                stats.loci[self.locus_dict[alignment.rname]]['aligned_fp_reads'] += 1
-                stats.loci[self.locus_dict[alignment.rname]]['aligned_bp'] += alignment.aln_length
+            locus = self.locus_dict[alignment.rname]
+            stats.add_aligned_read( locus, alignment )
         # Next
         for record in FastaReader( self.read_dump_file ):
-            stats.total_reads += 1
-            if record.name.startswith('fp'): 
-                stats.total_fp_reads += 1
             try:
                 name = read_cluster_map[record.name]
                 locus = self.locus_dict[read_cluster_map[record.name]]
-                stats.loci[locus]['raw_bp'] += len(record.sequence)
-                if record.name.startswith('fp'):
-                    stats.loci[locus]['raw_fp_bp'] += len(record.sequence)
                 cluster_file = self.args.proj + "/subreads/" + name + "_mapped_reads.fasta"
                 write_fasta([record], cluster_file, "a")
                 cluster_files[name] = [ cluster_file, name, locus ]
@@ -375,8 +372,7 @@ class HlaPipeline( PBMultiToolRunner ):
                 print >>of, "%s %s %s" % ( item[0], item[1], item[2]  )
             print >>of, "%s %s %s" % ( self.unmapped_reads, "unmapped", "unmapped") 
         ### finally write out the subread statistics
-        create_directory( self.args.proj+"/statistics" )
-        stats.write( self.args.proj+"/statistics/" )
+        stats.write( self.subread_stats )
         self.logger.info("Subread files and summary created ( %s )\n" % self.subread_files )
 
     def phase_subreads( self ):

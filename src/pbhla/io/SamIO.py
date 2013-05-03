@@ -1,19 +1,25 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
 from collections import namedtuple
  
+entry = namedtuple('entry', 'qname flag rname pos mapq cigar rnext pnext tlen seq qual')
+
 class SamReader:
     def __init__(self, f):
         self.file = open(f, "r")
-	self.entry = namedtuple('entry', 'qname, flag, rname, pos, mapq, cigar, rnext, pnext, tlen, seq, qual, uid, score, aln_length')
+
+    def close(self):
+        self.file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def __iter__(self):
         for line in self.file:
-            if len(line)<1: continue
-            if line[0]=='@': continue
-	    line = line.strip().split()
-	    score = float(line[13].split(":")[-1])
-	    aln_length = int(float(line[16].split(":")[-1]))
-            line = line[:12]
-	    line.extend([score, aln_length])
-            if len(line)==0: continue
-	    yield self.entry._make(line)
+            if len(line) == 0: 
+                continue
+            if line.startswith('@'): 
+                continue
+            line = line.strip().split()[:11]
+	    yield entry._make(line)
