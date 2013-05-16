@@ -17,6 +17,7 @@ from pbhla.io.FastaIO import FastaReader, FastaWriter
 from pbhla.io.FastqIO import FastqReader, FastqWriter
 from pbhla.io.BlasrIO import parse_blasr
 from pbhla.io.GffIO import create_annotation, create_var_annotation
+from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.align.MultiSequenceAligner import MSA_aligner
 from pbhla.smrtanalysis.SmrtAnalysisTools import SmrtAnalysisRunner
@@ -224,7 +225,7 @@ class HlaPipeline( PBMultiToolRunner ):
                     gene, locus = line.strip().split()
                     self.locus_dict[gene] = locus
         # If no locus key and Choose_Ref is None, read the locus from the regular reference
-        elif self.args.choose_ref:
+        elif self.args.choose_ref is None:
             self.logger.info("No locus reference panel found, creating one...")
             self.logger.info("Choose-Ref option not specified, using default references")
             ### get list of loci in reference fasta
@@ -337,7 +338,11 @@ class HlaPipeline( PBMultiToolRunner ):
             raise IOError( msg )
         self.logger.info("Finished aligning data to selected references\n")
 
-    def summarize_aligned_subreads( self ):
+    def find_amplicons(self):
+        self.logger.info("Finding amplicon locations within each reference")
+        pass
+
+    def summarize_aligned_subreads(self):
         self.logger.info("Assigning subreads to their associated locus")
         self.subread_files = self.args.proj + "/subreads/subread_files.txt"
         self.unmapped_reads = self.args.proj + "/subreads/unmapped_reads.fasta"
