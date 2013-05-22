@@ -12,6 +12,7 @@ from collections import namedtuple, Counter
 from pbcore.util.ToolRunner import PBMultiToolRunner
 from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 
+from pbhla.io.BasH5IO import BasH5Extractor
 from pbhla.io.SamIO import SamReader
 from pbhla.io.FastaIO import FastaReader, FastaWriter
 from pbhla.io.FastqIO import FastqReader, FastqWriter
@@ -164,50 +165,40 @@ class HlaPipeline( PBMultiToolRunner ):
         return __version__
 
     def __call__( self ):
-        self.validate_bash5_files()
         self.extract_subreads()
         self.create_locus_reference()
         self.align_subreads()
+        self.find_amplicons()
         self.summarize_aligned_subreads()
         #self.phase_subreads()   
         #self.resequence()
         #self.annotate()
 
-    def validate_bash5_files( self ):
-        # Open the FOFN file and check each bas.h5 contained within
-        self.logger.info('Validating Bas.H5 files from "%s"' % self.args.bash5)
-        self.bash5_files = []
-        with open( self.args.bash5 ) as handle:
-            for line in handle:
-                filename = line.strip()
-                try:
-                    assert os.path.isfile( filename )
-                except AssertionError:
-                    error_msg = 'ERROR: Could not access file "%s"' % filename
-                    self.logger.info( error_msg )
-                    raise IOError( error_msg )
-                self.bash5_files.append( filename )
-        bash5_file_string = '\n\t'.join(self.bash5_files)
-        self.logger.info('Validated the following Bas.H5 files:\n\t%s' % bash5_file_string)
-        self.logger.info('Finished the validation of Bas.H5 files\n')
+    def initialize_process(self, proc_name, output_files):
+        self.logger.info('Initializing the "{0}" process'.format(proc_name))
+        for filename in output_files:
+            pass
 
     def extract_subreads( self ):
+        print self.args.bash5
         self.logger.info('Beginning the extraction of subread data')
         # Dump all valid reads from the above files
         self.read_dump_file = self.subread_dir + "/read_dump.fasta"
         if os.path.isfile( self.read_dump_file ):
             self.logger.info('Subread dump-file exists ( %s )' % self.read_dump_file)
             self.logger.info('Skipping subread extraction step')
-        else:
-            self.logger.info('Extracting reads according to the following criteria:')
-            self.logger.info('\t\tMinimum Subread Length: %s' % self.args.min_read_length)
-            for filename in self.bash5_files:
-                self.logger.info('Dumping reads from "%s"' % filename)
-                dump_reads_cline = 'dumpReads.py %s %s %s >> %s' % (filename, 
-                                                                    self.args.dilute_factor,
-                                                                    self.args.min_read_length,
-                                                                    self.read_dump_file)
-                runbash( dump_reads_cline )
+            return
+        self.logger.info('Extracting reads according to the following criteria:')
+        self.logger.info('\t\tMinimum Subread Length: %s' % self.args.min_read_length)
+        self.logger.info('\t\tMinimum Read Score: %s' % self.args.min_read_score)
+        self.logger.info('\t\tSubread Dilution Factor: %s' % self.args.dilute_factor)
+        extractor = BasH5Extractor( self.args.bash5, 
+                                    self.read_dump_file,
+                                    min_length=self.args.min_read_length,
+                                    min_score=self.args.min_read_score,
+                                    dilution=self.args.dilute_factor)
+        self.logger.info('Running the subread extraction process...')
+        extractor()
         self.logger.info('Finished the extraction of subread data\n')
 
     def create_locus_reference( self ):
@@ -340,13 +331,22 @@ class HlaPipeline( PBMultiToolRunner ):
 
     def find_amplicons(self):
         self.logger.info("Finding amplicon locations within each reference")
-        pass
+        self.amplicon_summary = self.args.proj + "/subreads/amplicon_summary.csv"
+        if os.path.isfile( self.amplicon_summary ):
+            self.logger.info("Already found Amplicon Summary ( {0} )".format(self.amplicon_summary))
+            self.logger.info("Skipping amplicon finding step...\n")
+            return
+        finder = AmpliconFinder(self.sam_file, self.amplicon_summary)
+        finder()
+        self.logger.info("Finished finding amplicon locations\n")
 
     def summarize_aligned_subreads(self):
         self.logger.info("Assigning subreads to their associated locus")
         self.subread_files = self.args.proj + "/subreads/subread_files.txt"
         self.unmapped_reads = self.args.proj + "/subreads/unmapped_reads.fasta"
-        self.subread_stats = os.path.join(self.stats_dir, "subread_statistics.csv")
+        self.locus_stats = os.path.join(self.stats_dir, "locus_statistics.csv")
+        self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
+        self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")
         ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
         if os.path.isfile( self.subread_files ):
             self.logger.info("Already found subread files ( %s )" % self.subread_files )
@@ -354,7 +354,7 @@ class HlaPipeline( PBMultiToolRunner ):
             return
         read_cluster_map = {}
         cluster_files = {}
-        stats = SubreadStats( self.reference_sequences, self.locus_dict )
+        stats = SubreadStats( self.reference_sequences, self.locus_dict, self.amplicon_summary )
         # First
         for alignment in SamReader( self.sam_file ):
             read_cluster_map[alignment.qname] = alignment.rname
@@ -377,7 +377,9 @@ class HlaPipeline( PBMultiToolRunner ):
                 print >>of, "%s %s %s" % ( item[0], item[1], item[2]  )
             print >>of, "%s %s %s" % ( self.unmapped_reads, "unmapped", "unmapped") 
         ### finally write out the subread statistics
-        stats.write( self.subread_stats )
+        stats.write( self.locus_stats, 'locus' )
+        stats.write( self.reference_stats, 'reference' )
+        stats.write( self.amplicon_stats, 'amplicon' )
         self.logger.info("Subread files and summary created ( %s )\n" % self.subread_files )
 
     def phase_subreads( self ):
