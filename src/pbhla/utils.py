@@ -2,7 +2,11 @@ import os
 import string
 import random
 import subprocess
- 
+
+from collections import namedtuple
+
+BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
+
 def make_rand_string(minlength=6,maxlength=8):  
     length=random.randint(minlength,maxlength)  
     letters=string.ascii_letters+string.digits # alphanumeric, upper and lowercase  
