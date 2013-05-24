@@ -23,7 +23,7 @@ from pbhla.locus.LocusReference import LocusReference
 from pbhla.locus.SubreadLocusDict import SubreadLocusDict
 from pbhla.locus.SubreadSeparator import SubreadSeparator
 from pbhla.locus.LocusReferenceSelector import LocusReferenceSelector
-#from pbhla.stats.AmpliconFinder import AmpliconFinder
+from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.align.MultiSequenceAligner import MSA_aligner
 from pbhla.smrtanalysis.BlasrTools import BlasrRunner
@@ -184,7 +184,7 @@ class HlaPipeline( PBMultiToolRunner ):
         self.extract_references_by_locus()
         self.realign_all_subreads()
         self.find_amplicons()
-        #self.summarize_aligned_subreads()
+        self.summarize_aligned_subreads()
         #self.phase_subreads()   
         #self.resequence()
         #self.annotate()
@@ -343,10 +343,10 @@ class HlaPipeline( PBMultiToolRunner ):
         self.log.info("Finding amplicon locations within each reference")
         self.amplicon_summary = self.stats_dir + "/amplicon_summary.csv"
         if os.path.isfile( self.amplicon_summary ):
-            self.log.info("Already found Amplicon Summary ( {0} )".format(self.amplicon_summary))
+            self.log.info('Found existing Amplicon Summary "{0}" )'.format(self.amplicon_summary))
             self.log.info("Skipping amplicon finding step...\n")
             return
-        AmpliconFinder(self.sam_file, self.amplicon_summary)
+        AmpliconFinder(self.sam_file, self.amplicon_summary, self.locus_dict)
         self.log.info("Finished finding amplicon locations\n")
 
     def summarize_aligned_subreads(self):
@@ -357,34 +357,22 @@ class HlaPipeline( PBMultiToolRunner ):
         self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
         self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")
         ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
-        if os.path.isfile( self.subread_files ):
-            self.log.info("Already found subread files ( %s )" % self.subread_files )
-            self.log.info("Skipping locus assignment step...\n")
+        if os.path.isfile( self.locus_stats ) and \
+           os.path.isfile( self.reference_stats ) and \
+           os.path.isfile( self.amplicon_stats ):
+            self.log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
+            self.log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
+            self.log.info('Found existing Amplicon Statistics at "{0}"'.format(self.amplicon_stats))
+            self.log.info("Skipping alignment summary step...\n")
             return
         read_cluster_map = {}
         cluster_files = {}
-        stats = SubreadStats( self.reference_sequences, self.locus_dict, self.amplicon_summary )
+        stats = SubreadStats( self.reference_seqs, self.locus_dict, self.amplicon_summary )
         # First
         for alignment in SamReader( self.sam_file ):
             read_cluster_map[alignment.qname] = alignment.rname
             locus = self.locus_dict[alignment.rname]
             stats.add_aligned_read( locus, alignment )
-        # Next
-        for record in FastaReader( self.read_dump_file ):
-            try:
-                name = read_cluster_map[record.name]
-                locus = self.locus_dict[read_cluster_map[record.name]]
-                cluster_file = self.args.proj + "/subreads/" + name + "_mapped_reads.fasta"
-                write_fasta([record], cluster_file, "a")
-                cluster_files[name] = [ cluster_file, name, locus ]
-            except KeyError:
-                write_fasta([record], self.unmapped_reads, "a")
-        ### write out a text file that can act a legend for which fasta file of clustered reads
-        ### corresponds to which template from the reference file and which locus
-        with open( self.subread_files , "w") as of:
-            for item in cluster_files.itervalues():
-                print >>of, "%s %s %s" % ( item[0], item[1], item[2]  )
-            print >>of, "%s %s %s" % ( self.unmapped_reads, "unmapped", "unmapped") 
         ### finally write out the subread statistics
         stats.write( self.locus_stats, 'locus' )
         stats.write( self.reference_stats, 'reference' )

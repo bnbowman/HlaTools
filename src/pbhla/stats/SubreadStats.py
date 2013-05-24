@@ -20,8 +20,8 @@ class SequencingStats( object ):
 
     def __init__(self, locus, start=None, end=None):
         self.locus = locus
-        self.start = start + MARGIN
-        self.end = end - MARGIN
+        self.start = int(start) + MARGIN if start else None
+        self.end = int(end) - MARGIN if end else None
         self.all_subreads = 0
         self.subreads = 0
         self.fullpass_subreads = 0
@@ -32,11 +32,15 @@ class SequencingStats( object ):
 
     @property
     def average_length(self):
-        return self.bases/self.subreads
+        if self.subreads:
+            return self.bases/self.subreads
+        return 0
 
     @property
     def average_fullpass_length(self):
-        return self.fullpass_bases/self.fullpass_subreads
+        if self.fullpass_subreads:
+            return self.fullpass_bases/self.fullpass_subreads
+        return 0
 
     @property
     def average_full_length(self):
@@ -46,17 +50,23 @@ class SequencingStats( object ):
 
     @property
     def fullpass_fraction(self):
-        return round(self.fullpass_subreads/float(self.subreads), 3)
+        if self.subreads:
+            return round(self.fullpass_subreads/float(self.subreads), 3)
+        return 0
 
     @property
     def full_length_fraction(self):
-        return round(self.full_length_subreads/float(self.subreads), 3)
+        if self.subreads:
+            return round(self.full_length_subreads/float(self.subreads), 3)
+        return 0
 
     @property
     def subread_fraction(self):
-        return round(self.subreads/float(self.all_subreads), 3)
+        if self.subreads:
+            return round(self.subreads/float(self.all_subreads), 3)
+        return 0
 
-    def alignment_overlaps(self, alignment):
+    def alignment_overlaps_amplicon(self, alignment):
         if self.start is None or self.end is None:
             return False
         if self.start >= alignment.pos and self.end <= alignment.aend:
@@ -69,7 +79,7 @@ class SequencingStats( object ):
         if alignment.qname.startswith('fp'):
             self.fullpass_subreads += 1
             self.fullpass_bases += alignment.tlen
-        if alignment_overlaps_amplicon( alignment ):
+        if self.alignment_overlaps_amplicon( alignment ):
             self.full_length_subreads += 1
             self.full_length_bases += alignment.tlen
 
@@ -91,6 +101,7 @@ class SubreadStats( object ):
         self.references = {}
         self.amplicons = {}
         self.amplicon_locations = {}
+        self.locus_dict = locus_dict
         self.all_stats = SequencingStats( 'All' )
         if amplicon_csv is None:
             for record in FastaReader(ref_fasta):
@@ -99,12 +110,12 @@ class SubreadStats( object ):
             with open(amplicon_csv, 'r') as handle:
                 handle.readline() # Skip header line
                 for row in csv.reader(handle):
-                    ref, amplicon, start, end = row
+                    ref, locus, amplicon, start, end = row
                     self.add_stats( ref, start, end )
 
     def add_stats(self, name, start=None, end=None, amplicon=None):
         # Add a high-level, locus-wide object
-        locus = locus_dict[name]
+        locus = self.locus_dict[name]
         if locus not in self.loci:
             self.loci[locus] = SequencingStats( locus )
         # Add a mid-level, gene-specific object
@@ -119,9 +130,9 @@ class SubreadStats( object ):
             except:
                 self.amplicon_locations[name] = [( amplicon_name, start, end )]
 
-    def find_best_amplicon( alignment ):
+    def find_best_amplicon(self, alignment):
         if len(self.amplicon_locations[alignment.rname]) == 1:
-            return self.amplicon_locations[alignment.rname][0][1]
+            return self.amplicon_locations[alignment.rname][0][0]
         results = {}
         for amp, amp_start, amp_end in self.amplicon_locations[alignment.rname]:
             overlap = calculate_overlap( alignment.pos, alignment.aend, amp_start, amp_end )
@@ -130,6 +141,7 @@ class SubreadStats( object ):
 
     def add_aligned_read( self, locus, alignment ):
         self.all_stats.add_aligned_read( alignment )
+        self.loci[locus].add_aligned_read( alignment )
         self.references[alignment.rname].add_aligned_read( alignment )
         amplicon = self.find_best_amplicon( alignment )
         self.amplicons[amplicon].add_aligned_read( alignment )
@@ -148,7 +160,7 @@ class SubreadStats( object ):
         writer = csv.writer( handle )
         writer.writerow( HEADER )
         for name, stats in data.iteritems():
-            writer.writerow( data.tabulate() )
+            writer.writerow( stats.tabulate() )
         writer.writerow( self.all_stats.tabulate() )
 
     def write(self, output_file, group='locus'):
