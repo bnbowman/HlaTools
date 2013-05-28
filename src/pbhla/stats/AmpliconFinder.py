@@ -1,5 +1,3 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
-
 import logging
 
 from pbhla.io.SamIO import SamReader

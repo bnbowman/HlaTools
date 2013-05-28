@@ -1,4 +1,3 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
 from collections import namedtuple
 
 def parse_blasr(output, mode, strip_query_names = True):

@@ -1,4 +1,4 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
+# /usr/bin/env python
 
 import os, logging
 

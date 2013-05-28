@@ -1,4 +1,3 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
 from pbcore.io.FastaIO import FastaReader
 
 from pbhla.io.BlasrIO import parse_blasr

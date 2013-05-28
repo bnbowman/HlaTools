@@ -1,5 +1,3 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
-
 import logging, subprocess
 
 class BlasrRunner( object ):

@@ -5,7 +5,7 @@ from collections import Counter
 from pbhla.utils import BlasrM1
 from pbhla.io.SamIO import SamReader
 
-MIN_COUNT = 100
+MIN_COUNT = 100000
 MIN_FRAC = 0.05
 
 class LocusReferenceSelector( object ): 

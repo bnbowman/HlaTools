@@ -1,4 +1,3 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
 import re
 import csv
 

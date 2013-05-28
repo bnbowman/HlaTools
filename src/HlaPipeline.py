@@ -1,4 +1,4 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
+# /usr/bin/env python
 import re
 import random
 import sys
@@ -56,7 +56,7 @@ class HlaPipeline( PBMultiToolRunner ):
                             help="A BasH5 or FOFN of BasH5s to haplotype.")
         parser.add_argument("refs", metavar="REFS", 
                             help="FOFN of reference fasta files and their associated loci")
-        parser.add_argument("--proj", 
+        parser.add_argument("--proj",
                             help="Specify the project's output folder")
         parser.add_argument("--simple_ref", action="store_true",
                             help="Use 1 random reference from each loci")
@@ -89,34 +89,30 @@ class HlaPipeline( PBMultiToolRunner ):
         self.args = parser.parse_args()
 
     def initialize_project( self ):
-        if self.args.proj == None:
-            rand_string=make_rand_string()
-            self.args.proj = "%s/results_%s" % (os.getcwd(), rand_string)
-            self.welcome_msg="Beginning new HLA calling project. Results will be saved in %s\n" % self.args.proj
-            create_directory( self.args.proj )
+        # If not specified, set the output folder to the input filename
+        if self.args.proj is None:
+            self.main_dir = self.args.bash5.split('.')[0]
         else:
-            if os.path.isdir(str(self.args.proj)):
-                self.welcome_msg="Processing existing HLA calling project from %s\n" % self.args.proj
-            else:
-                try:
-                    os.mkdir(self.args.proj)
-                    self.welcome_msg="Beginning new HLA calling project. Results will be saved in %s\n" % self.args.proj
-                except:
-                    raise SystemExit
-        # Create the various sub-directories
-        self.main_dir = self.args.proj
-        self.log_dir = os.path.join( self.main_dir, 'logs' )
-        create_directory( self.log_dir )
-        self.subread_dir = os.path.join( self.main_dir, 'subreads' )
-        create_directory( self.subread_dir )
-        self.align_dir = os.path.join( self.main_dir, 'alignments' )
-        create_directory( self.subread_dir )
-        self.stats_dir = os.path.join( self.main_dir, 'statistics' )
-        create_directory( self.stats_dir )
-        self.phased_dir = os.path.join( self.main_dir, 'phased' )
-        create_directory( self.phased_dir )
-        self.reseq_dir = os.path.join( self.main_dir, 'reseq' )
-        create_directory( self.reseq_dir )
+            self.main_dir = self.args.proj
+        # Check for the existence of the project folder and set the welcome message
+        if os.path.isdir( self.main_dir ):
+            self.welcome_msg = 'Processing existing HLA project from "{0}"\n'.format( self.args.proj )
+        else:
+            self.welcome_msg = 'Initializing new HLA project at "{0}"\n'.format( self.args.proj )
+            create_directory( self.main_dir )
+            # Create the various sub-directories
+            self.log_dir = os.path.join( self.main_dir, 'logs' )
+            create_directory( self.log_dir )
+            self.subread_dir = os.path.join( self.main_dir, 'subreads' )
+            create_directory( self.subread_dir )
+            self.align_dir = os.path.join( self.main_dir, 'alignments' )
+            create_directory( self.align_dir )
+            self.stats_dir = os.path.join( self.main_dir, 'statistics' )
+            create_directory( self.stats_dir )
+            self.phased_dir = os.path.join( self.main_dir, 'phased' )
+            create_directory( self.phased_dir )
+            self.reseq_dir = os.path.join( self.main_dir, 'reseq' )
+            create_directory( self.reseq_dir )
     
     def initialize_logging( self ):
         time_format = "%I:%M:%S"
@@ -132,7 +128,7 @@ class HlaPipeline( PBMultiToolRunner ):
         h1.setFormatter( f1 )
         self.log.addHandler( h1 )
         # Setup a second logger to log to file
-        h2 = logging.FileHandler( self.args.proj+"/hla_pipeline.log" )
+        h2 = logging.FileHandler( self.log_dir + "/hla_pipeline.log" )
         f2 = logging.Formatter( fmt=log_format, datefmt=time_format )
         h2.setFormatter( f2 )
         h2.setLevel( logging.INFO )
@@ -213,7 +209,7 @@ class HlaPipeline( PBMultiToolRunner ):
     def create_locus_dict(self):
         # Assign reads to specific loci
         self.log.info("Creating locus reference key file")
-        self.locus_key = self.args.proj + "/subreads/initial_locus_key.txt"
+        self.locus_key = self.subread_dir + "/initial_locus_key.txt"
         # First we check whether
         if os.path.isfile( self.locus_key ):
             self.log.info('Found existing locus reference key "{0}"'.format(self.locus_key))
@@ -227,7 +223,7 @@ class HlaPipeline( PBMultiToolRunner ):
 
     def create_locus_reference(self):
         self.log.info("Creating locus reference fasta file")
-        self.reference_seqs = self.args.proj + "/subreads/initial_references.fasta"
+        self.reference_seqs = self.subread_dir + "/initial_references.fasta"
         # If no locus key and Choose_Ref is None, read the locus from the regular reference
         if os.path.isfile( self.reference_seqs ):
             self.log.info('Found existing locus reference sequences "{0}"'.format(self.reference_seqs))
@@ -246,7 +242,7 @@ class HlaPipeline( PBMultiToolRunner ):
 
     def align_all_subreads(self):
         self.log.info("Aligning subread data to all references")
-        self.sam_file = self.args.proj + "/subreads/all_subreads.sam"   
+        self.sam_file = self.align_dir + "/all_subreads.sam"   
         if os.path.isfile( self.sam_file ):
             self.log.info('Found existing SAM file "{0}"'.format(self.sam_file))
             self.log.info("Skipping alignment step...\n")
@@ -269,14 +265,14 @@ class HlaPipeline( PBMultiToolRunner ):
 
     def separate_subreads_by_locus(self):
         self.log.info("Separating subreads by loci")
-        subread_prefix = self.args.proj + "/subreads/Locus"
+        subread_prefix = self.subread_dir + "/Locus"
         separator = SubreadSeparator( self.subread_file, self.subread_dict )
         self.locus_subread_files = separator.write_all( subread_prefix )
         self.log.info("Finished separating subreads by loci\n")
 
     def align_subreads_by_locus(self):
         self.log.info("Aligning subreads to references by loci")
-        sam_prefix = self.args.proj + "/subreads/Locus"
+        sam_prefix = self.align_dir + "/Locus"
         self.locus_files = []
         with open(self.args.refs, 'r') as handle:
             for line in handle:
@@ -295,14 +291,14 @@ class HlaPipeline( PBMultiToolRunner ):
                 blasr_args = {'nproc': self.args.nproc,
                               'output_type': 'm1',
                               'bestn': 1,
-                              'nCandidates': 30}
+                              'nCandidates': ref_count}
                 BlasrRunner( query_file, reference, output_file, blasr_args)
                 self.check_output_file( output_file )
                 self.locus_files.append( output_file )
         self.log.info("Finished aligning subread data by loci\n")
 
     def choose_references_by_locus(self):
-        self.reference_seqs = self.args.proj + "/subreads/selected_references.fasta"
+        self.reference_seqs = self.subread_dir + "/selected_references.fasta"
         self.log.info("Selecting references for each loci")
         if os.path.isfile( self.reference_seqs ):
             self.log.info('Found existing locus reference sequences "{0}"'.format(self.reference_seqs))
@@ -351,8 +347,8 @@ class HlaPipeline( PBMultiToolRunner ):
 
     def summarize_aligned_subreads(self):
         self.log.info("Assigning subreads to their associated locus")
-        self.subread_files = self.args.proj + "/subreads/subread_files.txt"
-        self.unmapped_reads = self.args.proj + "/subreads/unmapped_reads.fasta"
+        self.subread_files = self.subread_dir "/subread_files.txt"
+        self.unmapped_reads = self.subread_dir "/unmapped_reads.fasta"
         self.locus_stats = os.path.join(self.stats_dir, "locus_statistics.csv")
         self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
         self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")

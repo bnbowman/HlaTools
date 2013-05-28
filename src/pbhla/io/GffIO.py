@@ -1,4 +1,3 @@
-#!/home/UNIXHOME/jquinn/HGAP_env/bin/python
 from pbcore.io.GffIO import Gff3Record
 
 def create_annotation(canonical_MSA_ref, new_MSA_ref, new_MSA_con, coverage_map, feature_map, seq_name, quality_map, coord_dict=None):
