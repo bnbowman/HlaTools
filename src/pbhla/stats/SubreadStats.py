@@ -1,7 +1,7 @@
 import re
 import csv
 
-from pbhla.io.FastaIO import FastaReader
+from pbcore.io.FastaIO import FastaReader
 
 HEADER = ["Group", "Reads",       "FpReads",
                    "FlReads",     "Bp",         

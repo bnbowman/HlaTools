@@ -12,7 +12,6 @@ class LocusReferenceSelector( object ):
 
     def __init__(self, blasr_files, min_count=None, min_frac=None):
         self.blasr_files = blasr_files
-        print self.blasr_files
         self.min_count = min_count if min_count else MIN_COUNT
         self.min_frac = min_frac if min_frac else MIN_FRAC
         self.selected_references = []
@@ -38,9 +37,8 @@ class LocusReferenceSelector( object ):
 
     def parse_blasr_file(self, blasr_file):
         reference_hits = self.parse_reference_hits( blasr_file )
+        print blasr_file
         best_hits = self.identify_best_hits( reference_hits )
-        print best_hits
-        print
         self.selected_references +=  best_hits
 
     def parse_reference_hits(self, blasr_file):
@@ -57,6 +55,8 @@ class LocusReferenceSelector( object ):
         self.log.info('Identifying best reference sequences')
         counts = Counter( reference_hits )
         top_two = counts.most_common(2)
+        if len(top_two) == 0:
+            return []
         if len(top_two) == 1:
             return [top_two[0][0]]
         first_ref, first_count = top_two[0]

@@ -1,6 +1,6 @@
 import os, logging
 
-from pbhla.io.FastaIO import FastaReader, FastaWriter
+from pbcore.io.FastaIO import FastaReader, FastaWriter
 
 class SubreadSeparator( object ): 
 

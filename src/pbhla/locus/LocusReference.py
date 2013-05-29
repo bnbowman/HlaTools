@@ -2,7 +2,7 @@ import re
 import csv
 import logging
 
-from pbhla.io.FastaIO import FastaReader, FastaWriter
+from pbcore.io.FastaIO import FastaReader, FastaWriter
 
 class LocusReference( object ):
     """
@@ -32,7 +32,7 @@ class LocusReference( object ):
                 filename, locus = line.strip().split()
                 records = list( FastaReader( filename ) )
                 if self.id_list:
-                    records = [r for r in records if r.name in self.id_list]
+                    records = [r for r in records if r.name.split()[0] in self.id_list]
                 if self.header:
                     records = [records[0]]
                 cumulative_records += records

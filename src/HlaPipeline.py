@@ -1,4 +1,4 @@
-# /usr/bin/env python
+#! /usr/bin/env python
 import re
 import random
 import sys
@@ -11,11 +11,12 @@ from collections import namedtuple, Counter
 
 from pbcore.util.ToolRunner import PBMultiToolRunner
 from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
+from pbcore.io.FastaIO import FastaReader, FastaWriter
+from pbcore.io.FastqIO import FastqReader, FastqWriter
 
+from pbhla.hgap.HbarTools import HbarRunner
 from pbhla.io.BasH5Extractor import BasH5Extractor
 from pbhla.io.SamIO import SamReader
-from pbhla.io.FastaIO import FastaReader, FastaWriter
-from pbhla.io.FastqIO import FastqReader, FastqWriter
 from pbhla.io.BlasrIO import parse_blasr
 from pbhla.io.GffIO import create_annotation, create_var_annotation
 from pbhla.locus.LocusDict import LocusDict
@@ -100,19 +101,21 @@ class HlaPipeline( PBMultiToolRunner ):
         else:
             self.welcome_msg = 'Initializing new HLA project at "{0}"\n'.format( self.args.proj )
             create_directory( self.main_dir )
-            # Create the various sub-directories
-            self.log_dir = os.path.join( self.main_dir, 'logs' )
-            create_directory( self.log_dir )
-            self.subread_dir = os.path.join( self.main_dir, 'subreads' )
-            create_directory( self.subread_dir )
-            self.align_dir = os.path.join( self.main_dir, 'alignments' )
-            create_directory( self.align_dir )
-            self.stats_dir = os.path.join( self.main_dir, 'statistics' )
-            create_directory( self.stats_dir )
-            self.phased_dir = os.path.join( self.main_dir, 'phased' )
-            create_directory( self.phased_dir )
-            self.reseq_dir = os.path.join( self.main_dir, 'reseq' )
-            create_directory( self.reseq_dir )
+        # Create the various sub-directories
+        self.log_dir = os.path.join( self.main_dir, 'logs' )
+        create_directory( self.log_dir )
+        self.subread_dir = os.path.join( self.main_dir, 'subreads' )
+        create_directory( self.subread_dir )
+        self.hbar_dir = os.path.join( self.main_dir, 'HBAR' )
+        create_directory( self.hbar_dir )
+        self.align_dir = os.path.join( self.main_dir, 'alignments' )
+        create_directory( self.align_dir )
+        self.stats_dir = os.path.join( self.main_dir, 'statistics' )
+        create_directory( self.stats_dir )
+        self.phased_dir = os.path.join( self.main_dir, 'phased' )
+        create_directory( self.phased_dir )
+        self.reseq_dir = os.path.join( self.main_dir, 'reseq' )
+        create_directory( self.reseq_dir )
     
     def initialize_logging( self ):
         time_format = "%I:%M:%S"
@@ -169,26 +172,26 @@ class HlaPipeline( PBMultiToolRunner ):
             raise IOError( msg )
 
     def __call__( self ):
-        self.extract_subreads()
-        self.create_locus_dict()
-        self.create_locus_reference()
-        self.align_all_subreads()
-        self.create_subread_dict()
-        self.separate_subreads_by_locus()
-        self.align_subreads_by_locus()
-        self.choose_references_by_locus()
-        self.extract_references_by_locus()
-        self.realign_all_subreads()
-        self.find_amplicons()
-        self.summarize_aligned_subreads()
+        self.run_hbar()
+        #self.extract_subreads()
+        #self.create_locus_dict()
+        #self.create_locus_reference()
+        #self.align_all_subreads()
+        #self.create_subread_dict()
+        #self.separate_subreads_by_locus()
+        #self.align_subreads_by_locus()
+        #self.choose_references_by_locus()
+        #self.extract_references_by_locus()
+        #self.realign_all_subreads()
+        #self.find_amplicons()
+        #self.summarize_aligned_subreads()
         #self.phase_subreads()   
         #self.resequence()
         #self.annotate()
 
-    def initialize_process(self, proc_name, output_files):
-        self.log.info('Initializing the "{0}" process'.format(proc_name))
-        for filename in output_files:
-            pass
+    def run_hbar( self ):
+        self.log.info('Beginning the extraction of subread data')
+        self.log.info('Beginning the extraction of subread data')
 
     def extract_subreads( self ):
         self.log.info('Beginning the extraction of subread data')
@@ -347,8 +350,8 @@ class HlaPipeline( PBMultiToolRunner ):
 
     def summarize_aligned_subreads(self):
         self.log.info("Assigning subreads to their associated locus")
-        self.subread_files = self.subread_dir "/subread_files.txt"
-        self.unmapped_reads = self.subread_dir "/unmapped_reads.fasta"
+        self.subread_files = os.path.join(self.subread_dir, "/subread_files.txt")
+        self.unmapped_reads = os.path.join(self.subread_dir, "/unmapped_reads.fasta")
         self.locus_stats = os.path.join(self.stats_dir, "locus_statistics.csv")
         self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
         self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")

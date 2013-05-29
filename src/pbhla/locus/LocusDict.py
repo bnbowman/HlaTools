@@ -1,6 +1,6 @@
 import logging
 
-from pbhla.io.FastaIO import FastaReader
+from pbcore.io.FastaIO import FastaReader
 
 class LocusDict( object ): 
 
@@ -31,7 +31,8 @@ class LocusDict( object ):
                 msg = 'Reading "{0}" sequences from "{1}"'.format(locus, fasta_file)
                 self.log.info( msg )
                 for record in FastaReader( fasta_file ):
-                    self.add_record( record.name, locus )
+                    name = record.name.split()[0]
+                    self.add_record( name, locus )
         self.log.info('Finished reading Locus References')
 
     def parse_locus_key(self):

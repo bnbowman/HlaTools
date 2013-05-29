@@ -2,7 +2,7 @@
 
 import os, logging
 
-from pbhla.io.BasH5Reader import BasH5Reader
+from pbcore.io.BasH5Reader import BasH5Reader
 
 MIN_LENGTH = 500
 MIN_SCORE = 0.75
