@@ -23,6 +23,17 @@ def runbash(cmd):
                         stderr=subprocess.PIPE)
     return p
 
+def cross_ref_dict( query_dict, ref_dict ):
+    new_dict = {}
+    for key in query_dict:
+        old_value = query_dict[key]
+        try:
+            new_value = ref_dict[old_value]
+        except:
+            new_value = 'N/A'
+        new_dict[key] = new_value
+    return new_dict
+
 def create_directory( directory ):
     try:
         os.mkdir( directory )

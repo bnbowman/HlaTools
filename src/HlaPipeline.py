@@ -1,8 +1,7 @@
 #! /usr/bin/env python
-import re
+import re, os, sys
+import shutil
 import random
-import sys
-import os
 import math
 import logging
 
@@ -14,35 +13,37 @@ from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbcore.io.FastqIO import FastqReader, FastqWriter
 
-from pbhla.hgap.HbarTools import HbarRunner
+from pbhla.hbar.HbarTools import HbarRunner
 from pbhla.io.BasH5Extractor import BasH5Extractor
 from pbhla.io.SamIO import SamReader
 from pbhla.io.BlasrIO import parse_blasr
 from pbhla.io.GffIO import create_annotation, create_var_annotation
-from pbhla.locus.LocusDict import LocusDict
-from pbhla.locus.LocusReference import LocusReference
-from pbhla.locus.SubreadLocusDict import SubreadLocusDict
-from pbhla.locus.SubreadSeparator import SubreadSeparator
-from pbhla.locus.LocusReferenceSelector import LocusReferenceSelector
+from pbhla.reference.ReferenceDict import ReferenceDict
+from pbhla.reference.SequenceSeparator import SequenceSeparator
+from pbhla.reference.ReferenceSelector import ReferenceSelector
+from pbhla.reference.LocusReference import LocusReference
 from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.align.MultiSequenceAligner import MSA_aligner
 from pbhla.smrtanalysis.BlasrTools import BlasrRunner
 from pbhla.smrtanalysis.SmrtAnalysisTools import SmrtAnalysisRunner
-from pbhla.utils import make_rand_string, getbash, runbash, create_directory
+from pbhla.utils import make_rand_string, getbash, runbash, create_directory, cross_ref_dict
 from pbhla.fasta.Utils import write_fasta, fasta_size, extract_sequence, trim_fasta
 
-__version__ = "0.1.0"
+__version__ = "0.9.0"
  
 file_info = namedtuple('file_info', 'fasta_fn, ref_name, locus')
 info = namedtuple('info', 'canonical_pos, feature, codon' )
 
 SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
+DILUTION = 1.0
+MIN_SCORE = 0.8
+MIN_LENGTH = 500
 NUM_PROC = 4
 
-class HlaPipeline( PBMultiToolRunner ):
+class HlaPipeline( object ):
 
-    def __init__(self):
+    def __init__( self ):
         self.parse_args()
         self.initialize_project()
         self.initialize_logging()
@@ -51,33 +52,28 @@ class HlaPipeline( PBMultiToolRunner ):
     def parse_args( self ):
         import argparse
         desc = "A pipeline for performing HLA haplotype sequencing."
-        super(HlaPipeline, self).__init__(desc)
-        parser = argparse.ArgumentParser()
-        parser.add_argument("bash5", metavar="INPUT",
+        parser = argparse.ArgumentParser( description=desc )
+        parser.add_argument("input_file", metavar="INPUT",
                             help="A BasH5 or FOFN of BasH5s to haplotype.")
-        parser.add_argument("refs", metavar="REFS", 
+        parser.add_argument("reference_file", metavar="REFERENCE", 
                             help="FOFN of reference fasta files and their associated loci")
-        parser.add_argument("--proj",
+        parser.add_argument("genome", metavar="GENOME",
+                            help="Fasta file of the Human Genome")
+        parser.add_argument("--output",
                             help="Specify the project's output folder")
-        parser.add_argument("--simple_ref", action="store_true",
-                            help="Use 1 random reference from each loci")
-        parser.add_argument("--by_locus",
-                            help="Separate reads by locus rather than by reference")
         parser.add_argument("--MSA",
-                help="This is a fofn which describes which prealigned MSA corresponds to each locus.")
-        parser.add_argument("--dilute", dest="dilute_factor", default=str(1.0),
-                help="Only use this proportion of the reads from the bas.h5 for phasing. \n \
-                It wont affect the resquencing step though, the whole .bas.h5 will still be used there.")
-        parser.add_argument("--min_read_score", type=float, default=0.75,
+                            help="This is a fofn which describes which prealigned MSA corresponds to each locus.")
+        parser.add_argument("--dilution", type=float, default=DILUTION,
+                            help="Only use this proportion of the reads from the bas.h5 for phasing.")
+        parser.add_argument("--min_read_score", type=float, default=MIN_SCORE,
                             help="Only extract subreads more accurate than this from bas.h5 files")
-        parser.add_argument("--min_read_length", type=int, default=500,
+        parser.add_argument("--min_read_length", type=int, default=MIN_LENGTH,
                             help="Only extract subreads longer than this from bas.h5 files")
         parser.add_argument("--phasr-args", nargs='*', default=[''],
                             help="pass these args to phasr.")
         parser.add_argument("--region_table", 
                             help="Region Table of White-Listed reads to use")
-        parser.add_argument("--nproc", type=int, 
-                            dest="nproc", default=NUM_PROC,
+        parser.add_argument("--nproc", type=int, default=NUM_PROC,
                             help="Number of processors to use for parallelized computing")
         parser.add_argument("--HGAP_dilute", default=1.0,
                             help="Proportion of reads to pass to HGAP.")
@@ -87,36 +83,19 @@ class HlaPipeline( PBMultiToolRunner ):
                             help="Avoid phasr if reference mapping has identified two likely phases.")
         parser.add_argument("--annotate", action='store_true',
                             help="Avoid annotation.")
-        self.args = parser.parse_args()
+        self.__dict__.update( vars(parser.parse_args()) )
 
     def initialize_project( self ):
         # If not specified, set the output folder to the input filename
-        if self.args.proj is None:
-            self.main_dir = self.args.bash5.split('.')[0]
-        else:
-            self.main_dir = self.args.proj
-        # Check for the existence of the project folder and set the welcome message
-        if os.path.isdir( self.main_dir ):
-            self.welcome_msg = 'Processing existing HLA project from "{0}"\n'.format( self.args.proj )
-        else:
-            self.welcome_msg = 'Initializing new HLA project at "{0}"\n'.format( self.args.proj )
-            create_directory( self.main_dir )
+        if self.output is None:
+            self.output = self.input_file.split('.')[0]
+        create_directory( self.output )
         # Create the various sub-directories
-        self.log_dir = os.path.join( self.main_dir, 'logs' )
-        create_directory( self.log_dir )
-        self.subread_dir = os.path.join( self.main_dir, 'subreads' )
-        create_directory( self.subread_dir )
-        self.hbar_dir = os.path.join( self.main_dir, 'HBAR' )
-        create_directory( self.hbar_dir )
-        self.align_dir = os.path.join( self.main_dir, 'alignments' )
-        create_directory( self.align_dir )
-        self.stats_dir = os.path.join( self.main_dir, 'statistics' )
-        create_directory( self.stats_dir )
-        self.phased_dir = os.path.join( self.main_dir, 'phased' )
-        create_directory( self.phased_dir )
-        self.reseq_dir = os.path.join( self.main_dir, 'reseq' )
-        create_directory( self.reseq_dir )
-    
+        for d in ['log_files', 'HBAR', 'references', 'subreads', 'alignments', 'phased', 'reseq']:
+            sub_dir = os.path.join( self.output, d )
+            create_directory( sub_dir )
+            setattr(self, d, sub_dir)
+
     def initialize_logging( self ):
         time_format = "%I:%M:%S"
         log_format = "%(asctime)s %(levelname)s %(filename)s " + \
@@ -131,25 +110,25 @@ class HlaPipeline( PBMultiToolRunner ):
         h1.setFormatter( f1 )
         self.log.addHandler( h1 )
         # Setup a second logger to log to file
-        h2 = logging.FileHandler( self.log_dir + "/hla_pipeline.log" )
+        log_file = os.path.join( self.log_files, "HLA_Pipeline.log" )
+        h2 = logging.FileHandler( log_file )
         f2 = logging.Formatter( fmt=log_format, datefmt=time_format )
         h2.setFormatter( f2 )
         h2.setLevel( logging.INFO )
         self.log.addHandler( h2 )
-        # Begin by logging both the invocation and welcome message
-        self.log.info( "hla_pipeline invoked:\n\t%s" % " ".join(sys.argv) )
-        self.log.info( self.welcome_msg )
-
+    
     def validate_settings( self ):
-        # Make filepath's absolute if needed
-        self.args.bash5 = os.path.abspath( self.args.bash5 )
+        # Report the settings with which the pipeline was invoked
+        self.log.info( "HLA Pipeline invoked:\n\t{0}\n".format(" ".join(sys.argv)))
+        self.input_file = os.path.abspath( self.input_file )
         # Check dilution factors
-        if float(self.args.dilute_factor) <= float(0.0) or float(self.args.dilute_factor) > float(1.0):
-            self.log.info("Dilute factor must be between 0 and 1")
-            raise SystemExit
+        if self.dilution <= 0.0 or self.dilution > 1.0:
+            msg = "Dilute factor must be between 0 and 1"
+            self.log.info( msg )
+            raise ValueError( msg )
         # parse phasr args
         self.phasr_argstring = ''
-        for argument in self.args.phasr_args:
+        for argument in self.phasr_args:
             if ':' in argument:
                 param, value = argument.split(":")
                 self.phasr_argstring += '--%s %s ' % (param, value)
@@ -158,7 +137,7 @@ class HlaPipeline( PBMultiToolRunner ):
             else:
                 self.phasr_argstring += '--%s ' % argument
         # Initialize the SmrtAnalysisTools
-        self.smrt_analysis = SmrtAnalysisRunner( SMRT_ANALYSIS, self.log_dir, self.args.nproc )
+        self.smrt_analysis = SmrtAnalysisRunner( SMRT_ANALYSIS, self.log_files, self.nproc )
 
     def getVersion(self):
         return __version__
@@ -172,11 +151,31 @@ class HlaPipeline( PBMultiToolRunner ):
             raise IOError( msg )
 
     def __call__( self ):
-        self.run_hbar()
-        #self.extract_subreads()
-        #self.create_locus_dict()
-        #self.create_locus_reference()
-        #self.align_all_subreads()
+        # First we assemble the supplied data via HGAP / HBAR
+        self.assemble_contigs()
+        # Second we extract the subreads ourselves and map them onto
+        #     the created contigs
+        self.extract_subreads()
+        self.align_subreads_to_contigs()
+        self.create_subread_contig_dict()
+        # Third, we align the contigs to the Human Genome and separate
+        #     out the contigs that are clearly off-target
+        self.align_contigs_to_genome()
+        self.create_contig_genome_dict()
+        self.separate_off_target_contigs()
+        # Fourth, we combine the Subread and Contig dicts and use them
+        #     to separate out off-target subreads
+        self.create_subread_genome_dict()
+        self.separate_off_target_subreads()
+        # Next we create re-align just the HLA data for summarizing
+        self.realign_hla_subreads()
+        # In order to summarize by loci, we need to associate the
+        #     each of these contigs with a reference
+        self.create_ref_locus_dict()
+        self.create_locus_reference()
+        self.align_hla_contigs_to_reference()
+        self.create_contig_reference_dict()
+        self.create_contig_locus_dict()
         #self.create_subread_dict()
         #self.separate_subreads_by_locus()
         #self.align_subreads_by_locus()
@@ -189,89 +188,221 @@ class HlaPipeline( PBMultiToolRunner ):
         #self.resequence()
         #self.annotate()
 
-    def run_hbar( self ):
-        self.log.info('Beginning the extraction of subread data')
-        self.log.info('Beginning the extraction of subread data')
+    def assemble_contigs( self ):
+        self.log.info('Beginning the extraction of subiread data')
+        contig_output = os.path.join( self.HBAR,
+                                      "3-CA",
+                                      "9-terminator",
+                                      "asm.utg.fasta" )
+        self.contig_file = os.path.join( self.references,
+                                         "all_contigs.fasta")
+        if os.path.isfile( self.contig_file ):
+            self.log.info('Found existing contig file "{0}"'.format(self.contig_file))
+            self.log.info('Skipping HBAR assembly step\n')
+            return
+        # Run HGAP
+        self.log.info('No contig file found, initializing new HbarRunner')
+        hbar = HbarRunner( self.input_file, self.HBAR )
+        hbar()
+        # Copy the contig file to a more convenient location
+        shutil.copy( contig_output, self.contig_file )
+        self.check_output_file( self.contig_file )
+        self.log.info('Finished the assembly of subread data\n')
 
     def extract_subreads( self ):
         self.log.info('Beginning the extraction of subread data')
         # Dump all valid reads from the above files
-        self.subread_file = self.subread_dir + "/all_subreads.fasta"
+        self.subread_file = os.path.join( self.subreads, "all_subreads.fasta" )
         if os.path.isfile( self.subread_file ):
             self.log.info('Found existing subread file "%s"'.format(self.subread_file))
             self.log.info('Skipping subread extraction step\n')
             return
         self.log.info('Extracting subreads from input files...')
-        BasH5Extractor( self.args.bash5, 
+        BasH5Extractor( self.input_file, 
                         self.subread_file,
-                        min_length=self.args.min_read_length,
-                        min_score=self.args.min_read_score,
-                        dilution=self.args.dilute_factor)
+                        min_length=self.min_read_length,
+                        min_score=self.min_read_score,
+                        dilution=self.dilution)
+        self.check_output_file( self.subread_file )
         self.log.info('Finished the extraction of subread data\n')
 
-    def create_locus_dict(self):
-        # Assign reads to specific loci
-        self.log.info("Creating locus reference key file")
-        self.locus_key = self.subread_dir + "/initial_locus_key.txt"
-        # First we check whether
-        if os.path.isfile( self.locus_key ):
-            self.log.info('Found existing locus reference key "{0}"'.format(self.locus_key))
-            self.log.info('Reading locus reference key into memory...')
-            self.locus_dict = LocusDict( self.locus_key )
-        else:
-            self.log.info("No locus reference key found, creating one...")
-            self.locus_dict = LocusDict( self.args.refs )
-            self.locus_dict.write( self.locus_key )
-        self.log.info("Finished creating locus reference key...")
+    def align_subreads_to_contigs(self):
+        self.log.info('"Aligning all subreads to the HBAR contigs')
+        self.subreads_to_contigs = os.path.join(self.alignments, 'subreads_to_contigs.m1')   
+        if os.path.isfile( self.subreads_to_contigs ):
+            self.log.info('Found existing alignment file "{0}"'.format(self.subreads_to_contigs))
+            self.log.info("Skipping alignment step...\n")
+            return
+        subread_count = fasta_size( self.subread_file )
+        contig_count = fasta_size( self.contig_file )
+        # Run BLASR
+        self.log.info("Aligning {0} contigs to the {1} contigs".format(subread_count, contig_count))
+        blasr_args = {'nproc': self.nproc,
+                      'bestn': 1,
+                      'nCandidates': 30}
+        BlasrRunner( self.subread_file, self.contig_file, self.subreads_to_contigs, blasr_args )
+        # Check and save the output
+        self.check_output_file( self.subreads_to_contigs )
+        self.log.info("Finished aligning subreads to the created contigs\n")
+
+    def create_subread_contig_dict(self):
+        self.log.info("Converting the Subreads-to-Contigs alignment to a Dictionary")
+        self.subread_contig_dict = ReferenceDict( self.subreads_to_contigs )
+        self.log.info("Finished convereting the data to a Dictionary\n")
+
+    def align_contigs_to_genome(self):
+        self.log.info('"Aligning all contigs to the Human Genome')
+        self.contigs_to_genome = os.path.join(self.alignments, 'contigs_to_genome.m1')   
+        if os.path.isfile( self.contigs_to_genome ):
+            self.log.info('Found existing alignment file "{0}"'.format(self.contigs_to_genome))
+            self.log.info("Skipping alignment step...\n")
+            return
+        sa_file = self.genome + '.sa'
+        contig_count = fasta_size( self.contig_file )
+        # Run BLASR
+        self.log.info("Aligning {0} contigs to the genomic reference".format(contig_count))
+        blasr_args = {'nproc': self.nproc,
+                      'sa': sa_file,
+                      'bestn': 1,
+                      'nCandidates': 10}
+        BlasrRunner( self.contig_file, self.genome, self.contigs_to_genome, blasr_args )
+        # Check and save the output
+        self.check_output_file( output_path )
+        self.log.info("Finished aligning contigs to the genomic reference\n")
+
+    def create_contig_genome_dict(self):
+        self.log.info("Converting the Contigs-to-Genome alignment to a Dictionary")
+        self.contig_genome_dict = ReferenceDict( self.contigs_to_genome )
+        self.log.info("Finished convereting the data to a Dictionary\n")
+
+    def create_subread_genome_dict(self):
+        self.log.info("Converting the Subreads-to-Contigs alignment and Contigs-to-Genome")
+        self.log.info("    into a combined Subread-to-Genome Dictionary")
+        self.subread_genome_dict = cross_ref_dict( self.subread_contig_dict, self.contig_genome_dict )
+        self.log.info("Finished convereting the data to a Dictionary\n")
+
+    def separate_off_target_contigs(self):
+        self.log.info('Separating off-target contigs by genomic alignment')
+        self.hla_contigs = os.path.join(self.references, 'hla_contigs.fasta')
+        self.non_hla_contigs = os.path.join(self.references, 'non_hla_contigs.fasta')
+        if os.path.isfile( self.hla_contigs ) and os.path.isfile( self.non_hla_contigs ):
+            self.log.info('Found existing sequence file "{0}"'.format(self.hla_contigs))
+            self.log.info('Found existing sequence file "{0}"'.format(self.non_hla_contigs))
+            self.log.info("Skipping separation step...\n")
+            return
+        self.log.info('No separated contig files found, initializing separator')
+        separator = SequenceSeparator( self.contig_file, self.contig_genome_dict, ['chr6'] )
+        separator.write('selected', self.hla_contigs)
+        separator.write('not_selected', self.non_hla_contigs)
+        self.log.info('Finished separating off-target contigs\n')
+    
+    def separate_off_target_subreads(self):
+        self.log.info('Separating off-target subreads by contig alignment')
+        self.hla_subreads = os.path.join(self.subreads, 'hla_subreads.fasta')
+        self.non_hla_subreads = os.path.join(self.subreads, 'non_hla_subreads.fasta')
+        if os.path.isfile( self.hla_subreads ) and os.path.isfile( self.non_hla_subreads ):
+            self.log.info('Found existing sequence file "{0}"'.format(self.hla_subreads))
+            self.log.info('Found existing sequence file "{0}"'.format(self.non_hla_subreads))
+            self.log.info("Skipping separation step...\n")
+            return
+        self.log.info('No separated contig files found, initializing separator')
+        separator = SequenceSeparator( self.subread_file, self.subread_genome_dict, ['chr6'] )
+        separator.write('selected', self.hla_subreads)
+        separator.write('not_selected', self.non_hla_subreads)
+
+    def realign_hla_subreads(self):
+        self.log.info("Re-aligning HLA subreads to selected references")
+        self.hla_alignment = os.path.join( self.alignments, "hla_subreads_to_contigs.sam" )
+        if os.path.isfile( self.hla_alignment ):
+            self.log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
+            self.log.info("Skipping realignment step...\n")
+            return
+        query_count = fasta_size( self.hla_subreads )
+        ref_count = fasta_size( self.hla_contigs )
+        self.log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
+        blasr_args = {'nproc': self.nproc,
+                      'bestn': 1,
+                      'nCandidates': ref_count}
+        BlasrRunner(self.hla_subreads, self.hla_contigs, self.hla_alignment, blasr_args)
+        self.check_output_file( self.hla_alignment )
+        self.log.info("Finished realigning HLA subreads to HLA contigs\n")
+
+    def create_ref_locus_dict(self):
+        self.log.info('"Creating reference dictonary from "{0}"'.format(self.reference_file))
+        self.reference_locus_dict = ReferenceDict( self.reference_file )
+        self.log.info("Finished creating locus reference dict...\n")
 
     def create_locus_reference(self):
         self.log.info("Creating locus reference fasta file")
-        self.reference_seqs = self.subread_dir + "/initial_references.fasta"
+        self.reference_seqs = os.path.join(self.references, "locus_references.fasta")
         # If no locus key and Choose_Ref is None, read the locus from the regular reference
         if os.path.isfile( self.reference_seqs ):
             self.log.info('Found existing locus reference sequences "{0}"'.format(self.reference_seqs))
             self.log.info('Skipping reference extraction step\n')
             return
-        elif self.args.simple_ref:
-            self.log.info("No locus reference sequences found, creating one...")
-            self.log.info("--Simple_Ref specified, selecting references at random")
-            LocusReference(self.args.refs, self.reference_seqs, header=True)
-            self.check_output_file( self.reference_seqs )
-        else:
-            self.log.info("No locus reference sequences found, creating one...")
-            LocusReference(self.args.refs, self.reference_seqs)
-            self.check_output_file( self.reference_seqs )
+        self.log.info("No locus reference sequences found, creating one...")
+        LocusReference(self.reference_file, self.reference_seqs)
+        self.check_output_file( self.reference_seqs )
         self.log.info("Finished creating locus reference\n")
-
-    def align_all_subreads(self):
-        self.log.info("Aligning subread data to all references")
-        self.sam_file = self.align_dir + "/all_subreads.sam"   
-        if os.path.isfile( self.sam_file ):
-            self.log.info('Found existing SAM file "{0}"'.format(self.sam_file))
+    
+    def align_hla_contigs_to_reference(self):
+        self.log.info('"Aligning all HLA contigs to the Reference sequences')
+        self.contigs_to_reference = os.path.join(self.alignments, 'hla_contigs_to_reference.m1')   
+        if os.path.isfile( self.contigs_to_reference ):
+            self.log.info('Found existing alignment file "{0}"'.format(self.contigs_to_reference))
             self.log.info("Skipping alignment step...\n")
             return
-        query_count = fasta_size( self.subread_file )
-        ref_count = fasta_size( self.reference_seqs )
-        self.log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-        blasr_args = {'nproc': self.args.nproc,
-                      'output_type': 'sam',
+        contig_count = fasta_size( self.hla_contigs )
+        reference_count = fasta_size( self.reference_seqs )
+        # Run BLASR
+        self.log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
+        blasr_args = {'nproc': self.nproc,
                       'bestn': 1,
-                      'nCandidates': 10}
-        BlasrRunner(self.subread_file, self.reference_seqs, self.sam_file, blasr_args)
-        self.check_output_file( self.sam_file )
-        self.log.info("Finished aligning subread data to selected references\n")
+                      'nCandidates': reference_count}
+        BlasrRunner( self.hla_contigs, self.reference_seqs, self.contigs_to_reference, blasr_args )
+        # Check and save the output
+        self.check_output_file( self.contigs_to_reference )
+        self.log.info("Finished aligning contigs to the HLA reference set\n")
 
-    def create_subread_dict(self):
-        self.log.info("Creating subread reference key")
-        self.subread_dict = SubreadLocusDict( self.sam_file, self.locus_dict )
-        self.log.info("Finished creating subread reference key...")
+    def create_contig_reference_dict(self):
+        self.log.info("Converting the Contigs-to-Reference alignment to a Dictionary")
+        self.contig_reference_dict = ReferenceDict( self.contigs_to_reference )
+        self.log.info("Finished convereting the data to a Dictionary\n")
 
-    def separate_subreads_by_locus(self):
-        self.log.info("Separating subreads by loci")
-        subread_prefix = self.subread_dir + "/Locus"
-        separator = SubreadSeparator( self.subread_file, self.subread_dict )
-        self.locus_subread_files = separator.write_all( subread_prefix )
-        self.log.info("Finished separating subreads by loci\n")
+    def create_contig_locus_dict(self):
+        self.log.info("Converting the Contigs-to-Reference dict and Reference-to-Locus")
+        self.log.info("    dict into a combined Contig-to-Locus Dictionary")
+        self.contig_locus_dict = cross_ref_dict( self.contig_reference_dict, self.reference_locus_dict )
+        for key in self.contig_locus_dict:
+            print key, self.contig_locus_dict[key]
+        self.log.info("Finished convereting the data to a Dictionary\n")
+
+    def summarize_aligned_subreads(self):
+        self.log.info("Assigning subreads to their associated locus")
+        self.locus_stats = os.path.join(self.stats_dir, "locus_statistics.csv")
+        self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
+        self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")
+        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
+        if os.path.isfile( self.locus_stats ) and \
+           os.path.isfile( self.reference_stats ) and \
+           os.path.isfile( self.amplicon_stats ):
+            self.log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
+            self.log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
+            self.log.info('Found existing Amplicon Statistics at "{0}"'.format(self.amplicon_stats))
+            self.log.info("Skipping alignment summary step...\n")
+            return
+        read_cluster_map = {}
+        cluster_files = {}
+        stats = SubreadStats( self.reference_seqs, self.locus_dict, self.amplicon_summary )
+        # First
+        for alignment in SamReader( self.sam_file ):
+            locus = self.locus_dict[alignment.rname]
+            stats.add_aligned_read( locus, alignment )
+        ### finally write out the subread statistics
+        stats.write( self.locus_stats, 'locus' )
+        stats.write( self.reference_stats, 'reference' )
+        stats.write( self.amplicon_stats, 'amplicon' )
+        self.log.info("Subread files and summary created ( %s )\n" % self.subread_files )
 
     def align_subreads_by_locus(self):
         self.log.info("Aligning subreads to references by loci")
@@ -320,24 +451,6 @@ class HlaPipeline( PBMultiToolRunner ):
         LocusReference(self.args.refs, self.reference_seqs, id_list=self.selected_refs)
         self.log.info("Finished extracting selected reference sequences")
 
-    def realign_all_subreads(self):
-        self.log.info("Aligning subread data to selected references")
-        self.sam_file = self.align_dir + "/selected_references.sam"   
-        if os.path.isfile( self.sam_file ):
-            self.log.info('Found existing SAM file "{0}"'.format(self.sam_file))
-            self.log.info("Skipping realignment step...\n")
-            return
-        query_count = fasta_size( self.subread_file )
-        ref_count = fasta_size( self.reference_seqs )
-        self.log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-        blasr_args = {'nproc': self.args.nproc,
-                      'output_type': 'sam',
-                      'bestn': 1,
-                      'nCandidates': 10}
-        BlasrRunner(self.subread_file, self.reference_seqs, self.sam_file, blasr_args)
-        self.check_output_file( self.sam_file )
-        self.log.info("Finished aligning subread data to selected references\n")
-
     def find_amplicons(self):
         self.log.info("Finding amplicon locations within each reference")
         self.amplicon_summary = self.stats_dir + "/amplicon_summary.csv"
@@ -347,36 +460,6 @@ class HlaPipeline( PBMultiToolRunner ):
             return
         AmpliconFinder(self.sam_file, self.amplicon_summary, self.locus_dict)
         self.log.info("Finished finding amplicon locations\n")
-
-    def summarize_aligned_subreads(self):
-        self.log.info("Assigning subreads to their associated locus")
-        self.subread_files = os.path.join(self.subread_dir, "/subread_files.txt")
-        self.unmapped_reads = os.path.join(self.subread_dir, "/unmapped_reads.fasta")
-        self.locus_stats = os.path.join(self.stats_dir, "locus_statistics.csv")
-        self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
-        self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")
-        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
-        if os.path.isfile( self.locus_stats ) and \
-           os.path.isfile( self.reference_stats ) and \
-           os.path.isfile( self.amplicon_stats ):
-            self.log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
-            self.log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
-            self.log.info('Found existing Amplicon Statistics at "{0}"'.format(self.amplicon_stats))
-            self.log.info("Skipping alignment summary step...\n")
-            return
-        read_cluster_map = {}
-        cluster_files = {}
-        stats = SubreadStats( self.reference_seqs, self.locus_dict, self.amplicon_summary )
-        # First
-        for alignment in SamReader( self.sam_file ):
-            read_cluster_map[alignment.qname] = alignment.rname
-            locus = self.locus_dict[alignment.rname]
-            stats.add_aligned_read( locus, alignment )
-        ### finally write out the subread statistics
-        stats.write( self.locus_stats, 'locus' )
-        stats.write( self.reference_stats, 'reference' )
-        stats.write( self.amplicon_stats, 'amplicon' )
-        self.log.info("Subread files and summary created ( %s )\n" % self.subread_files )
 
     def phase_subreads( self ):
         self.log.info("Starting the sub-read phasing process")

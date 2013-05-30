@@ -12,9 +12,10 @@ class HbarRunner( object ):
                                                min_length=None, 
                                                min_score=None):
         self.input_file = input_file
-        self.output_dir = output_dir
+        self.origin_dir = os.getcwd()
+        self.output_dir = os.path.abspath( output_dir )
         self.config_file = config_file
-        self.log_file = config_file.split('.')[0] + '.log'
+        self.log_file = input_file.split('.')[0] + '.log'
         self.min_length = min_length if min_length else MIN_LENGTH
         self.min_score = min_score if min_score else MIN_SCORE
         self.initialize_logging()
@@ -30,8 +31,10 @@ class HbarRunner( object ):
         self.log.info("\tMinimum Score: {0}".format(self.min_score))
 
     def __call__(self):
+        os.chdir( self.output_dir )
         self.write_config()
         self.run_hbar()
+        os.chdir( self.origin_dir )
 
     def write_config(self):
         self.config_output = os.path.join( self.output_dir, 'HLA_HBAR.cfg' )
@@ -47,7 +50,8 @@ class HbarRunner( object ):
     def run_hbar(self):
         self.log.info("Running HBAR Workflow")
         hbar_args = ["HBAR_WF2.py", self.config_output]
-        subprocess.check_call( hbar_args, stdout=self.log_file )
+        with open(self.log_file, 'w') as log_handle:
+            subprocess.check_call( hbar_args, stdout=log_handle )
         self.log.info("HBAR completed successfully")
 
     @property
@@ -57,7 +61,7 @@ class HbarRunner( object ):
             'input_fofn = {0}'.format(self.input_file),
             '#The length cutoff used for seed reads',
             'length_cutoff = {0}'.format(MIN_LENGTH),
-            '#The length cutoff used for pre-assembly'
+            '#The length cutoff used for pre-assembly',
             'length_cutoff_pr = {0}'.format(MIN_LENGTH),
             '#The read quality cutoff used for seed reads',
             'RQ_threshold = {0}'.format(MIN_SCORE),
@@ -74,7 +78,7 @@ class HbarRunner( object ):
             '#SGE job option for "qsub -sync y" to sync stage',
             'sge_option_ck = -pe smp 1 -q secondary',
             '# Options for blasr mapping',
-            'blasr_opt = -nCandidates 32 -minMatch 12 -maxLCPLength 15 -bestn 24 -minPctIdentity 75.0 -maxScore -1000 -nproc 16'
+            'blasr_opt = -nCandidates 32 -minMatch 12 -maxLCPLength 15 -bestn 24 -minPctIdentity 75.0 -maxScore -1000 -nproc 16',
             '#This is used for running quiver',
             'SEYMOUR_HOME = /mnt/secondary/Smrtpipe/builds/Assembly_Mainline_Nightly_Archive/build470-116466/',
             '#The number of best alignment hits used for pre-assembly',
@@ -89,7 +93,7 @@ class HbarRunner( object ):
             'preassembly_num_chunk = 8',
             '# number of chunks for pre-assembly',
             'dist_map_num_chunk = 6',
-            '# Multi-file chunking parameters'
+            '# Multi-file chunking parameters',
             'q_chunk_size = 5',
             't_chunk_size = 10',
             '# "tmpdir" is for preassembly, better in a ramdisk',
@@ -102,11 +106,6 @@ class HbarRunner( object ):
             'trim_align = 1',
             'trim_plr = 1',
             'q_nproc = 16'])
-
-    def run_command(self):
-        self.log.info("Executing the Blasr command")
-        subprocess.check_call( self.command_args )
-        self.log.info("Blasr alignment finished")
 
 if __name__ == '__main__':
     runner = HgapRunner('AAA', 'BBB')

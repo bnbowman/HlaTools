@@ -6,6 +6,7 @@ class BlasrRunner( object ):
         self.query = query
         self.reference = reference
         self.output = output
+        self.output_type = output.split('.')[-1]
         self.blasr_args = args
         self.initialize_logging()
         self.run()
@@ -27,19 +28,20 @@ class BlasrRunner( object ):
         self.log.info("Converting supplied arguments into a Blasr commandline")
         self.command_args = ['blasr', self.query, self.reference, '-out', self.output]
         for arg, value in self.blasr_args.iteritems():
-            if arg == 'output_type':
-                if value == 'sam':
-                    self.command_args.append('-sam')
-                elif value == 'm1':
-                    self.command_args += ['-m', '1']
-                elif value == 'm4':
-                    self.command_args += ['-m', '4']
-                elif value == 'm5':
-                    self.command_args += ['-m', '5']
-                else:
-                    msg = 'Unrecognized output type! "{0}"'.format(value)
-            else:
-                self.command_args += ['-{0}'.format(arg), str(value)]
+            self.command_args += ['-{0}'.format(arg), str(value)]
+        # Add a command for the output filetype 
+        if self.output_type == 'sam':
+            self.command_args += ['-sam']
+        elif self.output_type == 'm1':
+            self.command_args += ['-m', '1']
+        elif self.output_type == 'm4':
+            self.command_args += ['-m', '4']
+        elif self.output_type == 'm5':
+            self.command_args += ['-m', '5']
+        else:
+            msg = 'Unrecognized output type! "{0}"'.format(self.output_type)
+            self.log.info( msg )
+            raise TypeError( msg )
 
     def run_command(self):
         self.log.info("Executing the Blasr command")
