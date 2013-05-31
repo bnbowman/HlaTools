@@ -91,7 +91,8 @@ class HlaPipeline( object ):
             self.output = self.input_file.split('.')[0]
         create_directory( self.output )
         # Create the various sub-directories
-        for d in ['log_files', 'HBAR', 'references', 'subreads', 'alignments', 'phased', 'reseq']:
+        for d in ['log_files', 'HBAR', 'references', 'subreads', 
+                  'alignments', 'phased', 'reseq', 'stats']:
             sub_dir = os.path.join( self.output, d )
             create_directory( sub_dir )
             setattr(self, d, sub_dir)
@@ -158,24 +159,26 @@ class HlaPipeline( object ):
         self.extract_subreads()
         self.align_subreads_to_contigs()
         self.create_subread_contig_dict()
-        # Third, we align the contigs to the Human Genome and separate
-        #     out the contigs that are clearly off-target
+        # Third, we align the contigs to the Human Genome ...
         self.align_contigs_to_genome()
         self.create_contig_genome_dict()
+        # ... and the locus reference sequences ...
+        self.create_ref_locus_dict()
+        self.create_locus_reference()
+        self.align_contigs_to_reference()
+        self.create_contig_reference_dict()
+        self.create_contig_locus_dict()
+        # ... in order to separate the on-target from off-target hits
+        self.find_on_target_contigs()
         self.separate_off_target_contigs()
         # Fourth, we combine the Subread and Contig dicts and use them
         #     to separate out off-target subreads
-        self.create_subread_genome_dict()
+        self.find_on_target_subreads()
         self.separate_off_target_subreads()
         # Next we create re-align just the HLA data for summarizing
         self.realign_hla_subreads()
-        # In order to summarize by loci, we need to associate the
-        #     each of these contigs with a reference
-        self.create_ref_locus_dict()
-        self.create_locus_reference()
-        self.align_hla_contigs_to_reference()
-        self.create_contig_reference_dict()
-        self.create_contig_locus_dict()
+        # Next we summarize our pre-phasing coverage of the contigs
+        self.summarize_aligned_hla_subreads()
         #self.create_subread_dict()
         #self.separate_subreads_by_locus()
         #self.align_subreads_by_locus()
@@ -214,7 +217,7 @@ class HlaPipeline( object ):
         # Dump all valid reads from the above files
         self.subread_file = os.path.join( self.subreads, "all_subreads.fasta" )
         if os.path.isfile( self.subread_file ):
-            self.log.info('Found existing subread file "%s"'.format(self.subread_file))
+            self.log.info('Found existing subread file "{0}"'.format(self.subread_file))
             self.log.info('Skipping subread extraction step\n')
             return
         self.log.info('Extracting subreads from input files...')
@@ -275,58 +278,6 @@ class HlaPipeline( object ):
         self.contig_genome_dict = ReferenceDict( self.contigs_to_genome )
         self.log.info("Finished convereting the data to a Dictionary\n")
 
-    def create_subread_genome_dict(self):
-        self.log.info("Converting the Subreads-to-Contigs alignment and Contigs-to-Genome")
-        self.log.info("    into a combined Subread-to-Genome Dictionary")
-        self.subread_genome_dict = cross_ref_dict( self.subread_contig_dict, self.contig_genome_dict )
-        self.log.info("Finished convereting the data to a Dictionary\n")
-
-    def separate_off_target_contigs(self):
-        self.log.info('Separating off-target contigs by genomic alignment')
-        self.hla_contigs = os.path.join(self.references, 'hla_contigs.fasta')
-        self.non_hla_contigs = os.path.join(self.references, 'non_hla_contigs.fasta')
-        if os.path.isfile( self.hla_contigs ) and os.path.isfile( self.non_hla_contigs ):
-            self.log.info('Found existing sequence file "{0}"'.format(self.hla_contigs))
-            self.log.info('Found existing sequence file "{0}"'.format(self.non_hla_contigs))
-            self.log.info("Skipping separation step...\n")
-            return
-        self.log.info('No separated contig files found, initializing separator')
-        separator = SequenceSeparator( self.contig_file, self.contig_genome_dict, ['chr6'] )
-        separator.write('selected', self.hla_contigs)
-        separator.write('not_selected', self.non_hla_contigs)
-        self.log.info('Finished separating off-target contigs\n')
-    
-    def separate_off_target_subreads(self):
-        self.log.info('Separating off-target subreads by contig alignment')
-        self.hla_subreads = os.path.join(self.subreads, 'hla_subreads.fasta')
-        self.non_hla_subreads = os.path.join(self.subreads, 'non_hla_subreads.fasta')
-        if os.path.isfile( self.hla_subreads ) and os.path.isfile( self.non_hla_subreads ):
-            self.log.info('Found existing sequence file "{0}"'.format(self.hla_subreads))
-            self.log.info('Found existing sequence file "{0}"'.format(self.non_hla_subreads))
-            self.log.info("Skipping separation step...\n")
-            return
-        self.log.info('No separated contig files found, initializing separator')
-        separator = SequenceSeparator( self.subread_file, self.subread_genome_dict, ['chr6'] )
-        separator.write('selected', self.hla_subreads)
-        separator.write('not_selected', self.non_hla_subreads)
-
-    def realign_hla_subreads(self):
-        self.log.info("Re-aligning HLA subreads to selected references")
-        self.hla_alignment = os.path.join( self.alignments, "hla_subreads_to_contigs.sam" )
-        if os.path.isfile( self.hla_alignment ):
-            self.log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
-            self.log.info("Skipping realignment step...\n")
-            return
-        query_count = fasta_size( self.hla_subreads )
-        ref_count = fasta_size( self.hla_contigs )
-        self.log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-        blasr_args = {'nproc': self.nproc,
-                      'bestn': 1,
-                      'nCandidates': ref_count}
-        BlasrRunner(self.hla_subreads, self.hla_contigs, self.hla_alignment, blasr_args)
-        self.check_output_file( self.hla_alignment )
-        self.log.info("Finished realigning HLA subreads to HLA contigs\n")
-
     def create_ref_locus_dict(self):
         self.log.info('"Creating reference dictonary from "{0}"'.format(self.reference_file))
         self.reference_locus_dict = ReferenceDict( self.reference_file )
@@ -345,21 +296,21 @@ class HlaPipeline( object ):
         self.check_output_file( self.reference_seqs )
         self.log.info("Finished creating locus reference\n")
     
-    def align_hla_contigs_to_reference(self):
+    def align_contigs_to_reference(self):
         self.log.info('"Aligning all HLA contigs to the Reference sequences')
-        self.contigs_to_reference = os.path.join(self.alignments, 'hla_contigs_to_reference.m1')   
+        self.contigs_to_reference = os.path.join(self.alignments, 'contigs_to_reference.m1')   
         if os.path.isfile( self.contigs_to_reference ):
             self.log.info('Found existing alignment file "{0}"'.format(self.contigs_to_reference))
             self.log.info("Skipping alignment step...\n")
             return
-        contig_count = fasta_size( self.hla_contigs )
+        contig_count = fasta_size( self.contig_file )
         reference_count = fasta_size( self.reference_seqs )
         # Run BLASR
         self.log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
         blasr_args = {'nproc': self.nproc,
                       'bestn': 1,
                       'nCandidates': reference_count}
-        BlasrRunner( self.hla_contigs, self.reference_seqs, self.contigs_to_reference, blasr_args )
+        BlasrRunner( self.contig_file, self.reference_seqs, self.contigs_to_reference, blasr_args )
         # Check and save the output
         self.check_output_file( self.contigs_to_reference )
         self.log.info("Finished aligning contigs to the HLA reference set\n")
@@ -373,83 +324,84 @@ class HlaPipeline( object ):
         self.log.info("Converting the Contigs-to-Reference dict and Reference-to-Locus")
         self.log.info("    dict into a combined Contig-to-Locus Dictionary")
         self.contig_locus_dict = cross_ref_dict( self.contig_reference_dict, self.reference_locus_dict )
-        for key in self.contig_locus_dict:
-            print key, self.contig_locus_dict[key]
         self.log.info("Finished convereting the data to a Dictionary\n")
 
-    def summarize_aligned_subreads(self):
-        self.log.info("Assigning subreads to their associated locus")
-        self.locus_stats = os.path.join(self.stats_dir, "locus_statistics.csv")
-        self.reference_stats = os.path.join(self.stats_dir, "reference_statistics.csv")
-        self.amplicon_stats = os.path.join(self.stats_dir, "amplicon_statistics.csv")
+    def find_on_target_contigs(self):
+        self.log.info('Identifying on-target contigs')
+        self.on_target_contig_ids = [c for c in self.contig_locus_dict
+                                       if self.contig_genome_dict[c] == 'chr6']
+        self.log.info('Finished identifying on-target contigs\n')
+
+    def separate_off_target_contigs(self):
+        self.log.info('Separating off-target contigs by genomic alignment')
+        self.hla_contigs = os.path.join(self.references, 'hla_contigs.fasta')
+        self.non_hla_contigs = os.path.join(self.references, 'non_hla_contigs.fasta')
+        if os.path.isfile( self.hla_contigs ) and os.path.isfile( self.non_hla_contigs ):
+            self.log.info('Found existing sequence file "{0}"'.format(self.hla_contigs))
+            self.log.info('Found existing sequence file "{0}"'.format(self.non_hla_contigs))
+            self.log.info("Skipping separation step...\n")
+            return
+        self.log.info('No separated contig files found, initializing separator')
+        separator = SequenceSeparator( self.contig_file, selected=self.on_target_contig_ids )
+        separator.write('selected', self.hla_contigs)
+        separator.write('not_selected', self.non_hla_contigs)
+        self.log.info('Finished separating off-target contigs\n')
+    
+    def find_on_target_subreads(self):
+        self.log.info('Identifying on-target subreads')
+        self.on_target_subreads = [s for s in self.subread_contig_dict
+                                   if self.subread_contig_dict[s] in self.on_target_contig_ids]
+        self.log.info('Finished identifying on-target subreads\n')
+
+    def separate_off_target_subreads(self):
+        self.log.info('Separating off-target subreads by contig alignment')
+        self.hla_subreads = os.path.join(self.subreads, 'hla_subreads.fasta')
+        self.non_hla_subreads = os.path.join(self.subreads, 'non_hla_subreads.fasta')
+        if os.path.isfile( self.hla_subreads ) and os.path.isfile( self.non_hla_subreads ):
+            self.log.info('Found existing sequence file "{0}"'.format(self.hla_subreads))
+            self.log.info('Found existing sequence file "{0}"'.format(self.non_hla_subreads))
+            self.log.info("Skipping separation step...\n")
+            return
+        self.log.info('No separated contig files found, initializing separator')
+        separator = SequenceSeparator( self.subread_file, selected=self.on_target_subreads )
+        separator.write('selected', self.hla_subreads)
+        separator.write('not_selected', self.non_hla_subreads)
+        self.log.info('Finished separating off-target subreads\n')
+
+    def realign_hla_subreads(self):
+        self.log.info("Re-aligning HLA subreads to selected references")
+        self.hla_alignment = os.path.join( self.alignments, "hla_subreads_to_contigs.sam" )
+        if os.path.isfile( self.hla_alignment ):
+            self.log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
+            self.log.info("Skipping realignment step...\n")
+            return
+        query_count = fasta_size( self.hla_subreads )
+        ref_count = fasta_size( self.hla_contigs )
+        self.log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
+        blasr_args = {'nproc': self.nproc,
+                      'bestn': 1,
+                      'nCandidates': ref_count}
+        BlasrRunner(self.hla_subreads, self.hla_contigs, self.hla_alignment, blasr_args)
+        self.check_output_file( self.hla_alignment )
+        self.log.info("Finished realigning HLA subreads to HLA contigs\n")
+
+    def summarize_aligned_hla_subreads(self):
+        self.log.info("Summarizing coverage of the HLA contigs by the HLA subreads")
+        self.locus_stats = os.path.join(self.stats, "locus_statistics.csv")
+        self.reference_stats = os.path.join(self.stats, "reference_statistics.csv")
         ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
         if os.path.isfile( self.locus_stats ) and \
-           os.path.isfile( self.reference_stats ) and \
-           os.path.isfile( self.amplicon_stats ):
+           os.path.isfile( self.reference_stats ):
             self.log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
             self.log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
-            self.log.info('Found existing Amplicon Statistics at "{0}"'.format(self.amplicon_stats))
             self.log.info("Skipping alignment summary step...\n")
             return
-        read_cluster_map = {}
-        cluster_files = {}
-        stats = SubreadStats( self.reference_seqs, self.locus_dict, self.amplicon_summary )
-        # First
-        for alignment in SamReader( self.sam_file ):
-            locus = self.locus_dict[alignment.rname]
-            stats.add_aligned_read( locus, alignment )
+        stats = SubreadStats( self.hla_contigs, self.contig_locus_dict )
+        stats.add_sam_file( self.hla_alignment )
         ### finally write out the subread statistics
         stats.write( self.locus_stats, 'locus' )
         stats.write( self.reference_stats, 'reference' )
-        stats.write( self.amplicon_stats, 'amplicon' )
-        self.log.info("Subread files and summary created ( %s )\n" % self.subread_files )
-
-    def align_subreads_by_locus(self):
-        self.log.info("Aligning subreads to references by loci")
-        sam_prefix = self.align_dir + "/Locus"
-        self.locus_files = []
-        with open(self.args.refs, 'r') as handle:
-            for line in handle:
-                reference, locus = line.strip().split()
-                output_file = '{0}_{1}.m1'.format(sam_prefix, locus)
-                if os.path.isfile( output_file ):
-                    self.log.info('Found existing output file "{0}"'.format( output_file ))
-                    self.log.info('Skipping alignment step for locus "{0}"'.format( locus ))
-                    self.locus_files.append( output_file )
-                    continue
-                locus_ending = '_{0}.fasta'.format( locus )
-                query_file = [f for f in self.locus_subread_files if f.endswith( locus_ending )][0]
-                query_count = fasta_size( query_file )
-                ref_count = fasta_size( reference )
-                self.log.info("Aligning {0} subreads to {1} sequences for locus {2}".format(query_count, ref_count, locus))
-                blasr_args = {'nproc': self.args.nproc,
-                              'output_type': 'm1',
-                              'bestn': 1,
-                              'nCandidates': ref_count}
-                BlasrRunner( query_file, reference, output_file, blasr_args)
-                self.check_output_file( output_file )
-                self.locus_files.append( output_file )
-        self.log.info("Finished aligning subread data by loci\n")
-
-    def choose_references_by_locus(self):
-        self.reference_seqs = self.subread_dir + "/selected_references.fasta"
-        self.log.info("Selecting references for each loci")
-        if os.path.isfile( self.reference_seqs ):
-            self.log.info('Found existing locus reference sequences "{0}"'.format(self.reference_seqs))
-            self.log.info('Skipping reference extraction step\n')
-            return
-        self.selected_refs = LocusReferenceSelector( self.locus_files )
-        self.log.info("Finished selecting references for each loci")
-
-    def extract_references_by_locus(self):
-        self.log.info("Extracting selected reference sequences")
-        self.reference_seqs = self.subread_dir + "/selected_references.fasta"   
-        if os.path.isfile( self.reference_seqs ):
-            self.log.info('Found existing file of selected references "{0}"'.format(self.reference_seqs))
-            self.log.info("Skipping realignment step...\n")
-            return
-        LocusReference(self.args.refs, self.reference_seqs, id_list=self.selected_refs)
-        self.log.info("Finished extracting selected reference sequences")
+        self.log.info("Finished summarizing coverage of the HLA contigs")
 
     def find_amplicons(self):
         self.log.info("Finding amplicon locations within each reference")

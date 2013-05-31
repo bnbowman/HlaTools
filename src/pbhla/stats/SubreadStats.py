@@ -2,6 +2,7 @@ import re
 import csv
 
 from pbcore.io.FastaIO import FastaReader
+from pbhla.io.SamIO import SamReader
 
 HEADER = ["Group", "Reads",       "FpReads",
                    "FlReads",     "Bp",         
@@ -104,7 +105,8 @@ class SubreadStats( object ):
         self.all_stats = SequencingStats( 'All' )
         if amplicon_csv is None:
             for record in FastaReader(ref_fasta):
-                self.add_stats( record.name )
+                name = record.name.split()[0]
+                self.add_stats( name )
         else:
             with open(amplicon_csv, 'r') as handle:
                 handle.readline() # Skip header line
@@ -138,13 +140,19 @@ class SubreadStats( object ):
             results[amp] = overlap
         return sorted(results)[0][0]
 
-    def add_aligned_read( self, locus, alignment ):
-        self.all_stats.add_aligned_read( alignment )
-        self.loci[locus].add_aligned_read( alignment )
-        self.references[alignment.rname].add_aligned_read( alignment )
-        amplicon = self.find_best_amplicon( alignment )
-        self.amplicons[amplicon].add_aligned_read( alignment )
-        self.increment_readtotals()
+    def add_sam_file(self, sam_file):
+        for alignment in SamReader( sam_file ):
+            # Add general stats
+            self.all_stats.add_aligned_read( alignment )
+            self.increment_readtotals()
+            # Add reference-specific stats
+            self.references[alignment.rname].add_aligned_read( alignment )
+            # Add locus-specific stats
+            locus = self.locus_dict[alignment.rname]
+            self.loci[locus].add_aligned_read( alignment )
+            # Add amplicon-specific stats
+            amplicon = self.find_best_amplicon( alignment )
+            self.amplicons[amplicon].add_aligned_read( alignment )
 
     def increment_readtotals(self):
         self.all_stats.all_subreads += 1

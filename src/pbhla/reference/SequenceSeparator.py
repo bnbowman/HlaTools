@@ -4,7 +4,7 @@ from pbcore.io.FastaIO import FastaReader, FastaWriter
 
 class SequenceSeparator( object ): 
 
-    def __init__(self, fasta_file, reference_dict, selected=None):
+    def __init__(self, fasta_file, reference_dict=None, selected=None):
         self.fasta_file = fasta_file
         self.reference_dict = reference_dict
         self.selected = selected
@@ -37,8 +37,7 @@ class SequenceSeparator( object ):
         self.log.info('Separating selected references')
         for record in FastaReader( self.fasta_file ):
             name = record.name.split()[0]
-            ref = self.get_reference( name )
-            if ref in self.selected:
+            if name in self.selected:
                 self.add_record( record, 'selected' )
             else:
                 self.add_record( record, 'not_selected' )
