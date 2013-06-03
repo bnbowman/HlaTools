@@ -53,36 +53,28 @@ class HlaPipeline( object ):
         import argparse
         desc = "A pipeline for performing HLA haplotype sequencing."
         parser = argparse.ArgumentParser( description=desc )
-        parser.add_argument("input_file", metavar="INPUT",
-                            help="A BasH5 or FOFN of BasH5s to haplotype.")
-        parser.add_argument("reference_file", metavar="REFERENCE", 
-                            help="FOFN of reference fasta files and their associated loci")
-        parser.add_argument("genome", metavar="GENOME",
-                            help="Fasta file of the Human Genome")
-        parser.add_argument("--output",
-                            help="Specify the project's output folder")
-        parser.add_argument("--MSA",
-                            help="This is a fofn which describes which prealigned MSA corresponds to each locus.")
-        parser.add_argument("--dilution", type=float, default=DILUTION,
-                            help="Only use this proportion of the reads from the bas.h5 for phasing.")
-        parser.add_argument("--min_read_score", type=float, default=MIN_SCORE,
-                            help="Only extract subreads more accurate than this from bas.h5 files")
-        parser.add_argument("--min_read_length", type=int, default=MIN_LENGTH,
-                            help="Only extract subreads longer than this from bas.h5 files")
-        parser.add_argument("--phasr-args", nargs='*', default=[''],
-                            help="pass these args to phasr.")
-        parser.add_argument("--region_table", 
-                            help="Region Table of White-Listed reads to use")
-        parser.add_argument("--nproc", type=int, default=NUM_PROC,
-                            help="Number of processors to use for parallelized computing")
-        parser.add_argument("--HGAP_dilute", default=1.0,
-                            help="Proportion of reads to pass to HGAP.")
-        parser.add_argument("--HGAP", action='store_true',
-                            help="Run HGAP on unmapped reads.")
-        parser.add_argument("--avoid_phasr", action='store_true',
-                            help="Avoid phasr if reference mapping has identified two likely phases.")
-        parser.add_argument("--annotate", action='store_true',
-                            help="Avoid annotation.")
+
+        add = parser.add_argument
+        add("input_file", metavar="INPUT",
+            help="A BasH5 or FOFN of BasH5s to haplotype.")
+        add("reference_file", metavar="REFERENCE", 
+            help="FOFN of reference fasta files and their associated loci")
+        add("genome", metavar="GENOME", help="Fasta file of the Human Genome")
+        add("--output", metavar="DIR", help="Destination folder for process results")
+        add("--nproc", type=int, metavar='INT', default=NUM_PROC,
+            help="Number of processors to use for parallelization ({0})".format(NUM_PROC))
+        add("--min_read_score", type=float, metavar='FLOAT', default=MIN_SCORE,
+            help="Only use reads with ReadScore greater than this ({0})".format(MIN_SCORE))
+        add("--min_read_length", type=int, metavar='INT', default=MIN_LENGTH,
+            help="Only use subreads longer than this ({0})".format(MIN_LENGTH))
+        add("--dilution", type=float, metavar='FLOAT', default=DILUTION,
+            help="Fraction of subreads to use ({0})".format(DILUTION))
+        #add("--MSA", help="FOFN of prealigned MSAs and their associated loci.")
+        #add("--region_table", help="Region Table of White-Listed reads to use")
+        #add("--phasr-args", nargs='*', default=[''], help="pass these args to phasr.")
+        #add("--avoid_phasr", action='store_true',
+        #    help="Avoid phasr if reference mapping has identified two likely phases.")
+        #add("--annotate", action='store_true', help="Avoid annotation.")
         self.__dict__.update( vars(parser.parse_args()) )
 
     def initialize_project( self ):
@@ -128,28 +120,20 @@ class HlaPipeline( object ):
             self.log.info( msg )
             raise ValueError( msg )
         # parse phasr args
-        self.phasr_argstring = ''
-        for argument in self.phasr_args:
-            if ':' in argument:
-                param, value = argument.split(":")
-                self.phasr_argstring += '--%s %s ' % (param, value)
-            elif 'output' in argument or 'cname' in argument:
-                pass    
-            else:
-                self.phasr_argstring += '--%s ' % argument
+        #self.phasr_argstring = ''
+        #for argument in self.phasr_args:
+        #    if ':' in argument:
+        #        param, value = argument.split(":")
+        #        self.phasr_argstring += '--%s %s ' % (param, value)
+        #    elif 'output' in argument or 'cname' in argument:
+        #        pass    
+        #    else:
+        #        self.phasr_argstring += '--%s ' % argument
         # Initialize the SmrtAnalysisTools
-        self.smrt_analysis = SmrtAnalysisRunner( SMRT_ANALYSIS, self.log_files, self.nproc )
+        #self.smrt_analysis = SmrtAnalysisRunner( SMRT_ANALYSIS, self.log_files, self.nproc )
 
     def getVersion(self):
         return __version__
-
-    def check_output_file(self, filepath):
-        try:
-            assert os.path.isfile( filepath )
-        except:
-            msg = 'Expected output file not found! "{0}"'.format(filepath)
-            self.log.info( msg )
-            raise IOError( msg )
 
     def __call__( self ):
         # First we assemble the supplied data via HGAP / HBAR
@@ -190,6 +174,14 @@ class HlaPipeline( object ):
         #self.phase_subreads()   
         #self.resequence()
         #self.annotate()
+
+    def check_output_file(self, filepath):
+        try:
+            assert os.path.isfile( filepath )
+        except:
+            msg = 'Expected output file not found! "{0}"'.format(filepath)
+            self.log.info( msg )
+            raise IOError( msg )
 
     def assemble_contigs( self ):
         self.log.info('Beginning the extraction of subiread data')

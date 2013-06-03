@@ -28,12 +28,17 @@ class SequenceSeparator( object ):
             raise ValueError( msg )
 
     def run(self):
-        if self.selected:
-            self.separate_selected()
-        else:
+        if self.reference_dict and self.selected:
+            self.separate_by_selected_reference()
+        elif self.selected:
+            self.separate_by_selected_id()
+        elif self.reference_dict:
             self.separate_by_reference()
 
-    def separate_selected(self):
+    def separate_by_selected_reference(self):
+        pass
+
+    def separate_by_selected_id(self):
         self.log.info('Separating selected references')
         for record in FastaReader( self.fasta_file ):
             name = record.name.split()[0]
