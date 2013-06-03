@@ -213,153 +213,6 @@ def regroup(g1, g2, index):
             group2.append( (ID, vec) )
     return group1, group2 
 
-def partition_reads(read_vector, g_id, MIN_GROUP_SIZE, ENTROPY_TH):
-    print "partition group:", g_id
-    if len(read_vector) < MIN_GROUP_SIZE:
-        return (("%d" % g_id, read_vector), )
-    
-    smap = {"A":1,"C":1,"G":1,"T":1,"*":-1," ":0}
-    
-    m = np.zeros( (len(read_vector), len(read_vector[0][1])) )
-    i = 0
-    for ID, node in read_vector:
-        m[i] = [smap[c] for c in node]
-        i += 1
-
-    pos_candidates = []
-    ce = col_entropy(m)
-    total_index = []
-    for pos in range(m.shape[1]):
-        entropy = ce[pos]
-        total_index.append( (entropy, pos) )
-        if entropy > ENTROPY_TH:
-            pos_candidates.append( (entropy, pos) )
-    pos_candidates = [x[1] for x in pos_candidates]
-
-    total_index = range(m.shape[1])
-    #total_index.sort()
-    #total_index.reverse()
-    #n_pos = min(64, len(pos_candidates) * 2)
-    #total_index  = [x[1] for x in total_index[:n_pos]]
-    #total_index.sort()
-    print "number_of_candidate", len(total_index)
-
-    partition_scores = []
-    for pos in pos_candidates:
-        partition_scores.append( ( (partition_score(m, pos, total_index), -ce[pos]), pos) )
-    partition_scores.sort()
-   
-    if len(partition_scores) == 0:
-        return (("%d" % g_id, read_vector, m), )
-    print len(read_vector), partition_scores[0]
-    print "------------------"
-    if partition_scores[0][0][0] > 0:
-        return (("%d" % g_id, read_vector, m), )
-    
-    #rtn = ["groups_%d" % g_id]
-    rtn = []
-    group1 = []
-    group2 = []
-    split_pos = partition_scores[0][1]
-    for rid, vec in read_vector:
-        if vec[split_pos] == "*":
-            group1.append( (rid, vec) )
-        elif vec[split_pos] in ("A", "C", "G", "T"):
-            group2.append( (rid, vec) )
-    group1, group2 = regroup(group1, group2, total_index)
-
-    if len(group1) < MIN_GROUP_SIZE or len(group2) < MIN_GROUP_SIZE:
-        return (("%d" % g_id, read_vector, m), )
-    else:
-        rtn.extend( partition_reads(group1, g_id * 2 + 1, MIN_GROUP_SIZE, ENTROPY_TH ) )
-        rtn.extend( partition_reads(group2, g_id * 2 + 2, MIN_GROUP_SIZE, ENTROPY_TH ) )
-    
-    return rtn
-    
-
-
-def level2_partition(read_ids, read_file, ref_file, WORK_DIR, ENTROPY_TH, MIN_GROUP_SIZE):
-
-    level2_group = []
-
-    print "s:" + read_file
-    ignore_indel = False
-    tmp_cns = os.path.join( WORK_DIR, "tmp_cns.fa")
-    aln_g, seq = get_consensus(read_file, ref_file, tmp_cns, "tmp_cns", 
-                               ENTROPY_TH,
-                               hp_correction = False, 
-                               min_iteration = 4, 
-                               max_num_reads = 150,
-                               entropy_th = 0.65,
-                               min_cov = 8,
-                               max_cov = 200,
-                               nproc = 16,
-                               mark_lower_case = False,
-                               use_read_id = False)
-        
-    aln_g = construct_aln_graph_from_fasta(read_file, 
-                                            tmp_cns, 
-                                            max_num_reads = 5000, 
-                                            max_cov = 5000, 
-                                            remove_in_del = True, 
-                                            nproc=16, 
-                                            use_read_id=True)
-
-    seq, c_data = aln_g.generate_consensus(min_cov=0)
-
-
-    if len(read_ids) < MIN_GROUP_SIZE:
-        print "group element < %d, not splitting" % MIN_GROUP_SIZE
-        level2_group.append( ( read_ids, seq, c_data, "-" ) )
-        return level2_group
-
-
-    rv, hen = read_node_vector(aln_g, ENTROPY_TH, entropy_th = ENTROPY_TH)
-    if len(rv) == 0:
-        print "not high entropy node cnd#1, not splitting"
-        level2_group.append( ( read_ids, seq, c_data, "+" ) )
-        return level2_group
-    if len(rv.values()[0]) == 0:
-        print "not high entropy node cnd#2, not splitting"
-        level2_group.append( ( read_ids, seq, c_data, "+" ) )
-        return level2_group
-
-    aln_data = []
-    for r in rv:
-        aln_data.append( (r, "".join(rv[r])) )
-    aln_data.sort(key=lambda x: x[1][0])
-    aln_data.reverse()
-
-    read_groups = partition_reads(aln_data, 0, MIN_GROUP_SIZE, ENTROPY_TH)
-    print sum([len(rg[1]) for rg in read_groups]), [ ( rg[0], len(rg[1]) ) for rg in read_groups ]
-
-    if len(read_groups) == 1:
-        print "level 1 splitting fail, not splitting"
-        level2_group.append( ( read_ids, seq, c_data, "+" ) )
-        return level2_group
-
-    group_id = 0
-    for rg in read_groups:
-        r_ids = set() 
-        rd = rg[1]
-        for r, d in rd:
-            r_ids.add( r )
-
-        f = FastaReader(read_file)
-        tmp_hash = hash( "%s_%d" % (read_file, group_id) )
-        read_out_file = os.path.join( WORK_DIR, "tmp_reads_%d.fa"  % tmp_hash )
-        fetch_read(read_file, read_out_file, r_ids)
-
-        tmp_cns = os.path.join( WORK_DIR, "tmp_cns_%s.fa" % tmp_hash )
-        with open(tmp_cns,"w") as f:
-            print >>f, ">tmp_cns"
-            print >>f, seq
-
-        group_id += 1
-        level2_group.extend( level2_partition(r_ids, read_out_file, tmp_cns, WORK_DIR,
-                                                     ENTROPY_TH, MIN_GROUP_SIZE, ) )
-    return level2_group
-
 class Clusense( object ):
     
     def __init__(self, read_file, ref_file, output_dir,
@@ -394,10 +247,22 @@ class Clusense( object ):
 
     def initialize_logger(self):
         self.log = logging.getLogger(__name__)
-        print self.log
+        if self.log.handlers:
+            return
+        # Set-up one logger for STDOUT
+        time_format = "%I:%M:%S"
+        out_format = "%(asctime)s %(filename)s %(funcName)s %(message)s"
+        h = logging.StreamHandler()
+        h.setLevel( logging.INFO )
+        f = logging.Formatter( fmt=out_format, datefmt=time_format )
+        h.setFormatter( f )
+        self.log.addHandler( h )
+        self.log.setLevel( logging.INFO )
 
     def run(self):
         tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")
+
+        self.log.info("Generating initial consensus")
         aln_g, seq = get_consensus(self.read_file, 
                                    self.ref_file, 
                                    tmp_cns, 
@@ -412,7 +277,9 @@ class Clusense( object ):
                                    nproc = 16,
                                    mark_lower_case = False,
                                    use_read_id = False)
+        self.log.info("Finished generating initial consensus")
 
+        self.log.info("Generating initial alignment graph")
         aln_g = construct_aln_graph_from_fasta(self.read_file, 
                                                tmp_cns, 
                                                max_num_reads = 5000, 
@@ -421,6 +288,7 @@ class Clusense( object ):
                                                nproc=16, 
                                                use_read_id = False)
         seq, c_data = aln_g.generate_consensus(min_cov=0, compute_qv_data= True)
+        self.log.info("Finished generating initial alignment graph")
 
         cns = os.path.join( self.output_dir, "group_root_cns.fa")
         with open(cns,"w") as f:
@@ -436,12 +304,9 @@ class Clusense( object ):
         for r in FastaReader( self.read_file ):
             r_ids.add(r.name)
             
-        level2_group = level2_partition(r_ids, self.read_file, self.ref_file, 
-                                                               self.output_dir, 
-                                                               self.entropy, 
-                                                               self.min_group)
+        level2_group = self.level2_partition(r_ids, self.read_file, self.ref_file)
+        self.log.info("-------------------")
         s = 0
-        print "-------------------"
         group_id = 1
 
         summary_f = open(os.path.join( self.output_dir, "summary.txt" ), "w")
@@ -481,6 +346,147 @@ class Clusense( object ):
         print >> summary_f, "total", s
         summary_f.close()
 
+    def level2_partition(self, read_ids, read_file, ref_file):
+
+        level2_group = []
+
+        self.log.info("s: {0}".format(os.path.basename(read_file)))
+        ignore_indel = False
+        tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")
+        aln_g, seq = get_consensus(read_file, ref_file, tmp_cns, "tmp_cns", 
+                                   self.entropy,
+                                   hp_correction = False, 
+                                   min_iteration = 4, 
+                                   max_num_reads = 150,
+                                   entropy_th = 0.65,
+                                   min_cov = 8,
+                                   max_cov = 200,
+                                   nproc = 16,
+                                   mark_lower_case = False,
+                                   use_read_id = False)
+            
+        aln_g = construct_aln_graph_from_fasta(read_file, 
+                                                tmp_cns, 
+                                                max_num_reads = 5000, 
+                                                max_cov = 5000, 
+                                                remove_in_del = True, 
+                                                nproc=16, 
+                                                use_read_id=True)
+
+        seq, c_data = aln_g.generate_consensus(min_cov=0)
+
+        # Check for end conditions
+        if len(read_ids) < self.min_group:
+            self.log.info("group element < %d, not splitting" % self.min_group)
+            level2_group.append( ( read_ids, seq, c_data, "-" ) )
+            return level2_group
+        rv, hen = read_node_vector(aln_g, self.entropy, entropy_th = self.entropy)
+        if len(rv) == 0:
+            self.log.info("not high entropy node cnd#1, not splitting")
+            level2_group.append( ( read_ids, seq, c_data, "+" ) )
+            return level2_group
+        if len(rv.values()[0]) == 0:
+            self.log.info("not high entropy node cnd#2, not splitting")
+            level2_group.append( ( read_ids, seq, c_data, "+" ) )
+            return level2_group
+
+        aln_data = []
+        for r in rv:
+            aln_data.append( (r, "".join(rv[r])) )
+        aln_data.sort(key=lambda x: x[1][0])
+        aln_data.reverse()
+
+        read_groups = self.partition_reads(aln_data, 0)
+        print sum([len(rg[1]) for rg in read_groups]), [ ( rg[0], len(rg[1]) ) for rg in read_groups ]
+
+        if len(read_groups) == 1:
+            self.log.info("level 1 splitting fail, not splitting")
+            level2_group.append( ( read_ids, seq, c_data, "+" ) )
+            return level2_group
+
+        group_id = 0
+        for rg in read_groups:
+            r_ids = set() 
+            rd = rg[1]
+            for r, d in rd:
+                r_ids.add( r )
+
+            f = FastaReader(read_file)
+            tmp_hash = hash( "%s_%d" % (read_file, group_id) )
+            read_out_file = os.path.join( self.output_dir, "tmp_reads_%d.fa"  % tmp_hash )
+            fetch_read(read_file, read_out_file, r_ids)
+
+            tmp_cns = os.path.join( self.output_dir, "tmp_cns_%s.fa" % tmp_hash )
+            with open(tmp_cns,"w") as f:
+                print >>f, ">tmp_cns"
+                print >>f, seq
+
+            group_id += 1
+            level2_group.extend( self.level2_partition(r_ids, read_out_file, tmp_cns, ) )
+        return level2_group
+
+    def partition_reads(self, read_vector, g_id):
+        self.log.info("partition group: {0}".format(g_id))
+        if len(read_vector) < self.min_group:
+            return (("%d" % g_id, read_vector), )
+        
+        smap = {"A":1,"C":1,"G":1,"T":1,"*":-1," ":0}
+        
+        m = np.zeros( (len(read_vector), len(read_vector[0][1])) )
+        i = 0
+        for ID, node in read_vector:
+            m[i] = [smap[c] for c in node]
+            i += 1
+
+        pos_candidates = []
+        ce = col_entropy(m)
+        total_index = []
+        for pos in range(m.shape[1]):
+            entropy = ce[pos]
+            total_index.append( (entropy, pos) )
+            if entropy > self.entropy:
+                pos_candidates.append( (entropy, pos) )
+        pos_candidates = [x[1] for x in pos_candidates]
+
+        total_index = range(m.shape[1])
+        #total_index.sort()
+        #total_index.reverse()
+        #n_pos = min(64, len(pos_candidates) * 2)
+        #total_index  = [x[1] for x in total_index[:n_pos]]
+        #total_index.sort()
+        self.log.info("number_of_candidate: {0}".format(len(total_index)))
+
+        partition_scores = []
+        for pos in pos_candidates:
+            partition_scores.append( ( (partition_score(m, pos, total_index), -ce[pos]), pos) )
+        partition_scores.sort()
+       
+        if len(partition_scores) == 0:
+            return (("%d" % g_id, read_vector, m), )
+        self.log.info(str(len(read_vector)) + " " + str(partition_scores[0]))
+        self.log.info("------------------")
+        if partition_scores[0][0][0] > 0:
+            return (("%d" % g_id, read_vector, m), )
+        
+        #rtn = ["groups_%d" % g_id]
+        rtn = []
+        group1 = []
+        group2 = []
+        split_pos = partition_scores[0][1]
+        for rid, vec in read_vector:
+            if vec[split_pos] == "*":
+                group1.append( (rid, vec) )
+            elif vec[split_pos] in ("A", "C", "G", "T"):
+                group2.append( (rid, vec) )
+        group1, group2 = regroup(group1, group2, total_index)
+
+        if len(group1) < self.min_group or len(group2) < self.min_group:
+            return (("%d" % g_id, read_vector, m), )
+        else:
+            rtn.extend( self.partition_reads(group1, g_id * 2 + 1 ) )
+            rtn.extend( self.partition_reads(group2, g_id * 2 + 2 ) )
+        return rtn
+        
 if __name__ == "__main__":
     import argparse
     desc = "Graph-model based hapolytype read separation"
