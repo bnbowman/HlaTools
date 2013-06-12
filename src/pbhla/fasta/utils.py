@@ -52,6 +52,7 @@ def copy_fasta( fasta, destination, name=None ):
 def combine_fasta( fasta_files, destination ):
     with FastaWriter( destination ) as handle:
         for fasta in fasta_files:
+            print fasta
             for record in FastaReader( fasta ):
                 handle.writeRecord( record )
 

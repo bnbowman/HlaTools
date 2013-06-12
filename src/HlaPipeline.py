@@ -74,6 +74,9 @@ class HlaPipeline( object ):
             help="Only use subreads longer than this ({0})".format(MIN_LENGTH))
         add("--dilution", type=float, metavar='FLOAT', default=DILUTION,
             help="Fraction of subreads to use ({0})".format(DILUTION))
+        add("--smrt_path", metavar="PATH", default=SMRT_ANALYSIS,
+            help="Path to the setup script for the local SMRT Analysis installation")
+        add("--resequence", action="store_true", help="Use quiver to resequence the")
         #add("--MSA", help="FOFN of prealigned MSAs and their associated loci.")
         #add("--region_table", help="Region Table of White-Listed reads to use")
         #add("--phasr-args", nargs='*', default=[''], help="pass these args to phasr.")
@@ -125,6 +128,8 @@ class HlaPipeline( object ):
             msg = "Dilute factor must be between 0 and 1"
             self.log.info( msg )
             raise ValueError( msg )
+        if self.resequence:
+            self.smrt_analysis = SmrtAnalysisRunner( self.smrt_path, self.log_files, self.nproc )
         # parse phasr args
         #self.phasr_argstring = ''
         #for argument in self.phasr_args:
@@ -136,7 +141,7 @@ class HlaPipeline( object ):
         #    else:
         #        self.phasr_argstring += '--%s ' % argument
         # Initialize the SmrtAnalysisTools
-        self.smrt_analysis = SmrtAnalysisRunner( SMRT_ANALYSIS, self.log_files, self.nproc )
+        
 
     def getVersion(self):
         return __version__
@@ -176,15 +181,21 @@ class HlaPipeline( object ):
         self.phase_reads_with_clusense()
         self.summarize_clusense()
         self.output_phased_contigs()
-        self.resequence_contigs()
-        self.separate_resequenced_contigs()
-        self.realign_subreads_to_resequenced()
-        self.align_resequenced_to_reference()
-        self.create_resequenced_dict()
-        self.create_resequenced_locus_dict()
-        self.create_subread_resequenced_contig_dict()
-        self.separate_subreads_by_resequenced_contig()
-        self.summarize_contigs_by_locus()
+        if self.resequence:
+            self.resequence_contigs()
+            self.separate_resequenced_contigs()
+            self.realign_subreads_to_resequenced()
+            self.align_resequenced_to_reference()
+            self.create_resequenced_dict()
+            self.create_resequenced_locus_dict()
+            self.create_subread_resequenced_contig_dict()
+            self.separate_subreads_by_resequenced_contig()
+            self.summarize_resequenced_by_locus()
+        else:
+            self.align_phased_to_reference()
+            self.create_phased_dict()
+            self.create_phased_locus_dict()
+            self.summarize_phased_by_locus()
 
     def check_output_file(self, filepath):
         try:
@@ -273,7 +284,7 @@ class HlaPipeline( object ):
                       'nCandidates': 10}
         BlasrRunner( self.contig_file, self.genome, self.contigs_to_genome, blasr_args )
         # Check and save the output
-        self.check_output_file( output_path )
+        self.check_output_file( self.contigs_to_genome )
         self.log.info("Finished aligning contigs to the genomic reference\n")
 
     def create_contig_genome_dict(self):
@@ -399,6 +410,24 @@ class HlaPipeline( object ):
         self.check_output_file( self.hla_alignment )
         self.log.info("Finished realigning HLA subreads to HLA contigs\n")
 
+    def summarize_aligned_hla_subreads(self):
+        self.log.info("Summarizing coverage of the HLA contigs by the HLA subreads")
+        self.locus_stats = os.path.join(self.stats, "locus_statistics.csv")
+        self.reference_stats = os.path.join(self.stats, "reference_statistics.csv")
+        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
+        if os.path.isfile( self.locus_stats ) and \
+           os.path.isfile( self.reference_stats ):
+            self.log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
+            self.log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
+            self.log.info("Skipping alignment summary step...\n")
+            return
+        stats = SubreadStats( self.hla_contigs, self.contig_locus_dict )
+        stats.add_sam_file( self.hla_alignment )
+        ### finally write out the subread statistics
+        stats.write( self.locus_stats, 'locus' )
+        stats.write( self.reference_stats, 'reference' )
+        self.log.info("Finished summarizing coverage of the HLA contigs")
+
     def separate_contigs(self):
         self.log.info("Separating remaining contigs into individual files")
         contig_fofn = os.path.join( self.subreads, "contig_files.txt" )
@@ -449,14 +478,17 @@ class HlaPipeline( object ):
     def summarize_clusense(self):
         self.log.info("Summarizing the output from Clusense")
         output_folder = os.path.join(self.phasing_results, 'Clusense_Results')
-        self.clusense_cns_files, self.clusense_read_files = combine_clusense_output(self.phasing, output_folder)
+        self.clusense_cns_fofn, self.clusense_read_fofn = combine_clusense_output(self.phasing, output_folder)
         self.log.info('Finished Phasing subreads with Clusense')
 
     def output_phased_contigs(self):
         self.log.info("Creating a combined reference of non-HLA and phased-HLA contigs")
         self.phased_contigs = os.path.join(self.references, 'phased_contigs.fasta')
-        fasta_files = list(self.clusense_cns_files) + [self.non_hla_contigs]
+        clusense_cns_files = read_fofn( self.clusense_cns_fofn )
+        fasta_files = list(clusense_cns_files) + [self.non_hla_contigs]
         combine_fasta(fasta_files, self.phased_contigs)
+        self.phased_hla = os.path.join(self.references, 'phased_hla.fasta')
+        combine_fasta(clusense_cns_files, self.phased_hla)
         self.log.info('Finished creating combined reference')
 
     def resequence_contigs(self):
@@ -554,29 +586,51 @@ class HlaPipeline( object ):
         write_fofn( self.subread_files, self.subread_fofn )
         self.log.info('Finished separating subreads by contig')
 
-    def summarize_contigs_by_locus(self):
+    def summarize_resequenced_by_locus(self):
         self.log.info("Picking contigs from the resequencing and realignment results")
-        ContigPicker( self.resequenced_hla, self.subread_fofn, self.resequenced_locus_dict, self.results )
+        quiver_results = os.path.join( self.results, 'Quiver' )
+        create_directory( quiver_results )
+        ContigPicker( self.resequenced_hla, self.subread_fofn, self.resequenced_locus_dict, quiver_results )
         self.log.info("Finished picking contigs")
 
-    def summarize_aligned_hla_subreads(self):
-        self.log.info("Summarizing coverage of the HLA contigs by the HLA subreads")
-        self.locus_stats = os.path.join(self.stats, "locus_statistics.csv")
-        self.reference_stats = os.path.join(self.stats, "reference_statistics.csv")
-        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
-        if os.path.isfile( self.locus_stats ) and \
-           os.path.isfile( self.reference_stats ):
-            self.log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
-            self.log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
-            self.log.info("Skipping alignment summary step...\n")
+    def align_phased_to_reference(self):
+        self.log.info('"Aligning all phased HLA contigs to the Reference sequences')
+        self.phased_to_reference = os.path.join(self.alignments, 'phased_to_reference.m1')   
+        if os.path.isfile( self.phased_to_reference ):
+            self.log.info('Found existing alignment file "{0}"'.format(self.phased_to_reference))
+            self.log.info("Skipping alignment step...\n")
             return
-        stats = SubreadStats( self.hla_contigs, self.contig_locus_dict )
-        stats.add_sam_file( self.hla_alignment )
-        ### finally write out the subread statistics
-        stats.write( self.locus_stats, 'locus' )
-        stats.write( self.reference_stats, 'reference' )
-        self.log.info("Finished summarizing coverage of the HLA contigs")
+        contig_count = fasta_size( self.phased_hla )
+        reference_count = fasta_size( self.reference_seqs )
+        # Run BLASR
+        self.log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
+        blasr_args = {'nproc': self.nproc,
+                      'bestn': 1,
+                      'nCandidates': reference_count}
+        BlasrRunner( self.phased_hla, self.reference_seqs, self.phased_to_reference, blasr_args )
+        # Check and save the output
+        self.check_output_file( self.phased_to_reference )
+        self.log.info("Finished aligning resequenced contigs to the HLA reference set\n")
 
+    def create_phased_dict(self):
+        self.log.info("Converting the Resequenced-to-Reference alignment to a Dictionary")
+        self.phased_reference_dict = ReferenceDict( self.phased_to_reference )
+        self.log.info("Finished convereting the data to a Dictionary\n")
+
+    def create_phased_locus_dict(self):
+        self.log.info("Converting the Contigs-to-Reference dict and Reference-to-Locus")
+        self.log.info("    dict into a combined Contig-to-Locus Dictionary")
+        self.phased_locus_dict = cross_ref_dict( self.phased_reference_dict, self.reference_locus_dict )
+        self.log.info("Finished convereting the data to a Dictionary\n")
+
+    def summarize_phased_by_locus(self):
+        self.log.info("Picking contigs from the resequencing and realignment results")
+        clusense_results = os.path.join( self.results, 'Clusense' )
+        create_directory( clusense_results )
+        ContigPicker( self.phased_hla, self.clusense_read_fofn, self.phased_locus_dict, clusense_results )
+        self.log.info("Finished picking contigs")
+
+    ### Other functions, not currently used ###
     def find_amplicons(self):
         self.log.info("Finding amplicon locations within each reference")
         self.amplicon_summary = self.stats_dir + "/amplicon_summary.csv"

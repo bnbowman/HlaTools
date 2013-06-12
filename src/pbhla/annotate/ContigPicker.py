@@ -27,7 +27,10 @@ class ContigPicker( object ):
 def parse_fasta_lengths( fasta_file ):
     lengths = {}
     for record in FastaReader( fasta_file ):
-        lengths[record.name] = len(record.sequence)
+        name = record.name
+        if name.endswith('_cns'):
+            name = name[:-4]
+        lengths[name] = len(record.sequence)
     return lengths
 
 def parse_subread_counts( subread_fofn ):
@@ -37,7 +40,8 @@ def parse_subread_counts( subread_fofn ):
             filepath = filepath.strip()
             filename = os.path.basename( filepath )
             contig_name = filename.split('.')[0]
-            contig_name = '_'.join( contig_name.split('_')[1:] )
+            if contig_name.startswith('Resequenced_'):
+                contig_name = '_'.join( contig_name.split('_')[1:] )
             sizes[contig_name] = fasta_size( filepath )
     return sizes
 
@@ -53,6 +57,8 @@ def group_by_locus( locus_dict ):
 def summarize_group( group, length_dict, size_dict):
     summary = []
     for contig in group:
+        if contig.endswith('_cns'):
+            contig = contig[:-4]
         summary.append( (contig, length_dict[contig], size_dict[contig]) )
     return sorted(summary, key=lambda x: x[2], reverse=True)
 
