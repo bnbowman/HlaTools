@@ -28,6 +28,7 @@ from pbhla.align.MultiSequenceAligner import MSA_aligner
 from pbhla.phasing.clusense import Clusense
 from pbhla.phasing.SummarizeClusense import combine_clusense_output
 from pbhla.resequencing.Resequencer import resequence
+from pbhla.annotate.ContigPicker import ContigPicker
 from pbhla.external.BlasrRunner import BlasrRunner
 from pbhla.external.CdHit import cd_hit_est
 from pbhla.external.SmrtAnalysisTools import SmrtAnalysisRunner
@@ -89,7 +90,7 @@ class HlaPipeline( object ):
         # Create the various sub-directories
         for d in ['log_files', 'HBAR', 'references', 'subreads', 
                   'alignments', 'phasing', 'phasing_results', 
-                  'resequencing', 'stats']:
+                  'resequencing', 'results', 'stats']:
             sub_dir = os.path.join( self.output, d )
             create_directory( sub_dir )
             setattr(self, d, sub_dir)
@@ -183,6 +184,7 @@ class HlaPipeline( object ):
         self.create_resequenced_locus_dict()
         self.create_subread_resequenced_contig_dict()
         self.separate_subreads_by_resequenced_contig()
+        self.summarize_contigs_by_locus()
 
     def check_output_file(self, filepath):
         try:
@@ -539,7 +541,7 @@ class HlaPipeline( object ):
     def separate_subreads_by_resequenced_contig(self):
         self.log.info("Separating subreads by resequenced contig")
         self.subread_fofn = os.path.join( self.subreads, "resequenced_subread_files.txt" )
-        if os.path.isfile( subread_fofn ):
+        if os.path.isfile( self.subread_fofn ):
             self.log.info('Found existing Subread File List "{0}"'.format(self.subread_fofn))
             self.log.info("Skipping subread separation step...\n")
             self.subread_files = read_fofn( self.subread_fofn )
@@ -552,9 +554,9 @@ class HlaPipeline( object ):
         write_fofn( self.subread_files, self.subread_fofn )
         self.log.info('Finished separating subreads by contig')
 
-    def pick_final_contigs(self):
+    def summarize_contigs_by_locus(self):
         self.log.info("Picking contigs from the resequencing and realignment results")
-        ContigPicker( self.resequenced_hla, self.subread_fofn, self.resequenced_locus_dict )
+        ContigPicker( self.resequenced_hla, self.subread_fofn, self.resequenced_locus_dict, self.results )
         self.log.info("Finished picking contigs")
 
     def summarize_aligned_hla_subreads(self):
