@@ -34,6 +34,9 @@ class SequenceSeparator( object ):
             self.separate_by_selected_id()
         elif self.reference_dict:
             self.separate_by_reference()
+        else:
+            self.separate_individually()
+        self.log.info('Finished separating sequences')
 
     def separate_by_selected_reference(self):
         pass
@@ -46,7 +49,6 @@ class SequenceSeparator( object ):
                 self.add_record( record, 'selected' )
             else:
                 self.add_record( record, 'not_selected' )
-        self.log.info('Finished separating sequences')
 
     def separate_by_reference(self):
         self.log.info('Separating sequences by reference')
@@ -54,7 +56,12 @@ class SequenceSeparator( object ):
             name = record.name.split()[0]
             ref = self.get_reference( name )
             self.add_record( record, ref )
-        self.log.info('Finished separating sequences')
+
+    def separate_individually(self):
+        self.log.info('Separating out individual sequences')
+        for record in FastaReader( self.fasta_file ):
+            name = record.name.split()[0]
+            self.add_record( record, name )
 
     def get_reference(self, name):
         try:
@@ -70,7 +77,7 @@ class SequenceSeparator( object ):
             self.sequences[locus] = [ record ]
 
     def write(self, value, output_file):
-        self.log.info('Writing "{0}" sequences to "{1}"'.format(value, output_file))
+        self.log.info('Writing "{0}" sequences to "{1}"'.format(value, os.path.basename(output_file)))
         with FastaWriter( output_file ) as handle:
             for record in self.sequences[value]:
                 handle.writeRecord( record )
@@ -80,7 +87,7 @@ class SequenceSeparator( object ):
     def write_all(self, prefix='Locus'):
         self.log.info('Writing fasta sequences from all loci to file')
         output_files = []
-        for value in self.sequences:
+        for value in sorted(self.sequences):
             output_file = '{0}_{1}.fasta'.format(prefix, value)
             output_file = self.write(value, output_file)
             output_files.append( output_file )

@@ -1,11 +1,26 @@
 import os
+import subprocess
+import logging
 import string
 import random
-import subprocess
 
 from collections import namedtuple
 
+log = logging.getLogger()
+
 BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
+
+def write_fofn( file_list, output_file ):
+    with open(output_file, 'w') as handle:
+        for filename in file_list:
+            print >> handle, filename
+
+def read_fofn( fofn_file ):
+    file_list = []
+    with open(fofn_file, 'r') as handle:
+        for line in handle:
+            file_list.append( line.strip().split()[0] )
+    return file_list
 
 def make_rand_string(minlength=6,maxlength=8):  
     length=random.randint(minlength,maxlength)  
@@ -35,7 +50,12 @@ def cross_ref_dict( query_dict, ref_dict ):
     return new_dict
 
 def create_directory( directory ):
-    try:
+    # Skip if the directory exists
+    if os.path.isdir( directory ):
+        return
+    try: # Otherwise attempt to create it
         os.mkdir( directory )
-    except:
-        pass
+    except: 
+        msg = 'Could not create directory "{0}"'.format(directory)
+        log.info( msg )
+        raise IOError( msg )

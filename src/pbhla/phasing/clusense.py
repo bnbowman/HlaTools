@@ -223,10 +223,10 @@ class Clusense( object ):
         self.read_file = read_file
         self.ref_file = ref_file
         self.output_dir = output_dir
-        self.threshold = threshold
+        self.threshold = threshold or THRESHOLD
         self.entropy = entropy
-        self.prefix = prefix
-        self.min_group = min_group
+        self.prefix = prefix or PREFIX
+        self.min_group = min_group or MIN_GROUP
         # Validate and run
         self.validate_args()
         self.initialize_logger()
@@ -247,17 +247,16 @@ class Clusense( object ):
 
     def initialize_logger(self):
         self.log = logging.getLogger(__name__)
-        if self.log.handlers:
-            return
-        # Set-up one logger for STDOUT
-        time_format = "%I:%M:%S"
-        out_format = "%(asctime)s %(filename)s %(funcName)s %(message)s"
-        h = logging.StreamHandler()
-        h.setLevel( logging.INFO )
-        f = logging.Formatter( fmt=out_format, datefmt=time_format )
-        h.setFormatter( f )
-        self.log.addHandler( h )
-        self.log.setLevel( logging.INFO )
+        if __name__ == '__main__':
+            # Set-up one logger for STDOUT
+            time_format = "%I:%M:%S"
+            out_format = "%(asctime)s %(filename)s %(funcName)s %(message)s"
+            h = logging.StreamHandler()
+            h.setLevel( logging.INFO )
+            f = logging.Formatter( fmt=out_format, datefmt=time_format )
+            h.setFormatter( f )
+            self.log.addHandler( h )
+            self.log.setLevel( logging.INFO )
 
     def run(self):
         tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")

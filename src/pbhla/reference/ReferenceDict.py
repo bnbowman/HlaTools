@@ -49,6 +49,7 @@ class ReferenceDict( object ):
                 self.log.info( msg )
                 for record in FastaReader( fasta_file ):
                     name = record.name.split()[0]
+                    name = name.split('_')[0]
                     self[name] = locus
         self.log.info('Finished reading Locus References')
 
