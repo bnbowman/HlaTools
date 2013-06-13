@@ -238,55 +238,54 @@ class Phasr(object):
         self.finishInitialization()
 
     def initializeFromArgs(self):
-        parser = argparse.ArgumentParser(description = "Phase Pac Bio CLRs.") 
-	parser.add_argument('fasta_fn', metavar='input.fasta', 
-	                    help='an input fasta file')
-	parser.add_argument('--ref', default=None,
-	                    dest='ref_fn', metavar='ref.fasta',
-	                    help='a reference fasta file')
-	parser.add_argument('--output', metavar='output.fasta', dest='output_fn', 
+        parser = argparse.ArgumentParser(description = "Phase Pac Bio CLRs.")
+
+        add = parser.add_argument
+	add('fasta_fn', metavar='input.fasta', help='an input fasta file')
+	add('--ref_fn',  metavar='ref.fasta', help='a reference fasta file')
+	add('--output', metavar='output.fasta', dest='output_fn', 
 	                    default=os.path.join( os.getcwd(), "h_consensus.fasta"), 
 	                    help='Consensus output filename.')
-	parser.add_argument('--sample_size', default=6, metavar='6', 
+	add('--sample_size', default=6, metavar='6', 
 	                    type=int, dest='sample_size', 
 	                    help='The maximum number of reads used for consensus')
-	parser.add_argument('--sample_number', type=int, default=6,
+	add('--sample_number', type=int, default=6,
 	                    dest='sample_number', metavar='6',
 	                    help='The maximum number of reads used for consensus')
-	parser.add_argument('--min_cluster_size', type=int, default=10, 
+	add('--min_cluster_size', type=int, default=10, 
 	                    dest='min_cluster_size', metavar='10', 
 	                    help='The minimum number of reads needed to define a cluster.')
-	parser.add_argument('--min_cluster_divergence', type=float, default=99.5, 
+	add('--min_cluster_divergence', type=float, default=99.5, 
 	                    dest='min_cluster_divergence', metavar='99.5', 
 	                    help='The minimum divergence between two ' + \
 	                    'clusters for them to be separated.')
-	parser.add_argument('--max_recursion_level', type=int, default=2, 
+	add('--max_recursion_level', type=int, default=2, 
 	                    dest='max_recursion_level', metavar='2', 
 	                    help='Once recursion reaches this level, ' + \
 	                    'consensus will be made from the current grouping ' + \
 	                    'and terminate. If set to 0, will just make' + \
 	                    'consesus from multifasta.')
-	parser.add_argument('--n_refinement', type=int, default=2, 
+	add('--n_refinement', type=int, default=2, 
 	                    dest='n_refinement', metavar='2', 
 	                    help='Number of dagcon iterations for building ' + \
 	                    'consensus. Making this number higher will cause ' + \
 	                    'slower execution. Max useful setting is around ' + \
 	                    '~5, will help deal with structural rearrangements.')
-	parser.add_argument('--fullpass', action='store_true', dest='fullpass', 
+	add('--fullpass', action='store_true', dest='fullpass', 
 	                    help='Only fullpass reads allowed. Will look for' + \
 	                    ' the "fp" tag in fasta sequence names.')
-	parser.add_argument('--score_floor', type=float, default=0.0, 
+	add('--score_floor', type=float, default=0.0, 
 	                    dest = 'score_floor', metavar='0.0', 
 	                    help='Min percent id for construction of Max Divergent Features.')
-	parser.add_argument('--log', action='store_true', dest='log', 
+	add('--log', action='store_true', dest='log', 
 	                    help = 'Create log file.')
-	parser.add_argument('--max_input_reads', type=int, default=400, 
+	add('--max_input_reads', type=int, default=400, 
 	                    dest='max_input_reads', metavar='400', 
 	                    help='Maximum number of reads to use')
-	parser.add_argument('--min_read_length', type=int, default=500, 
+	add('--min_read_length', type=int, default=500, 
 	                    dest='min_read_length', metavar='500',
 	                    help = 'Minimum read size' )
-	parser.add_argument('--max_num_proc', type=int, default=4, 
+	add('--max_num_proc', type=int, default=4, 
 	                    dest='max_num_proc', metavar='4',
 	                    help='Maximum number of subprocesses to spawn. ' + \
 	                    'Total processes will be this number + 1 for ' + \

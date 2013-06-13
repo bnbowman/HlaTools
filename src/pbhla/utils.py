@@ -42,6 +42,8 @@ def cross_ref_dict( query_dict, ref_dict ):
     new_dict = {}
     for key in query_dict:
         old_value = query_dict[key]
+        if old_value.startswith('HLA:'):
+            old_value = old_value.split('_')[0]
         try:
             new_value = ref_dict[old_value]
         except:
