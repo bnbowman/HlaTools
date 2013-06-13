@@ -20,6 +20,8 @@ class ContigPicker( object ):
         locus_groups = group_by_locus( self.locus_dict )
         # Summarize each locus group
         for locus, group in locus_groups.iteritems():
+            if locus == 'N/A':
+                continue
             summary = summarize_group( group, length_dict, size_dict )
             write_summary( locus, summary, self.output_dir )
 
@@ -59,7 +61,10 @@ def summarize_group( group, length_dict, size_dict):
     for contig in group:
         if contig.endswith('_cns'):
             contig = contig[:-4]
-        summary.append( (contig, length_dict[contig], size_dict[contig]) )
+        try:
+            summary.append( (contig, length_dict[contig], size_dict[contig]) )
+        except:
+            pass
     return sorted(summary, key=lambda x: x[2], reverse=True)
 
 def write_summary( locus, summary, output_dir ):
