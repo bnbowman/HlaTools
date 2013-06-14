@@ -107,3 +107,9 @@ class ReferenceDict( object ):
 
     def __iter__(self):
         return iter(self._dict)
+
+    def __len__(self):
+        return len(self._dict)
+
+    def iteritems(self):
+        return self._dict.iteritems()

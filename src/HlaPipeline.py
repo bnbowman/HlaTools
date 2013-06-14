@@ -140,13 +140,12 @@ class HlaPipeline( object ):
         #        pass    
         #    else:
         #        self.phasr_argstring += '--%s ' % argument
-        # Initialize the SmrtAnalysisTools
-        
 
     def getVersion(self):
         return __version__
 
     def __call__( self ):
+        self.create_input_fofn()
         # First we assemble the supplied data via HGAP / HBAR
         self.assemble_contigs()
         # Second we extract the subreads ourselves and map them onto
@@ -171,6 +170,8 @@ class HlaPipeline( object ):
         self.find_on_target_subreads()
         self.separate_off_target_subreads()
         # Next we create re-align just the HLA data for summarizing
+        self.find_chimeric_contigs()
+        self.separate_chimeric_contigs()
         self.remove_redundant_contigs()
         self.realign_hla_subreads()
         # Next we summarize our pre-phasing coverage of the contigs
@@ -196,6 +197,7 @@ class HlaPipeline( object ):
             self.create_phased_dict()
             self.create_phased_locus_dict()
             self.summarize_phased_by_locus()
+        self.cleanup_subreads()
 
     def check_output_file(self, filepath):
         try:
@@ -204,6 +206,34 @@ class HlaPipeline( object ):
             msg = 'Expected output file not found! "{0}"'.format(filepath)
             self.log.info( msg )
             raise IOError( msg )
+
+    def create_input_fofn(self):
+        self.log.info('Creating input fofn')
+        self.input_fofn = os.path.abspath( os.path.join( self.output, 'input.fofn') )
+        if os.path.isfile( self.input_fofn ):
+            self.log.info('Existing input fofn file found, skipping...\n')
+            return
+        # Identify Bas.H5 and Bax.H5 files
+        if self.input_file.endswith('.bax.h5') or self.input_file.endswith('.bas.h5'):
+            bash_files = [ self.input_file ]
+        if self.input_file.endswith('.fofn'):
+            with open( self.input_file ) as handle:
+                bash_files = [ line.strip() for line in handle ]
+        # Convert the Bas.H5 files to Bax.H5 files
+        bax_files = []
+        for filename in bash_files:
+            if filename.endswith('.bax.h5'):
+                bax_files.append( filename )
+            elif filename.endswith('.bas.h5'):
+                root = '.'.join( filename.split('.')[:-2] )
+                for i in range(1,4):
+                    bax_name = '{0}.{1}.bax.h5'.format(root, i)
+                    bax_files.append( bax_name )
+        # Write the Bax.H5 files out
+        with open(self.input_fofn, 'w') as handle:
+            for filename in bax_files:
+                print >> handle, os.path.abspath( filename )
+        self.log.info('Finished creating input fofn')
 
     def assemble_contigs( self ):
         self.log.info('Beginning the extraction of subiread data')
@@ -219,7 +249,7 @@ class HlaPipeline( object ):
             return
         # Run HGAP
         self.log.info('No contig file found, initializing new HbarRunner')
-        hbar = HbarRunner( self.input_file, self.HBAR )
+        hbar = HbarRunner( self.input_fofn, self.HBAR )
         hbar()
         # Copy the contig file to a more convenient location
         shutil.copy( contig_output, self.contig_file )
@@ -235,7 +265,7 @@ class HlaPipeline( object ):
             self.log.info('Skipping subread extraction step\n')
             return
         self.log.info('Extracting subreads from input files...')
-        BasH5Extractor( self.input_file, 
+        BasH5Extractor( self.input_fofn, 
                         self.subread_file,
                         min_length=self.min_read_length,
                         min_score=self.min_read_score,
@@ -382,6 +412,33 @@ class HlaPipeline( object ):
         separator.write('not_selected', self.non_hla_subreads)
         self.log.info('Finished separating off-target subreads\n')
 
+    def find_chimeric_contigs(self):
+        self.chimeric_ids = []
+        self.log.info('Identifying chimeric contigs')
+        for record in FastaReader( self.hla_contigs ):
+            name = record.name.split()[0]
+            if self.contig_locus_dict[name] in ['A', 'B', 'C']:
+                if len(record.sequence) > 3600:
+                    self.chimeric_ids.append( name )
+                if len(record.sequence) < 3000:
+                    self.chimeric_ids.append( name )
+        self.log.info('Finished identifying chimeric contigs\n')
+
+    def separate_chimeric_contigs(self):
+        self.log.info('Separating off-target contigs by genomic alignment')
+        self.chimeric_hla = os.path.join(self.references, 'chimeric_hla_contigs.fasta')
+        self.non_chimeric_hla = os.path.join(self.references, 'non_chimeric_hla_contigs.fasta')
+        if os.path.isfile( self.chimeric_hla ) and os.path.isfile( self.non_chimeric_hla ):
+            self.log.info('Found existing sequence file "{0}"'.format(self.chimeric_hla))
+            self.log.info('Found existing sequence file "{0}"'.format(self.non_chimeric_hla))
+            self.log.info("Skipping separation step...\n")
+            return
+        self.log.info('No separated contig files found, initializing separator')
+        separator = SequenceSeparator( self.hla_contigs, selected=self.chimeric_ids )
+        separator.write('selected', self.chimeric_hla)
+        separator.write('not_selected', self.non_chimeric_hla)
+        self.log.info('Finished separating off-target contigs\n')
+
     def remove_redundant_contigs(self):
         self.log.info("Removing redundant contigs from the HLA contig file")
         self.selected_contigs = os.path.join(self.references, 'selected_contigs.fasta')
@@ -390,7 +447,7 @@ class HlaPipeline( object ):
             self.log.info("Skipping redundant contig filtering step...\n")
             return
         self.log.info('File of selected contigs not found, initializing Cd-Hit-Est')
-        cd_hit_est( self.hla_contigs, self.selected_contigs )
+        cd_hit_est( self.non_chimeric_hla, self.selected_contigs )
         self.log.info('Finished selecting non-redundant contigs\n')
 
     def realign_hla_subreads(self):
@@ -629,6 +686,13 @@ class HlaPipeline( object ):
         create_directory( clusense_results )
         ContigPicker( self.phased_hla, self.clusense_read_fofn, self.phased_locus_dict, clusense_results )
         self.log.info("Finished picking contigs")
+
+    def cleanup_subreads(self):
+        self.log.info("Cleaning up unused Subread files")
+        for entry in os.listdir( self.subreads ):
+            if entry.endswith('aln') or entry.endswith('aln_unsorted'):
+                os.remove( os.path.join( self.subreads, entry) )
+        self.log.info("Finished clean-up process")
 
     ### Other functions, not currently used ###
     def find_amplicons(self):
