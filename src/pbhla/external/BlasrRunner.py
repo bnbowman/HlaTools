@@ -14,8 +14,8 @@ class BlasrRunner( object ):
     def initialize_logging(self):
         self.log = logging.getLogger(__name__)
         self.log.info("Initializing BlasrRunner with the following:")
-        self.log.info("\tQuery: {0}".format(self.query))
-        self.log.info("\tReference: {0}".format(self.reference))
+        self.log.info("\tQuery: {0}".format(os.path.basename(self.query)))
+        self.log.info("\tReference: {0}".format(os.path.basename(self.reference)))
         self.log.info("\tOutput: {0}".format(self.output))
         for key, value in self.blasr_args.iteritems():
             self.log.info("\t{0}: {1}".format(key, value))

@@ -17,8 +17,8 @@ class ReferenceDict( object ):
 
     def initialize_logger(self):
         self.log = logging.getLogger(__name__)
-        self.log.info("Initializing LocusDict with the following:")
-        self.log.info("\tInput File: {0}".format(self.input_file))
+        self.log.info("Initializing ReferenceDict with the following:")
+        self.log.info("\tInput File: {0}".format(os.path.basename(self.input_file)))
         self.log.info("\tReference: {0}".format(self.reference))
 
     def validate_input(self):
@@ -67,11 +67,10 @@ class ReferenceDict( object ):
         self.log.info( msg )
         with open(self.input_file, 'r') as handle:
             for hit in map(BlasrM1._make, csv.reader(handle, delimiter=' ')):
-                key = hit.qname.split('/')[0]
                 if self.reference:
-                    self[key] = self.reference[hit.tname]
+                    self[hit.qname] = self.reference[hit.tname]
                 else:
-                    self[key] = hit.tname
+                    self[hit.qname] = hit.tname
         self.log.info('Finished reading Blasr results')
 
     def parse_sam_file(self):
