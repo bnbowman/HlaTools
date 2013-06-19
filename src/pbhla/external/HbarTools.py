@@ -16,8 +16,8 @@ class HbarRunner( object ):
         self.output_dir = os.path.abspath( output_dir )
         self.config_file = config_file
         self.log_file = input_file.split('.')[0] + '.log'
-        self.min_length = min_length if min_length else MIN_LENGTH
-        self.min_score = min_score if min_score else MIN_SCORE
+        self.min_length = min_length or MIN_LENGTH
+        self.min_score = min_score or MIN_SCORE
         self.initialize_logging()
 
     def initialize_logging(self):

@@ -1,4 +1,4 @@
-import logging, subprocess
+import os, logging, subprocess
 
 class BlasrRunner( object ):
 
@@ -26,7 +26,9 @@ class BlasrRunner( object ):
 
     def create_command(self):
         self.log.info("Converting supplied arguments into a Blasr commandline")
-        self.command_args = ['blasr', self.query, self.reference, '-out', self.output]
+        self.command_args = ['blasr', self.query, self.reference, 
+                             '-out', self.output,
+                             '-noSplitSubreads']
         for arg, value in self.blasr_args.iteritems():
             self.command_args += ['-{0}'.format(arg), str(value)]
         # Add a command for the output filetype 

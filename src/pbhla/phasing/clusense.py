@@ -2,7 +2,7 @@
 
 import os, sys, glob, logging
 import pkg_resources
-from math import log
+from math import log as log10
 
 import numpy as np
 from pbcore.io import FastaReader
@@ -22,12 +22,14 @@ MIN_GROUP = 25
 THRESHOLD = 0.1
 PREFIX = 'Unknown'
 
+log = logging.getLogger()
+
 ## prepare the reads
 #!blasr test_HLA_A.fa u0038.fa -bestn 1 -out tmp.sam -noSplitSubreads -sam -nproc 32
 #!cat tmp.sam | awk 'NF > 15 && length($10) > 2500 && i < 1000 {print ">"$1"\n"$10;i+=2}' > test.fa
 
 def calculate_entropy( threshold ):
-    return -1 * threshold * log(threshold) - (1-threshold) * log(1-threshold)
+    return -1 * threshold * log10(threshold) - (1-threshold) * log10(1-threshold)
 
 def get_consensus(read_fn, init_ref, consensus_fn, consens_seq_name, 
                   ENTROPY_TH,
@@ -229,7 +231,12 @@ class Clusense( object ):
         self.min_group = min_group or MIN_GROUP
         # Validate and run
         self.validate_args()
-        self.initialize_logger()
+        log.info('Initializing Clusense with:')
+        log.info('\tReads: %s' % os.path.basename(self.read_file))
+        log.info('\tReference: %s' % os.path.basename(self.ref_file))
+        log.info('\tThreshold: %s' % self.threshold)
+        log.info('\tEntropy: %s' % self.entropy)
+        log.info('\tMin Size: %s' % self.min_group)
         self.run()
 
     def validate_args(self):
@@ -245,23 +252,10 @@ class Clusense( object ):
         if self.entropy is None:
             self.entropy = calculate_entropy( self.threshold )
 
-    def initialize_logger(self):
-        self.log = logging.getLogger(__name__)
-        if __name__ == '__main__':
-            # Set-up one logger for STDOUT
-            time_format = "%I:%M:%S"
-            out_format = "%(asctime)s %(filename)s %(funcName)s %(message)s"
-            h = logging.StreamHandler()
-            h.setLevel( logging.INFO )
-            f = logging.Formatter( fmt=out_format, datefmt=time_format )
-            h.setFormatter( f )
-            self.log.addHandler( h )
-            self.log.setLevel( logging.INFO )
-
     def run(self):
         tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")
 
-        self.log.info("Generating initial consensus")
+        log.info("Generating initial consensus")
         aln_g, seq = get_consensus(self.read_file, 
                                    self.ref_file, 
                                    tmp_cns, 
@@ -276,9 +270,9 @@ class Clusense( object ):
                                    nproc = 16,
                                    mark_lower_case = False,
                                    use_read_id = False)
-        self.log.info("Finished generating initial consensus")
+        log.info("Finished generating initial consensus")
 
-        self.log.info("Generating initial alignment graph")
+        log.info("Generating initial alignment graph")
         aln_g = construct_aln_graph_from_fasta(self.read_file, 
                                                tmp_cns, 
                                                max_num_reads = 5000, 
@@ -287,7 +281,7 @@ class Clusense( object ):
                                                nproc=16, 
                                                use_read_id = False)
         seq, c_data = aln_g.generate_consensus(min_cov=0, compute_qv_data= True)
-        self.log.info("Finished generating initial alignment graph")
+        log.info("Finished generating initial alignment graph")
 
         cns = os.path.join( self.output_dir, "group_root_cns.fa")
         with open(cns,"w") as f:
@@ -304,7 +298,7 @@ class Clusense( object ):
             r_ids.add(r.name)
             
         level2_group = self.level2_partition(r_ids, self.read_file, self.ref_file)
-        self.log.info("-------------------")
+        log.info("-------------------")
         s = 0
         group_id = 1
 
@@ -349,7 +343,7 @@ class Clusense( object ):
 
         level2_group = []
 
-        self.log.info("s: {0}".format(os.path.basename(read_file)))
+        log.info("s: {0}".format(os.path.basename(read_file)))
         ignore_indel = False
         tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")
         aln_g, seq = get_consensus(read_file, ref_file, tmp_cns, "tmp_cns", 
@@ -376,16 +370,16 @@ class Clusense( object ):
 
         # Check for end conditions
         if len(read_ids) < self.min_group:
-            self.log.info("group element < %d, not splitting" % self.min_group)
+            log.info("group element < %d, not splitting" % self.min_group)
             level2_group.append( ( read_ids, seq, c_data, "-" ) )
             return level2_group
         rv, hen = read_node_vector(aln_g, self.entropy, entropy_th = self.entropy)
         if len(rv) == 0:
-            self.log.info("not high entropy node cnd#1, not splitting")
+            log.info("not high entropy node cnd#1, not splitting")
             level2_group.append( ( read_ids, seq, c_data, "+" ) )
             return level2_group
         if len(rv.values()[0]) == 0:
-            self.log.info("not high entropy node cnd#2, not splitting")
+            log.info("not high entropy node cnd#2, not splitting")
             level2_group.append( ( read_ids, seq, c_data, "+" ) )
             return level2_group
 
@@ -396,10 +390,10 @@ class Clusense( object ):
         aln_data.reverse()
 
         read_groups = self.partition_reads(aln_data, 0)
-        print sum([len(rg[1]) for rg in read_groups]), [ ( rg[0], len(rg[1]) ) for rg in read_groups ]
+        #print sum([len(rg[1]) for rg in read_groups]), [ ( rg[0], len(rg[1]) ) for rg in read_groups ]
 
         if len(read_groups) == 1:
-            self.log.info("level 1 splitting fail, not splitting")
+            log.info("level 1 splitting fail, not splitting")
             level2_group.append( ( read_ids, seq, c_data, "+" ) )
             return level2_group
 
@@ -425,7 +419,7 @@ class Clusense( object ):
         return level2_group
 
     def partition_reads(self, read_vector, g_id):
-        self.log.info("partition group: {0}".format(g_id))
+        log.info("partition group: {0}".format(g_id))
         if len(read_vector) < self.min_group:
             return (("%d" % g_id, read_vector), )
         
@@ -453,7 +447,7 @@ class Clusense( object ):
         #n_pos = min(64, len(pos_candidates) * 2)
         #total_index  = [x[1] for x in total_index[:n_pos]]
         #total_index.sort()
-        self.log.info("number_of_candidate: {0}".format(len(total_index)))
+        log.info("number_of_candidate: {0}".format(len(total_index)))
 
         partition_scores = []
         for pos in pos_candidates:
@@ -462,8 +456,8 @@ class Clusense( object ):
        
         if len(partition_scores) == 0:
             return (("%d" % g_id, read_vector, m), )
-        self.log.info(str(len(read_vector)) + " " + str(partition_scores[0]))
-        self.log.info("------------------")
+        log.info(str(len(read_vector)) + " " + str(partition_scores[0]))
+        log.info("------------------")
         if partition_scores[0][0][0] > 0:
             return (("%d" % g_id, read_vector, m), )
         

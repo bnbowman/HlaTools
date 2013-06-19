@@ -1,4 +1,4 @@
-import csv, logging
+import os, csv, logging
 
 from pbhla.utils import BlasrM1
 from pbhla.io.SamIO import SamReader
@@ -44,10 +44,11 @@ class ReferenceDict( object ):
         self.log.info( msg )
         with open(self.input_file, 'r') as handle:
             for line in handle:
-                fasta_file, locus = line.strip().split()
+                fasta_path, locus = line.strip().split()
+                fasta_file = os.path.basename( fasta_path )
                 msg = 'Reading "{0}" sequences from "{1}"'.format(locus, fasta_file)
                 self.log.info( msg )
-                for record in FastaReader( fasta_file ):
+                for record in FastaReader( fasta_path ):
                     name = record.name.split()[0]
                     name = name.split('_')[0]
                     self[name] = locus
@@ -77,11 +78,10 @@ class ReferenceDict( object ):
         msg = 'Parsing SAM alignments from "{0}"'.format(self.input_file)
         self.log.info( msg )
         for record in SamReader(self.input_file):
-            key = record.qname.split('/')[0]
             if self.reference:
-                self[key] = self.reference[record.rname]
+                self[record.qname] = self.reference[record.rname]
             else:
-                self[key] = record.rname
+                self[record.qname] = record.rname
         self.log.info('Finished reading SAM file results')
 
     def write(self, output_file):

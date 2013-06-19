@@ -51,6 +51,14 @@ def cross_ref_dict( query_dict, ref_dict ):
         new_dict[key] = new_value
     return new_dict
 
+def check_output_file(filepath):
+    try:
+        assert os.path.isfile( filepath )
+    except:
+        msg = 'Expected output file not found! "{0}"'.format(filepath)
+        log.info( msg )
+        raise IOError( msg )
+
 def create_directory( directory ):
     # Skip if the directory exists
     if os.path.isdir( directory ):
