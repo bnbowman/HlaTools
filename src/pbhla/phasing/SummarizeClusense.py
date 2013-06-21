@@ -4,7 +4,7 @@ import os, re, sys, logging
 
 from shutil import copy
 
-from pbhla.utils import create_directory, write_fofn
+from pbhla.utils import create_directory, write_list_file
 from pbhla.fasta.utils import fasta_size, fasta_length, copy_fasta
 
 log = logging.getLogger()
@@ -22,10 +22,10 @@ def combine_clusense_output(input_dir, output_dir):
     cns_files, read_files = output_clusters( clusense_clusters, output_dir )
 
     cns_output = os.path.join( output_dir, CNS_FOFN )
-    write_fofn( cns_files, cns_output )
+    write_list_file( cns_files, cns_output )
 
     read_output = os.path.join( output_dir, READ_FOFN )
-    write_fofn( read_files, read_output )
+    write_list_file( read_files, read_output )
     return cns_output, read_output
 
 def find_clusense_dirs( input_dir ):

@@ -1,26 +1,29 @@
 from collections import namedtuple
 
-def parse_blasr(output, mode, strip_query_names = True):
-    parsed_output=[]
-    if mode == 1:
-        entry = namedtuple('entry', 'qname, tname, qstrand, tstrand, score, pctsimilarity, tstart, tend, tlength, qstart, qend, qlength, ncells')
-    if mode == 4:
-        entry = namedtuple('entry', 'qname, tname, score, pctsimilarity, qstrand, qstart, qend, qseqlength, tstrand, tstart, tend, tseqlength, mapqv, ncells, clusterScore, probscore, numSigClusters')
-    if mode == 5:
-        entry = namedtuple('entry', 'qname, qlength, z1, qalength, qstrand, tname, tlength, z2, talength, tstrand, score, nmis, nins, ndel, zscore, qseq, matchvector, tseq')
+from pbcore.io.base import ReaderBase, getFileHandle
+from pbhla.utils import BlasrM1, BlasrM4, BlasrM5
 
-    output = output.strip().split("\n")
-    output = [ x.split() for x in output ]
-    if strip_query_names:
-	new_output=[]
-	for line in output:
-	    line[0] = line[0].split("/")[0]
-	    line[0] = line[0].split("|")[0]
-	    line[1] = line[1].split("|")[0]
-	    new_output.append(line)
-	output = new_output
+class BlasrReader( ReaderBase ):
 
-    for line in output:
-	alignment = entry._make(line)
-        parsed_output.append(alignment)
-    return parsed_output
+    def __init__(self, f, filetype=None):
+        self.file = getFileHandle(f, 'r')
+
+        filetype = filetype or f.split('.')[-1]
+        if filetype.lower() == 'm1':
+            self.filetype = 'm1'
+            self.datatype = BlasrM1
+        elif filetype.lower() == 'm4':
+            self.filetype = 'm4'
+            self.datatype = BlasrM4
+        elif filetype.lower() == 'm5':
+            self.filetype = 'm5'
+            self.datatype = BlasrM5
+        else:
+            raise TypeError("Invalid type to BlasrReader")
+
+    def __iter__(self):
+        try:
+            for line in self.file:
+                yield self.datatype._make( line.strip().split() )
+        except:
+            raise ValueError("Invalid Blasr entry of type %s" % self.filetype)

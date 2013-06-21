@@ -7,7 +7,7 @@ from pbhla.external.SmrtAnalysisTools import SmrtAnalysisRunner
 SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
 DILUTION = 1.0
 MIN_SCORE = 0.8
-MIN_LENGTH = 2500
+MIN_LENGTH = 3000
 NUM_PROC = 8
 
 args = argparse.Namespace()

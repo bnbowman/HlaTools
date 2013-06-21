@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 #################################################################################$$
 # Copyright (c) 2011,2012, Pacific Biosciences of California, Inc.
 #
@@ -27,175 +28,179 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #################################################################################$$
 
-import os
-import sys
+import os, re, sys
 import logging
 import subprocess
 
-from pbcore.io.FastqIO import FastqReader, FastqWriter
-from pbcore.io.FastaIO import FastaRecord, FastaWriter  
+from pbcore.io.FastaIO import FastaReader
+
+#from utils import which, create_directory
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
+NOISE_DATA = '-77.27,0.08654,0.00121'
+PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
 
 log = logging.getLogger()
+log.setLevel( logging.INFO )
 
 class ClusterResequencer(object):
     """
     A tool for resequencing clusters of rDNA sequences    
     """
 
-    def __init__(self, reads, reference, fofn, setup=None, output='Resequencing', nproc=1):
-        self.reads = reads
-        self.reference = reference
-        self.fofn = fofn
-        self.setup = setup
-        self.output = output
-        self.nproc = nproc
-        self.parseSequenceData()
+    def __init__(self, read_file, 
+                       ref_file, 
+                       fofn_file, 
+                       setup=None,
+                       names=None,
+                       output='Resequencing', 
+                       nproc=1):
+        self.read_file = read_file
+        self.reference_file = ref_file
+        self.fofn_file = fofn_file
+        self._setup = setup
+        self._names = names
+        self._output = output
+        self._nproc = nproc
+        self._use_setup = None
+        self.validate_settings()
 
-    def validateSettings(self):
-        self.filterPlsH5 = which('filterPlsH5.py')
-        self.compareSequences = which('compareSequences.py')
-        self.cmph5tools = which('cmph5tools.py')
-        self.loadPulses = which('loadPulses')
-        self.variantCaller = which('variantCaller.py')
+    def validate_settings(self):
+        # If the names are provided as a filename, parse it
+        if isinstance(self._names, str):
+            self._names = read_dict_file( self._names )
+        if self._setup is not None:
+            self._setup = os.path.abspath( self._setup )
+        # Check that the fasta names can be mapped to PBI wells
+        if (invalid_fasta_names( self.read_file ) and 
+            invalid_dict_names( self._names )):
+            msg = 'Cluster resequencing requires EITHER valid PacBio ' + \
+                  'read-names OR a dictionary to convert them'
+            raise Exception( msg )
+        # Check for the availability of the various SMRT Analysis tools
+        self.filter_plsh5 = which('filterPlsH5.py')
+        self.compare_sequences = which('compareSequences.py')
+        self.cmph5_tools = which('cmph5tools.py')
+        self.load_pulses = which('loadPulses')
+        self.variant_caller = which('variantCaller.py')
+        # Check that either the tools or SMRT Analysis setup is available
+        if all([ self.filter_plsh5,
+                 self.compare_sequences,
+                 self.cmph5_tools,
+                 self.load_pulses,
+                 self.variant_caller ]):
+            self._use_setup = False
+        elif self._setup and os.path.isfile( self._setup ):
+            self._use_setup = True
+            self._setup = os.path.abspath( self._setup )
+            self.filter_plsh5 = 'filterPlsH5.py'
+            self.compare_sequences = 'compareSequences.py'
+            self.cmph5_tools = 'cmph5tools.py'
+            self.load_pulses = 'loadPulses'
+            self.variant_caller = 'variantCaller.py'
+        else:
+            msg = 'Cluster resequencing requires EITHER valid copies of ' + \
+                  'the SMRT Analysis tools in the local path OR the ' + \
+                  'path to a local SMRT Analysis setup script'
+            raise Exception( msg )
+        create_directory( self._output )
 
-    ####################
-    # Instance Methods #
-    ####################
+    def __call__(self):
+        # Second we create a Rng.H5 file to mask other reads from Blasr
+        whitelist_file = self.create_whitelist()
+        rgnh5_fofn = self.create_rgnh5( whitelist_file )
+        cmph5_file = self.create_cmph5( rgnh5_fofn )
+        sorted_cmph5 = self.sort_cmph5( cmph5_file )
+        self.run_load_pulses( sorted_cmph5 )
+        #consensusFile = self.runQuiver( referenceFile, 
+        #                                sortedCmpH5File,
+        #                                count )
 
-    def parseDistances(self):
-        distances = []
-        with open( self.listFile, 'r' ) as handle:
-            for line in handle:
-                parts = line.split()
-                distance = self.convertDistance( parts[0] )
-                distances.append( distance )
-        return distances
+    def run_process(self, process_args, name):
+        log.info("Executing child '%s' process" % name)
+        if self._use_setup:
+            process_args = ['source', self._setup, ';'] + process_args
+        print process_args
+        subprocess.call( process_args )
 
-    def parseSequenceData(self):
-        self.sequenceData = {}
-        for fastqRecord in FastqReader( self.ccsFile ):
-            zmw = getZmw( fastqRecord.name )
-            self.sequenceData[zmw] = fastqRecord
+    def create_whitelist( self ):
+        log.info('Creating cluster-specific whitelist file')
+        whitelist_file = os.path.join(self._output, 'whitelist.txt')
+        if os.path.exists( whitelist_file ):
+            log.info('Existing whitelist file found, skipping...')
+            return whitelist_file
+        with open( whitelist_file, 'w' ) as handle:
+            for record in FastaReader( self.read_file ):
+                name = record.name.split()[0]
+                if self._names:
+                    name = self._names[name]
+                handle.write(name + '\n')
+        log.info('Finished writing the whitelist file')
+        return os.path.abspath( whitelist_file )
 
-    def trimClusterNames(self, clusters):
-        trimmed = []
-        for cluster in clusters:
-            cluster = [getZmw(c) for c in cluster]
-            trimmed.append( frozenset(cluster) )
-        return trimmed
+    def create_rgnh5(self, whitelist_file):
+        log.info('Creating cluster-specific RngH5 from Whitelist')
+        output_dir = os.path.join(self._output, 'region_tables')
+        output_fofn = os.path.join(self._output, 'region_tables.fofn')
+        if os.path.exists( output_dir ) and os.path.exists( output_fofn ):
+            log.info('Existing RngH5 detected, skipping...')
+            return output_fofn
+        process_args = [self.filter_plsh5, 
+                        self.fofn_file,
+                        '--outputDir=%s' % output_dir,
+                        '--outputFofn=%s' % output_fofn,
+                        '--filter=ReadWhitelist=%s' % whitelist_file]
+        self.run_process( process_args, 'FilterPlsH5')
+        log.info('Finished writing the cluster-specific RngH5')
+        return output_fofn
 
-    def getClusterReads(self, cluster):
-        reads = []
-        for ccsZmw in cluster:
-            try:
-                ccsRead = self.sequenceData[ccsZmw]
-            except KeyError:
-                #raise Warning("No CCS read found for '%s', skipping..." % ccsZmw)
-                continue
-            reads.append( ccsRead )
-        return reads
+    def update_fofn_paths(self, fofn_file):
+        pass
 
-    def findLongestRead(self, reads):
-        lengths = [len(read.sequence) for read in reads]
-        maxLength = max(lengths)
-        longestReads = [read for read in reads
-                             if len(read.sequence) == maxLength]
-        return longestReads[0]
+    def create_cmph5(self, rgnh5_fofn ):
+        log.info('Creating cluster-specific CmpH5')
+        cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
+        if os.path.exists( cmph5_file ):
+            log.info('Existing CmpH5 detected, skipping...')
+            return cmph5_file
+        process_args = [self.compare_sequences, 
+                        '--useQuality',
+                        '--h5pbi',
+                        '--info',
+                        '-x', '-bestn', '1',
+                        '--nproc=%s' % self._nproc,
+                        '--regionTable=%s' % rgnh5_fofn,
+                        '--algorithm=blasr',
+                        '--noiseData=%s' % NOISE_DATA,
+                        '--h5fn=%s' % cmph5_file,
+                        self.fofn_file,
+                        self.reference_file]
+        self.run_process( process_args, 'CompareSequences')
+        log.info('Finished writing the cluster-specific CmpH5')
+        return cmph5_file
 
-    def outputClusterWhitelist(self, cluster, count):
-        print "Creating Whitelist for Cluster #%s" % count
-        whiteListFile = 'cluster%s_whitelist.txt' % count
-        if os.path.exists( whiteListFile ):
-            return whiteListFile
-        with open( whiteListFile, 'w' ) as handle:
-            for zmw in cluster:
-                handle.write(zmw + '\n')
-        return whiteListFile
+    def sort_cmph5(self, cmph5_file ):
+        log.info('Finished writing the cluster-specific CmpH5')
+        sorted_cmph5 = os.path.join( self._output, 'cluster.sorted.cmp.h5')
+        if os.path.exists( sorted_cmph5 ):
+            log.info('Existing sorted CmpH5 detected, skipping...')
+            return sorted_cmph5
+        process_args = [self.cmph5_tools,
+                        'sort',
+                        '--outFile=%s' % sorted_cmph5,
+                        cmph5_file]
+        self.run_process( process_args, 'CmpH5Tools')
+        log.info('Finished sorting the cluster-specific CmpH5')
+        return sorted_cmph5
 
-    def outputClusterReference(self, reference, count):
-        print "Creating reference sequence for Cluster #%s" % count
-        referenceFile = 'cluster%s_reference.fasta' % count
-        if os.path.exists( referenceFile ):
-            return referenceFile
-        # Rename the "Reference" sequence to the cluster
-        referenceFasta = FastaRecord("Cluster%s" % count,
-                                     reference.sequence)
-        with FastaWriter( referenceFile ) as handle:
-            handle.writeRecord( referenceFasta )
-        return referenceFile
-
-    def outputRepresentativeRead(self, representativeRead, count):
-        print "Creating representative sequence file Cluster #%s" % count
-        representativeFile = 'cluster%s_represent.fastq' % count
-        if os.path.exists( representativeFile ):
-            return representativeFile
-        with FastqWriter( representativeFile ) as handle:
-            handle.writeRecord( representativeRead )
-        return representativeFile
-
-    def createRgnH5(self, whiteListFile, count):
-        print "Creating Region Table for Cluster #%s" % count
-        outputDir = 'cluster%s_regionTables' % count
-        outputFofn = 'cluster%s_regionTables.fofn' % count
-        if os.path.exists( outputDir ) and os.path.exists( outputFofn ):
-            return outputFofn
-        outputDirArg = '--outputDir=%s' % outputDir
-        outputFofnArg = '--outputFofn=%s' % outputFofn
-        filterArg = '--filter=ReadWhitelist=%s,MinReadScore=0.75' % whiteListFile
-        p = subprocess.Popen( [self.filterPlsH5, 
-                               self.sequenceFile,
-                               outputDirArg, 
-                               outputFofnArg,
-                               filterArg] )
-        p.wait()
-        print "Region Table Created Successfully"
-        return outputFofn
-
-    def createCmpH5(self, referenceFile, rgnH5File, count):
-        print "Creating a CMP.H5 for Cluster #%s" % count
-        cmpH5File = 'cluster%s.cmp.h5' % count
-        if os.path.exists( cmpH5File ):
-            return cmpH5File
-        p = subprocess.Popen( [self.compareSequences, 
-                               '--minAccuracy=0.75',
-                               '--minLength=500',
-                               '--useQuality',
-                               '--h5pbi',
-                               '--info',
-                               '--nproc=4',
-                               '-x', '-bestn', '1',
-                               '--nproc=%s' % self.numProc,
-                               '--regionTable=%s' % rgnH5File,
-                               '--algorithm=blasr',
-                               '--noiseData=-77.27,0.08654,0.00121',
-                               '--h5fn=%s' % cmpH5File,
-                               self.sequenceFile,
-                               referenceFile] )
-        p.wait()
-        return cmpH5File
-
-    def sortCmpH5(self, cmph5File, count):
-        print "Sorting the CmpH5 for Cluster #%s" % count
-        sortedCmpH5File = 'cluster%s.sorted.cmp.h5' % count
-        if os.path.exists( sortedCmpH5File ):
-            return sortedCmpH5File
-        p = subprocess.Popen( [self.cmph5tools,
-                               'sort',
-                               '--outFile=%s' % sortedCmpH5File,
-                               cmph5File] )
-        p.wait()
-        return sortedCmpH5File
-
-    def loadPulsesIntoCmpH5(self, sortedCmpH5File, count):
-        print "Loading pulse data into the CmpH5 for Cluster #%s" % count
-        p = subprocess.Popen( [self.loadPulses,
-                               self.sequenceFile,
-                               sortedCmpH5File,
-                               '-metrics',
-                               PULSE_METRICS] )
-        return True
+    def run_load_pulses(self, sorted_cmph5):
+        log.info('Loading rich QV data into the CmpH5')
+        process_args = [self.load_pulses,
+                        self.fofn_file,
+                        sorted_cmph5,
+                        '-metrics', PULSE_METRICS]
+        self.run_process( process_args, 'LoadPulses')
+        log.info('Finished loading QV data into the CmpH5')
 
     def runQuiver(self, referenceFile, sortedCmpH5File, count):
         print "Running Quiver-consensus on Cluster #%s" % count
@@ -225,48 +230,65 @@ class ClusterResequencer(object):
             for record in combinedSequences:
                 handle.writeRecord( record )
 
-    def __call__(self):
-        outputSequenceFiles = []
-        # Select the appropriate distance, and parse the matching clusters
-        distances = self.parseDistances()
-        trimmedClusters = self.trimClusterNames( clusters )
-        # Iterate over the clusters, generating consensuses
-        for count, cluster in enumerate( trimmedClusters ):
-            count = str(count+1).zfill(4)
-            print "Analyzing cluster #%s now..." % (count)
-            reads = self.getClusterReads( cluster )
-            # If we have enought reads
-            if len(reads) >= self.minClusterSize:
-                print "%s ZMWs found (of %s), generating consensus..." % \
-                                                 (len(reads), len(cluster))
-                # First we select the longest CCS read from the cluster
-                longest = self.findLongestRead( reads )
-                referenceFile = self.outputClusterReference( longest, count )
-                # Second we create a Rng.H5 file to mask other reads from Blasr
-                whiteListFile = self.outputClusterWhitelist( cluster, count )
-                rgnH5File = self.createRgnH5( whiteListFile, count )
-                # Third we create a sorted CmpH5
-                cmpH5File = self.createCmpH5( referenceFile, rgnH5File, count )
-                sortedCmpH5File = self.sortCmpH5( cmpH5File, count )
-                # Fourth we load rich QV data and run Quiver
-                self.loadPulsesIntoCmpH5( sortedCmpH5File, count )
-                consensusFile = self.runQuiver( referenceFile, 
-                                                sortedCmpH5File,
-                                                count )
-                # Finally we record the name of the output file
-                outputSequenceFiles.append( consensusFile )
-            # Otherwise, we select one "Best" read to represent the cluster
-            else:
-                print "%s ZMWs found (of %s), skipping consensus..." % \
-                                               (len(reads), len(cluster))
-                reads = self.getClusterReads( cluster )
-                representRead = reads[0]
-                representFile = self.outputRepresentativeRead( representRead, 
-                                                               count )
-                outputSequenceFiles.append( representFile )
-        # Finally we combine and trim all of the output Files
-        combinedSequences = self.combineOutputSequences( outputSequenceFiles )
-        self.outputCombinedSequences( combinedSequences )
+def invalid_fasta_names( fasta_file ):
+    log.info('Checking read file for valid well names')
+    for record in FastaReader( fasta_file ):
+        name = record.name.split()[0]
+        if not re.match(PB_REGEX, name):
+            return True
+    return False
+
+def invalid_dict_names( name_dict ):
+    if name_dict is None:
+        return True
+    log.info('Checking name dictionary for valid well names')
+    for key, value in name_dict.iteritems():
+        if not re.match(PB_REGEX, value):
+            return True
+    return False
+
+def is_exe( file_path ):
+    if file_path is None:
+        return False
+    return os.path.isfile(file_path) and os.access(file_path, os.X_OK)
+
+def which(program):
+    """
+    Find and return path to local executables  
+    """
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
+def create_directory( directory ):
+    # Skip if the directory exists
+    if os.path.isdir( directory ):
+        return
+    try: # Otherwise attempt to create it
+        os.mkdir( directory )
+    except: 
+        msg = 'Could not create directory "{0}"'.format(directory)
+        log.info( msg )
+        raise IOError( msg )
+
+def read_dict_file( dict_file ):
+    dict_contents = {}
+    with open(dict_file, 'r') as handle:
+        for line in handle:
+            try:
+                key, value = line.strip().split()
+                dict_contents[key] = value
+            except:
+                pass
+    return dict_contents
 
 if __name__ == '__main__':
     import argparse
@@ -279,18 +301,21 @@ if __name__ == '__main__':
         help="Mothur list file of cluster data")
     add('fofn_file', metavar='FOFN', 
         help="BasH5 or FOFN of sequence data")
-    add('--setup', metavar='SETUP',
-        help='SMRT Analysis setup script')
+    add('--setup', metavar='SETUP_FILE',
+        help='Path to the SMRT Analysis setup script')
+    add('--names', metavar='DICT_FILE',
+        help='Path to a dictionary file of sequence names')
     add('--output', default='reseq', metavar='DIR',
         help="Specify a directory for intermediate files")
-    add('--nproc', type=int. default=1, metavar='INT',
+    add('--nproc', type=int, default=1, metavar='INT',
         help="Number of processors to use")
     args = parser.parse_args()
 
-    resequencer = rDnaResequencer(args.read_file, 
-                                  args.ref_file, 
-                                  args.fofn_file, 
-                                  args.setup,
-                                  args.output, 
-                                  args.nproc)
+    resequencer = ClusterResequencer( args.read_file, 
+                                      args.ref_file, 
+                                      args.fofn_file, 
+                                      setup=args.setup,
+                                      names=args.names,
+                                      output=args.output, 
+                                      nproc=args.nproc )
     resequencer()

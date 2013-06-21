@@ -1,6 +1,5 @@
 from pbcore.io.FastaIO import FastaReader, FastaWriter
 
-from pbhla.io.BlasrIO import parse_blasr
 from pbhla.utils import make_rand_string, getbash, runbash
 
 def write_fasta(fasta_obj, outfile, mode = "w"):
@@ -55,6 +54,7 @@ def combine_fasta( fasta_files, destination ):
             for record in FastaReader( fasta ):
                 handle.writeRecord( record )
 
+"""
 def trim_fasta(fasta_fn, outfile, mode="least_similar", criterion = "length", trim_to=2, pctid_threshold=float(0), coverage=None, aln_portion=float(0.5), max_chunk_size=int(20), tmpdir="/tmp", n_iter=10 ):
     tmpdir=tmpdir+"/"+make_rand_string()+"/"
     os.mkdir(tmpdir) 
@@ -161,3 +161,4 @@ def trim_fasta(fasta_fn, outfile, mode="least_similar", criterion = "length", tr
 	    os.remove(item[1])
     os.rmdir(tmpdir)
     return 0
+"""
