@@ -31,6 +31,7 @@
 import os, re, sys
 import logging
 import subprocess
+import shlex
 
 from pbcore.io.FastaIO import FastaReader
 
@@ -39,9 +40,11 @@ from pbcore.io.FastaIO import FastaReader
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
 NOISE_DATA = '-77.27,0.08654,0.00121'
 PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
+COVERAGE = 1000
 
 log = logging.getLogger()
-log.setLevel( logging.INFO )
+#log.setLevel( logging.INFO )
+#logging.basicConfig( level=logging.INFO )
 
 class ClusterResequencer(object):
     """
@@ -89,8 +92,10 @@ class ClusterResequencer(object):
                  self.cmph5_tools,
                  self.load_pulses,
                  self.variant_caller ]):
+            log.info('All required SMRT Analysis tools detected')
             self._use_setup = False
         elif self._setup and os.path.isfile( self._setup ):
+            log.info('SMRT Analysis tools not detected, using Setup script')
             self._use_setup = True
             self._setup = os.path.abspath( self._setup )
             self.filter_plsh5 = 'filterPlsH5.py'
@@ -111,17 +116,30 @@ class ClusterResequencer(object):
         rgnh5_fofn = self.create_rgnh5( whitelist_file )
         cmph5_file = self.create_cmph5( rgnh5_fofn )
         sorted_cmph5 = self.sort_cmph5( cmph5_file )
-        self.run_load_pulses( sorted_cmph5 )
-        #consensusFile = self.runQuiver( referenceFile, 
-        #                                sortedCmpH5File,
-        #                                count )
+        self.run_load_pulses( cmph5_file, sorted_cmph5 )
+        consensus_file = self.run_quiver( sorted_cmph5 )
+        return consensus_file
 
     def run_process(self, process_args, name):
         log.info("Executing child '%s' process" % name)
         if self._use_setup:
-            process_args = ['source', self._setup, ';'] + process_args
-        print process_args
-        subprocess.call( process_args )
+            log.info('Executing subprocess indirectly via Shell Script')
+            script = self.write_script( process_args, name)
+            p = subprocess.Popen( ['source', script], executable='/bin/bash' )
+            p.wait()
+            #os.remove( script )
+        else:
+            log.info('Executing subprocess directly via Subprocess')
+            p = subprocess.Popen( process_args )
+            p.wait()
+        log.info('Child process finished successfully')
+
+    def write_script( self, process_args, name ):
+        script_path = os.path.join( self._output, name + '_script.sh' )
+        with open( script_path, 'w') as handle:
+            handle.write('source %s\n' % self._setup)
+            handle.write( ' '.join(process_args) + '\n' )
+        return script_path
 
     def create_whitelist( self ):
         log.info('Creating cluster-specific whitelist file')
@@ -129,12 +147,18 @@ class ClusterResequencer(object):
         if os.path.exists( whitelist_file ):
             log.info('Existing whitelist file found, skipping...')
             return whitelist_file
+        # Parse the individual ZMWs of interest
+        zmws = []
+        for record in FastaReader( self.read_file ):
+            name = record.name.split()[0]
+            if self._names:
+                name = self._names[name]
+            zmw = '/'.join( name.split('/')[:2] )
+            zmws.append( zmw )
+        # Write the ZMWs to file
         with open( whitelist_file, 'w' ) as handle:
-            for record in FastaReader( self.read_file ):
-                name = record.name.split()[0]
-                if self._names:
-                    name = self._names[name]
-                handle.write(name + '\n')
+            for zmw in sorted(set( zmws )):
+                handle.write(zmw + '\n')
         log.info('Finished writing the whitelist file')
         return os.path.abspath( whitelist_file )
 
@@ -153,9 +177,6 @@ class ClusterResequencer(object):
         self.run_process( process_args, 'FilterPlsH5')
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
-
-    def update_fofn_paths(self, fofn_file):
-        pass
 
     def create_cmph5(self, rgnh5_fofn ):
         log.info('Creating cluster-specific CmpH5')
@@ -193,8 +214,11 @@ class ClusterResequencer(object):
         log.info('Finished sorting the cluster-specific CmpH5')
         return sorted_cmph5
 
-    def run_load_pulses(self, sorted_cmph5):
+    def run_load_pulses(self, cmph5_file, sorted_cmph5):
         log.info('Loading rich QV data into the CmpH5')
+        if os.path.getsize( sorted_cmph5 ) > 5*os.path.getsize( cmph5_file ):
+            log.info('Existing CmpH5 appears to have QV data, skipping...')
+            return
         process_args = [self.load_pulses,
                         self.fofn_file,
                         sorted_cmph5,
@@ -202,33 +226,25 @@ class ClusterResequencer(object):
         self.run_process( process_args, 'LoadPulses')
         log.info('Finished loading QV data into the CmpH5')
 
-    def runQuiver(self, referenceFile, sortedCmpH5File, count):
-        print "Running Quiver-consensus on Cluster #%s" % count
-        consensusFile = 'cluster%s_consensus.fastq' % count
-        if os.path.exists( consensusFile ):
-            return consensusFile
-        p = subprocess.Popen( [self.variantCaller,
-                               '--algorithm=quiver',
-                               '--numWorkers=%s' % self.numProc,
-                               '--reference=%s' % referenceFile,
-                               '--outputFile=%s' % consensusFile,
-                               sortedCmpH5File])
-        p.wait()
-        return consensusFile
-
-    def combineOutputSequences(self, outputSequenceFiles):
-        print "Combining Consensus and Representative sequences"
-        outputSequences = []
-        for filename in outputSequenceFiles:
-            for record in FastqReader( filename ):
-                outputSequences.append( record )
-        return outputSequences
-
-    def outputCombinedSequences(self, combinedSequences ):
-        print "Writing finished sequences to file"
-        with FastqWriter( self.outputFile ) as handle:
-            for record in combinedSequences:
-                handle.writeRecord( record )
+    def run_quiver(self, sorted_cmph5):
+        log.info('Running Quiver to generate HQ consensus')
+        consensus_fastq = os.path.join( self._output, 'consensus.fastq')
+        consensus_fasta = os.path.join( self._output, 'consensus.fasta')
+        if ( os.path.exists( consensus_fastq ) and
+             os.path.isfile( consensus_fasta )):
+            log.info('Existing consensus found, skipping...')
+            return consensus_fastq, consensus_fasta
+        process_args = [self.variant_caller,
+                        '--algorithm=quiver',
+                        '--numWorkers=%s' % self._nproc,
+                        '--reference=%s' % self.reference_file,
+                        '--coverage=%s' % COVERAGE,
+                        '--outputFile=%s' % consensus_fastq,
+                        '--outputFile=%s' % consensus_fasta,
+                        sorted_cmph5]
+        self.run_process( process_args, 'Quiver' )
+        log.info('Finished creating the Quiver consensus')
+        return consensus_fastq, consensus_fasta
 
 def invalid_fasta_names( fasta_file ):
     log.info('Checking read file for valid well names')
@@ -309,6 +325,7 @@ if __name__ == '__main__':
         help="Specify a directory for intermediate files")
     add('--nproc', type=int, default=1, metavar='INT',
         help="Number of processors to use")
+
     args = parser.parse_args()
 
     resequencer = ClusterResequencer( args.read_file, 

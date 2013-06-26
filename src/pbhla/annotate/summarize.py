@@ -1,32 +1,56 @@
 import os, logging
 
-from collections import namedtuple
-
 from pbcore.io.FastaIO import FastaReader
 
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.fasta.utils import fasta_size
 
-contig_info = namedtuple('contig_info', 'contig length reads hit pctid')
-
 log = logging.getLogger()
 
+PCTID_THRESH = 97.0
+
+class ContigInfo(object):
+    def __init__(self, locus, contig, length, count, hit, pctid):
+        self.locus = locus
+        self.contig = contig
+        self.length = int(length) if length.isdigit() else length
+        self.count = int(count) if count.isdigit() else count
+        self.hit = hit
+        self.pctid = float(pctid)
+
+    def __str__(self):
+        return '{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(self.locus,
+                                                     self.contig,
+                                                     self.length,
+                                                     self.count,
+                                                     self.pctid,
+                                                     self.hit)
+
+def parse_contig_info( handle, locus ):
+    try:
+        info = [locus] + handle.next().strip().split()
+    except:
+        info = [locus, '-\t\t\t', '-', '-', '-', '0.0']
+    return ContigInfo(*info)
+
 def meta_summarize_contigs( contig_files, output_dir ):
-    summaries = []
-    contig_summary = os.path.join( output_dir, 'Sample_Calls.txt')
+    contig_summary = os.path.join( output_dir, 'Locus_Calls.txt')
     with open(contig_summary, 'w') as output:
+        print >> output, "Locus\tContig\tLength\tCount\tHit\tPctId"
         for filepath in sorted(contig_files):
             locus = filepath.split('_')[-2]
+            dummy = ContigInfo(locus, '-\t\t\t', '-', '-', '-', '0.0')
             with open(filepath, 'r') as handle:
                 handle.next()
-                try:
-                    first = [locus] + handle.next().strip().split()
-                except:
-                    first = [locus, '-', '-', '-', '-', '-']
-
-                second = handle.next().strip().split()
-                print [locus] + first
-                print [locus] + second
+                first = parse_contig_info( handle, locus )
+                second = parse_contig_info( handle, locus )
+                while second.hit == first.hit:
+                    second = parse_contig_info( handle, locus )
+                if second.pctid < PCTID_THRESH:
+                    second = dummy
+                print >> output, first
+                print >> output, second
+    return contig_summary
 
 def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, output_dir):
     groups = group_by_locus( locus_dict )

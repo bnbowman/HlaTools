@@ -1,13 +1,12 @@
 import os, argparse
 
 from . import __VERSION__
-from pbhla.external.SmrtAnalysisTools import SmrtAnalysisRunner
 
 # Default values for optiond
 SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
 DILUTION = 1.0
-MIN_SCORE = 0.8
-MIN_LENGTH = 3000
+MIN_SCORE = 0.75
+MIN_LENGTH = 2500
 NUM_PROC = 8
 
 args = argparse.Namespace()
@@ -75,7 +74,6 @@ def parse_args():
         nargs=0,
         action=PrintVersionAction)
 
-    # 
     parser.parse_args( namespace=args )
 
     args.input_file = os.path.abspath( args.input_file )
@@ -85,10 +83,6 @@ def parse_args():
     # Check dilution factors
     if args.dilution <= 0.0 or args.dilution > 1.0:
         parser.error("Dilute factor must be between 0 and 1")
-
-    # Initialize a tool for running SmrtAnalysis if needed
-    if args.resequence:
-        args.smrt_analysis = SmrtAnalysisRunner( self.smrt_path, self.log_files, args.nproc )
 
     # parse phasr args
     #self.phasr_argstring = ''

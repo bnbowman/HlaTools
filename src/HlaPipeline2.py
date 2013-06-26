@@ -369,6 +369,8 @@ class HlaPipeline( object ):
         with FastaWriter(self.trimmed_contigs) as writer:
             for record in FastaReader(self.hla_contigs):
                 name = record.name.split()[0]
+                if self.contig_locus_dict[name] not in ['A', 'B', 'C']:
+                    continue
                 start, end = trims[name]
                 record = FastaRecord( name, record.sequence[start:end] )
                 writer.writeRecord( record )
@@ -457,9 +459,11 @@ class HlaPipeline( object ):
 
     def phase_reads_with_clusense(self):
         log.info("Phasing subreads with Clusense")
+        self.clusense = os.path.join( self.phasing, 'Clusense' )
+        create_directory( self.clusense )
         for subread_fn, contig_fn in zip(self.subread_files, self.contig_files):
             folder_name = os.path.basename(contig_fn).split('.')[0]
-            output_folder = os.path.join(self.phasing, folder_name)
+            output_folder = os.path.join(self.clusense, folder_name)
             if os.path.exists( output_folder ):
                 log.info('"Clusense output detected for "{0}", skipping...'.format(folder_name))
             else:
@@ -471,7 +475,7 @@ class HlaPipeline( object ):
     def summarize_clusense(self):
         log.info("Summarizing the output from Clusense")
         output_folder = os.path.join(self.phasing_results, 'Clusense_Results')
-        self.clusense_cns_fofn, self.clusense_read_fofn = combine_clusense_output(self.phasing, output_folder)
+        self.clusense_cns_fofn, self.clusense_read_fofn = combine_clusense_output(self.clusense, output_folder)
         log.info('Finished Phasing subreads with Clusense')
 
     def output_phased_contigs(self):
