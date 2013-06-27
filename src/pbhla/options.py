@@ -4,6 +4,7 @@ from . import __VERSION__
 
 # Default values for optiond
 SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
+EXCLUDED = ['DPB2', 'DRB3', 'DRB4', 'DRB5']
 DILUTION = 1.0
 MIN_SCORE = 0.75
 MIN_LENGTH = 2500
@@ -58,6 +59,11 @@ def parse_args():
     add("--resequence", 
         action="store_true", 
         help="Use quiver to resequence the")
+    add("--exclude",
+        nargs='*',
+        metavar='LOCUS',
+        default=EXCLUDED,
+        help="List of loci to not include in the final summary or phase")
     #add("--MSA", help="FOFN of prealigned MSAs and their associated loci.")
     #add("--region_table", help="Region Table of White-Listed reads to use")
     #add("--phasr-args", nargs='*', default=[''], help="pass these args to phasr.")

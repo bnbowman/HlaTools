@@ -33,12 +33,14 @@ def parse_contig_info( handle, locus ):
         info = [locus, '-\t\t\t', '-', '-', '-', '0.0']
     return ContigInfo(*info)
 
-def meta_summarize_contigs( contig_files, output_dir ):
+def meta_summarize_contigs( contig_files, output_dir, excluded=[] ):
     contig_summary = os.path.join( output_dir, 'Locus_Calls.txt')
     with open(contig_summary, 'w') as output:
         print >> output, "Locus\tContig\tLength\tCount\tHit\tPctId"
         for filepath in sorted(contig_files):
             locus = filepath.split('_')[-2]
+            if locus in excluded:
+                continue
             dummy = ContigInfo(locus, '-\t\t\t', '-', '-', '-', '0.0')
             with open(filepath, 'r') as handle:
                 handle.next()

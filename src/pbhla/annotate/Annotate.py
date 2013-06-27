@@ -1,83 +1,115 @@
-def annotate(self):     
-    if not self.args.annotate:
-        return
-    try:
-        os.mkdir(self.args.proj+"/annotate")
-    except:
-        pass
-    self.log.info("Annotation begun")
-    self.locus_dict={}       
-    nseqs=0
+
+import os, sys, argparse, logging
+
+from collections import namedtuple
+
+from pbcore.io.FastaIO import FastaReader
+from pbcore.io.FastqIO import FastqReader
+from pbcore.io.GffIO import GffWriter
+
+from pbhla.io.GffIO import ( create_annotation,
+                             create_var_annotation )
+from pbhla.utils import create_directory
+from pbhla.fasta.utils import write_fasta
+
+log = logging.getLogger()
+
+info = namedtuple('info', 'canonical_pos, feature, codon')
+
+def annotate(self, file_list, output_dir):
+    log.info("Initializing Annotation Process")
+    create_directory( file_list )
+
+    locus_dict={}
     with open(self.args.proj+"/phased/phasr_output_seqs.txt", "r") as f:
         for line in f:
-            self.locus_dict[line.strip().split()[0]] = line.strip().split()[1]
-            nseqs+=1
-    self.log.info("( %s ) sequences to annotate." % (nseqs) )
+            seq_name, locus = line.strip().split()
+            self.locus_dict[seq_name] = locus
+    log.info("Found %s sequences to annotate" % len(locus_dict))
+
     MSA_fn_dict={}; 
     MSA_cDNA_fn_dict={}
     MSA_info_fn_dict={}; 
     MSA_cDNA_info_fn_dict={}
-    tmp_fn = self.args.proj+"/annotate/tmp.fasta"
+
+    tmp_fn = os.path.join( output_dir, 'tmp.fasta' )
     with open(self.args.MSA, "r") as f:
         for line in f:
-            line = line.split()
-            MSA_fn_dict[line[2]] = line[0]+".afa"
-            MSA_info_fn_dict[line[2]] = line[0]+".info"
-            MSA_cDNA_info_fn_dict[line[2]] = line[1]+".info"
-            MSA_cDNA_fn_dict[line[2]] = line[1]+".afa"
-    gDNA_var_writer = GffWriter(self.args.proj+"/annotate/best_gDNA_ref_match_variants.gff")
-    gDNA_var_writer.writeMetaData('pacbio-variant-version', '1.4')      
-    cDNA_var_writer = GffWriter(self.args.proj+"/annotate/best_cDNA_ref_match_variants.gff")
+            genomic, nucleotide, locus = line.split()
+            MSA_fn_dict[locus] = genomic + ".afa"
+            MSA_info_fn_dict[locus] = genomic + ".info"
+            MSA_cDNA_info_fn_dict[locus] = nucleotide + ".info"
+            MSA_cDNA_fn_dict[locus] = nucleotide + ".afa"
+
+    gDNA_var_path = os.path.join(output_dir, 'best_gDNA_ref_match_variants.gff')
+    gDNA_var_writer = GffWriter( gDNA_var_path )
+    gDNA_var_writer.writeMetaData('pacbio-variant-version', '1.4')
+
+    cDNA_var_path = os.path.join(output_dir, 'best_cDNA_ref_match_variants.gff')
+    cDNA_var_writer = GffWriter( cDNA_var_path )
     cDNA_var_writer.writeMetaData('pacbio-variant-version', '1.4')
-    gDNA_annot_writer = GffWriter(self.args.proj+"/annotate/gDNA.gff")
-    cDNA_annot_writer = GffWriter(self.args.proj+"/annotate/cDNA.gff")
-    feature_writer = GffWriter(self.args.proj+"/annotate/features.gff")
+
+    gDNA_annot_path = os.path.join(output_dir, "gDNA.gff")
+    gDNA_annot_writer = GffWriter( gDNA_annot_path )
+
+    cDNA_annot_path = os.path.join(output_dir, "cDNA.gff")
+    cDNA_annot_writer = GffWriter( cDNA_annot_path )
+
+    feature_path = os.path.join(output_dir, "features.gff")
+    feature_writer = GffWriter( feature_path )
+
     gDNA_calls={}
     cDNA_calls={}
-    if os.path.isfile(self.args.proj+"/annotate/gDNA_allele_calls.txt"):
-        os.remove(self.args.proj+"/annotate/gDNA_allele_calls.txt")
-    if os.path.isfile(self.args.proj+"/annotate/resequenced_hap_con_cDNA.fasta"):
-        os.remove(self.args.proj+"/annotate/resequenced_hap_con_cDNA.fasta")
-    if os.path.isfile(self.args.proj+"/annotate/cDNA_allele_calls.txt"):
-        os.remove(self.args.proj+"/annotate/cDNA_allele_calls.txt")
-    f = FastqReader(self.args.proj+"/reseq/resequenced_hap_con.fastq")
-    for r in f:
+
+    gDNA_allele_path = os.path.join(output_dir, 'gDNA_allele_calls.txt')
+    if os.path.isfile( gDNA_allele_path ):
+        os.remove( gDNA_allele_path )
+
+    cDNA_allele_path = os.path.join(output_dir, 'cDNA_allele_calls.txt')
+    if os.path.isfile( cDNA_allele_path ):
+        os.remove( cDNA_allele_path )
+
+    hap_con_fasta_path = os.path.join(output_dir, 'resequenced_hap_con_cDNA.fasta')
+    if os.path.isfile( hap_con_fasta_path ):
+        os.remove( hap_con_fasta_path )
+
+    hap_con_fastq_path = os.path.join(output_dir, 'resequenced_hap_con_cDNA.fastq')
+    for r in FastqReader( hap_con_fastq_path ):
         write_fasta([r], tmp_fn, "w") 
         name = r.name.split("|")[0]
-        locus = self.locus_dict[name]
-        output = self.args.proj+"/annotate/"+name+".afa"
-        self.log.info("Processing ( %s ) from locus ( %s )." % (name, locus) )
+        locus = locus_dict[name]
+        log.info('Processing "%s"  from locus "%s"' % (name, locus))
 
         ### read in profile features
         MSA_info_fn = MSA_info_fn_dict[locus]
         MSA_info = {}
         with open(MSA_info_fn, "r") as f2:
             for line in f2:
-                line = line.strip().split()
-                MSA_info[int(line[0])] = info._make( ( line[1], line[2], 0 ) )
+                pos1, pos2, region = line.strip().split()
+                MSA_info[int(pos1)] = info._make( ( pos2, region, 0 ) )
 
         ### read profile fn
         MSA_fn = MSA_fn_dict[locus]
 
         ### align sequence to profile for this locus
+        output = os.path.join(output_dir, name + ".afa")
         if not os.path.isfile(output):
             try:
                 muscle_output = check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
                     muscle -profile -in1 %s -in2 %s -out %s 2> /dev/null" % (MSA_fn, tmp_fn, output),
                     executable='/bin/bash', shell=True)
             except:
-                self.log.info("MSA failed for ( %s )" % (name) )
-                os.remove(tmp_fn)
+                log.info('MSA failed for "%s"' % name )
+                os.remove( tmp_fn )
                 continue
+
         ### read out a reference sequence from the old profile
-        f2 = FastaReader(MSA_fn)
         letters_max = 0
-        for r2 in f2:
+        for r2 in FastaReader(MSA_fn):
             num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
             if num_letters > letters_max:
                 letters_max = num_letters
-        f2 = FastaReader(MSA_fn)
-        for r2 in f2:
+        for r2 in FastaReader(MSA_fn):
             num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
             if num_letters == letters_max:
                 comparison_seq = r2.sequence
@@ -86,8 +118,7 @@ def annotate(self):
 
         ### read out the same reference sequence from the NEW profile
         ### and read out our consensus sequence
-        f2 = FastaReader(output)
-        for r2 in f2:
+        for r2 in FastaReader(output):
             if r2.name == comparison_seq_name:
                 new_comparison_seq = r2.sequence
                 new_comparison_seq_name = r2.name
@@ -95,9 +126,8 @@ def annotate(self):
                 consensus_seq = r2.sequence
 
         ### read coverage info from the cov gff for this sequence
-        f2 = GffReader(self.args.proj+"/reseq/coverage_1.gff")
         coverage_map={}
-        for record in f2:
+        for record in GffReader(self.args.proj+"/reseq/coverage_1.gff"):
             if record.seqid == name:
                 for i in xrange(int(record.start), int(record.end)+1):
                     coverage_map[i] = record.getAttrVal('cov2') 
@@ -199,7 +229,7 @@ def annotate(self):
                     muscle -profile -in1 %s -in2 %s -out %s 2> /dev/null" % (MSA_cDNA_fn, tmp_fn, output),
                     executable='/bin/bash', shell=True)
             except:
-                self.log.info("MSA failed for ( %s )" % (name+"_cDNA") )
+                log.info("MSA failed for ( %s )" % (name+"_cDNA") )
                 os.remove(tmp_fn)
                 continue
 
@@ -272,7 +302,7 @@ def annotate(self):
                     muscle -in %s -out %s 2> /dev/null" % (tmp_fn, output),
                     executable='/bin/bash', shell=True)
             except:
-                self.log.info("MSA failed for ( %s )" % (locus) )
+                log.info("MSA failed for ( %s )" % (locus) )
                 os.remove(tmp_fn)
                 continue
         sequences = extract_sequence(output, seqs_to_compare)
@@ -287,3 +317,17 @@ def annotate(self):
         for record in t_vars:
             phase_writer.writeRecord(record)
     return
+
+if __name__ == '__main__':
+    import argparse
+
+    desc = "A tool for annotating genomic HLA sequences"
+    parser = argparse.ArgumentParser( description=desc )
+
+    add = parser.add_argument
+    add('stuff')
+
+    args = parser.parse_args()
+
+    log.basicConfig( level=logging.INFO )
+

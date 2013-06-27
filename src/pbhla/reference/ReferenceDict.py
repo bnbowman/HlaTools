@@ -1,4 +1,4 @@
-import os, csv, logging
+import os, re, csv, logging
 
 from pbhla.utils import BlasrM1
 from pbhla.io.SamIO import SamReader
@@ -50,7 +50,8 @@ class ReferenceDict( object ):
                 self.log.info( msg )
                 for record in FastaReader( fasta_path ):
                     name = record.name.split()[0]
-                    name = name.split('_')[0]
+                    if not re.search('__', name):
+                        name = name.split('_')[0]
                     self[name] = locus
         self.log.info('Finished reading Locus References')
 
