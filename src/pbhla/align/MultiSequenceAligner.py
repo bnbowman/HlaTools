@@ -6,40 +6,35 @@ VALID_BASES = frozenset(['A', 'G', 'C', 'T'])
 def MSA_aligner(query, target, name=None, mode = "string_to_fasta"):
     assert mode in ['string_to_fasta', 'string_to_string']
     
-    def examine_profile(string):
-	rstring = string[::-1]
-	compare_start = 0
-	compare_end = 0
-	for base in rstring:
-	    if base in VALID_BASES:
-		break	
-	    compare_end += 1
-	compare_end = len(string)-(compare_end+1)
-	for base in string:
-	    if base in VALID_BASES:
-		break
-	    compare_start += 1
-	return compare_start, compare_end
-
     if mode == 'string_to_fasta':
 	assert name != None
 	results=[]
-	compare_start, compare_end = examine_profile(query)
-	f = FastaReader(target)	
-	for r in f:
-	    if r.name == name: continue
-	    total=0; match=0; entry={}; realpos=1
-	    for item in zip(query[compare_start:compare_end+1],r.sequence[compare_start:compare_end+1]):
+	start, end = examine_profile(query)
+	for r in FastaReader(target):
+	    if r.name == name: 
+	        continue
+	    total = 0
+	    match = 0
+	    entry = {}
+	    realpos = 1
+	    for item in zip(query[start:end+1],r.sequence[start:end+1]):
 		if item[0] == item[1]:
 		    match+=1
 		elif item[0] != item[1]:
-		    entry[total+compare_start]=(item[0], item[1], realpos)	
+		    entry[total+start]=(item[0], item[1], realpos)	
 		if item[0] in VALID_BASES:
 		    realpos+=1
 		total+=1
-	    results.append([r.name, match/float(total), entry, query[compare_start:compare_end+1], r.sequence[compare_start:compare_end+1]])
-	results.sort(key = lambda x: x[1], reverse=True)
-	return results[0][0], results[0][1], results[0][2]
+	    results.append([ r.name,
+	                     match,
+	                     total,
+	                     match/float(total), 
+	                     entry, 
+	                     query[start:end+1], 
+	                     r.sequence[start:end+1]])
+	results.sort(key = lambda x: x[3], reverse=True)
+        return results[0][:5]
+
     if mode == 'string_to_string':
 	compare_start1, compare_end1 = examine_profile(query)
 	compare_start2, compare_end2 = examine_profile(target)
@@ -59,5 +54,25 @@ def MSA_aligner(query, target, name=None, mode = "string_to_fasta"):
                 trealpos+=1
 	    total+=1
 	info = namedtuple('info', 'qvars, tvars, vars, score, qaln, taln')
-	results = info._make([qentry, tentry, entry, match/float(total), query[compare_start:compare_end+1], target[compare_start:compare_end+1] ])
-	return results	
+	results = info._make([ qentry, 
+	                       tentry, 
+	                       entry, 
+	                       match/float(total), 
+	                       query[compare_start:compare_end+1], 
+	                       target[compare_start:compare_end+1] ])
+	return results
+
+def examine_profile(string):
+    rstring = string[::-1]
+    compare_start = 0
+    compare_end = 0
+    for base in rstring:
+        if base in VALID_BASES:
+            break	
+        compare_end += 1
+    compare_end = len(string)-(compare_end+1)
+    for base in string:
+        if base in VALID_BASES:
+            break
+        compare_start += 1
+    return compare_start, compare_end

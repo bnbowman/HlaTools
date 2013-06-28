@@ -19,8 +19,7 @@ from pbhla.separate_sequences import (separate_sequences,
                                       separate_aligned_sequences, 
                                       write_group,
                                       write_all_groups)
-from pbhla.fasta.utils import (write_fasta, 
-                               fasta_size, 
+from pbhla.fasta.utils import (fasta_size, 
                                extract_sequence, 
                                combine_fasta)
 from pbhla.io.SubreadExtractor import SubreadExtractor
@@ -70,7 +69,7 @@ class HlaPipeline( object ):
         log_file = os.path.join( self.log_files, "HLA_Pipeline.log" )
         logging.basicConfig( level=logging.INFO, 
                              format=log_format,
-                             stream=sys.stdout)
+                             stream=sys.stdout )
         logging.basicConfig( level=logging.INFO, 
                              format=log_format, 
                              filename=log_file )
@@ -369,7 +368,7 @@ class HlaPipeline( object ):
         with FastaWriter(self.trimmed_contigs) as writer:
             for record in FastaReader(self.hla_contigs):
                 name = record.name.split()[0]
-                if self.contig_locus_dict[name] not in ['A', 'B', 'C']:
+                if self.contig_locus_dict[name] not in ['A', 'B', 'C', 'DPA', 'DQA', 'DQB']:
                     writer.writeRecord( record )
                     continue
                 start, end = trims[name]

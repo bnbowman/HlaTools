@@ -1,5 +1,44 @@
 from pbcore.io.GffIO import Gff3Record
 
+def create_annotation2(canonical_MSA_ref, new_MSA_ref, new_MSA_con, feature_map, seq_name, coord_dict=None):
+    gff3_records=[]
+    shift = 0
+    realpos = 0
+    attributes = {}
+    for i in xrange(len(new_MSA_ref)):
+	while True:
+	    try:
+		if new_MSA_ref[i] != canonical_MSA_ref[(i-shift)] and new_MSA_ref[i] == "-" and i != 0:
+		    attributes['outside_canonical_coordinates'] = 1
+		    shift += 1
+		break
+	    except IndexError:
+		shift += 1
+		continue
+	if 'exon' in feature_map[(i-shift)].feature: 
+	    isexon = 1 
+	else: 
+	    isexon = 0
+	start = 0
+	end = 0
+	attributes['canonical_position'] = feature_map[(i-shift)].canonical_pos
+	attributes['feature'] = feature_map[(i-shift)].feature
+	attributes['codon'] = feature_map[(i-shift)].codon
+	attributes['isexon'] = isexon
+	attributes['basecall'] = new_MSA_con[i]
+	if new_MSA_con[i] in ['A', 'G', 'C', 'T' ]:
+	    realpos += 1
+	    attributes['sequence_position'] = realpos
+	    if coord_dict == None:
+		start = realpos
+		end = realpos
+	    else:
+		start = coord_dict[realpos]
+		end = coord_dict[realpos]
+	    record = Gff3Record(seq_name, start, end, 'base', attributes=attributes)
+	    gff3_records.append(record)
+    return gff3_records 
+
 def create_annotation(canonical_MSA_ref, new_MSA_ref, new_MSA_con, coverage_map, feature_map, seq_name, quality_map, coord_dict=None):
     gff3_records=[]
     shift = 0

@@ -7,7 +7,7 @@ SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
 EXCLUDED = ['DPB2', 'DRB3', 'DRB4', 'DRB5']
 DILUTION = 1.0
 MIN_SCORE = 0.75
-MIN_LENGTH = 2500
+MIN_LENGTH = 2000
 NUM_PROC = 8
 
 args = argparse.Namespace()

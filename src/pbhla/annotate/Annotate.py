@@ -1,30 +1,31 @@
+#! /usr/bin/env python
 
-import os, sys, argparse, logging
+import os, sys, argparse, logging, subprocess
 
 from collections import namedtuple
 
 from pbcore.io.FastaIO import FastaReader
-from pbcore.io.FastqIO import FastqReader
-from pbcore.io.GffIO import GffWriter
+from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 
 from pbhla.io.GffIO import ( create_annotation,
+                             create_annotation2,
                              create_var_annotation )
-from pbhla.utils import create_directory
+from pbhla.utils import create_directory, read_dict_file
 from pbhla.fasta.utils import write_fasta
+from pbhla.align.MultiSequenceAligner import MSA_aligner
 
 log = logging.getLogger()
 
 info = namedtuple('info', 'canonical_pos, feature, codon')
 
-def annotate(self, file_list, output_dir):
+def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
     log.info("Initializing Annotation Process")
-    create_directory( file_list )
 
-    locus_dict={}
-    with open(self.args.proj+"/phased/phasr_output_seqs.txt", "r") as f:
-        for line in f:
-            seq_name, locus = line.strip().split()
-            self.locus_dict[seq_name] = locus
+    create_directory( output_dir )
+
+    if isinstance(locus_dict, str):
+        locus_dict = read_dict_file( locus_dict )
+
     log.info("Found %s sequences to annotate" % len(locus_dict))
 
     MSA_fn_dict={}; 
@@ -33,7 +34,7 @@ def annotate(self, file_list, output_dir):
     MSA_cDNA_info_fn_dict={}
 
     tmp_fn = os.path.join( output_dir, 'tmp.fasta' )
-    with open(self.args.MSA, "r") as f:
+    with open( MSA_fofn, "r") as f:
         for line in f:
             genomic, nucleotide, locus = line.split()
             MSA_fn_dict[locus] = genomic + ".afa"
@@ -43,11 +44,11 @@ def annotate(self, file_list, output_dir):
 
     gDNA_var_path = os.path.join(output_dir, 'best_gDNA_ref_match_variants.gff')
     gDNA_var_writer = GffWriter( gDNA_var_path )
-    gDNA_var_writer.writeMetaData('pacbio-variant-version', '1.4')
+    gDNA_var_writer.writeHeader('##pacbio-variant-version 1.4')
 
     cDNA_var_path = os.path.join(output_dir, 'best_cDNA_ref_match_variants.gff')
     cDNA_var_writer = GffWriter( cDNA_var_path )
-    cDNA_var_writer.writeMetaData('pacbio-variant-version', '1.4')
+    cDNA_var_writer.writeHeader('##pacbio-variant-version 1.4')
 
     gDNA_annot_path = os.path.join(output_dir, "gDNA.gff")
     gDNA_annot_writer = GffWriter( gDNA_annot_path )
@@ -73,12 +74,23 @@ def annotate(self, file_list, output_dir):
     if os.path.isfile( hap_con_fasta_path ):
         os.remove( hap_con_fasta_path )
 
-    hap_con_fastq_path = os.path.join(output_dir, 'resequenced_hap_con_cDNA.fastq')
-    for r in FastqReader( hap_con_fastq_path ):
-        write_fasta([r], tmp_fn, "w") 
-        name = r.name.split("|")[0]
-        locus = locus_dict[name]
-        log.info('Processing "%s"  from locus "%s"' % (name, locus))
+    for r in FastaReader( fasta_file ):
+        write_fasta([r], tmp_fn)
+
+        name = r.name
+        if name.endswith('quiver'):
+            name = name.split("|")[0]
+        if name.endswith('_cns'):
+            name = name[:-4]
+
+        try:
+            locus = locus_dict[name]
+        except:
+            continue
+
+        if locus not in ['A', 'B', 'C', 'DPA', 'DQA', 'DQB']:
+            continue
+        log.info('Processing "%s" from locus "%s"' % (name, locus))
 
         ### read in profile features
         MSA_info_fn = MSA_info_fn_dict[locus]
@@ -93,9 +105,12 @@ def annotate(self, file_list, output_dir):
 
         ### align sequence to profile for this locus
         output = os.path.join(output_dir, name + ".afa")
-        if not os.path.isfile(output):
+        if os.path.isfile(output):
+            log.info('Existing genomic alignment found for "%s", skipping...' % name)
+        else:
+            log.info('Running MUSCLE to align "%s" to the canonical genomic MSA' % name)
             try:
-                muscle_output = check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
+                muscle_output = subprocess.check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
                     muscle -profile -in1 %s -in2 %s -out %s 2> /dev/null" % (MSA_fn, tmp_fn, output),
                     executable='/bin/bash', shell=True)
             except:
@@ -126,85 +141,90 @@ def annotate(self, file_list, output_dir):
                 consensus_seq = r2.sequence
 
         ### read coverage info from the cov gff for this sequence
-        coverage_map={}
-        for record in GffReader(self.args.proj+"/reseq/coverage_1.gff"):
-            if record.seqid == name:
-                for i in xrange(int(record.start), int(record.end)+1):
-                    coverage_map[i] = record.getAttrVal('cov2') 
+        #coverage_map={}
+        #for record in GffReader(self.args.proj+"/reseq/coverage_1.gff"):
+        #    if record.seqid == name:
+        #        for i in xrange(int(record.start), int(record.end)+1):
+        #            coverage_map[i] = record.getAttrVal('cov2') 
 
         ### read Qv info from the fastq for this sequence
-        quality_map = {}
-        i = 1
-        for qual in r.quality:
-            quality_map[i] = qual
-            i += 1
+        #quality_map = {}
+        #i = 1
+        #for qual in r.quality:
+        #    quality_map[i] = qual
+        #    i += 1
 
         ### create annotation gff3 for this sequence
         ### comparing the same ref between the new and old profile allows us to keep track of the "canonical" coordinates
-        gff3_annotation = create_annotation(comparison_seq, new_comparison_seq, consensus_seq, coverage_map, MSA_info, r.name, quality_map)     
-        last_feature = None; feature_regions = {}
+        #gff3_annotation = create_annotation(comparison_seq, new_comparison_seq, consensus_seq, coverage_map, MSA_info, r.name, quality_map)     
+        gff3_annotation = create_annotation2(comparison_seq, new_comparison_seq, consensus_seq, MSA_info, r.name)     
+        last_feature = None;
+        feature_regions = {}
         for record in gff3_annotation:
-            gDNA_annot_writer.writeRecord(record)       
+            gDNA_annot_writer.writeRecord(record)
             try:
-                feature_regions[record.getAttrVal('feature')].append(record.getAttrVal('sequence_position'))
+                feature_regions[record.feature].append( record.sequence_position )
             except KeyError:
-                feature_regions[record.getAttrVal('feature')] = [int(record.getAttrVal('sequence_position'))]
+                feature_regions[record.feature] = [int(record.sequence_position)]
+
         for item in feature_regions.iteritems():
             feature = item[0]
-            if 'exon' not in feature: continue
+            if 'exon' not in feature: 
+                continue
             bases = sorted(item[1])     
-            record = Gff3Record(r.name) 
-            record.type='region'
-            record.start=bases[0]
-            record.end=bases[-1]
-            record.put('feature', feature )
+            start = bases[0]
+            end = bases[-1]
+            record = Gff3Record(r.name, start, end, 'region') 
+            record.feature = feature
             feature_writer.writeRecord(record)
             
         ### find best match among all profiles for our consensus sequence       
         ### write it out to a file
-        best_gDNA_match, best_gDNA_match_score, gDNA_var_map = MSA_aligner(consensus_seq, output, r.name)           
-        with open(self.args.proj+"/annotate/gDNA_allele_calls.txt", "a") as of:
-            print>>of, "%s %s %s" % (r.name, best_gDNA_match, best_gDNA_match_score)    
+        best_gDNA, match, total, score, gDNA_var_map = MSA_aligner(consensus_seq, output, r.name)           
+        with open( gDNA_allele_path, "a") as of:
+            print >> of, "%s %s %s %s %s" % (r.name, best_gDNA, total-match, total, score)    
         gDNA_calls[r.name] = locus
         
         ### create variant gff3 to document differences between consensus sequence and best matching reference
-        gff3_var_annotation = create_var_annotation(consensus_seq, gDNA_var_map, r.name)    
-        for record in gff3_var_annotation:
-            gDNA_var_writer.writeRecord(record)
+        #gff3_var_annotation = create_var_annotation(consensus_seq, gDNA_var_map, r.name)    
+        #for record in gff3_var_annotation:
+        #    gDNA_var_writer.writeRecord(record)
 
         ### create artificial cDNA sequence from the gDNA sequence
         ### create a dict between gDNA and cDNA position so that we can read in quality and coverage info to the cDNA gff
         ### and so we can keep track of where our artificial cDNA sequence fits in to the real sequence
-        cDNA_consensus_sequence=''
-        cDNA_base_counter=1
-        gDNA_pos_to_cDNA_pos={}
+        cDNA_consensus_sequence = ''
+        cDNA_base_counter = 1
+        gDNA_pos_to_cDNA_pos = {}
+
         for i in xrange(len(gff3_annotation)):
             if gff3_annotation[i].type == 'base':       
-                if gff3_annotation[i].getAttrVal('isexon'):
-                    cDNA_consensus_sequence+=gff3_annotation[i].getAttrVal('basecall')
-                    gDNA_pos_to_cDNA_pos[gff3_annotation[i].getAttrVal('sequence_position')] = cDNA_base_counter
-                    cDNA_base_counter+=1
-        cDNA_coverage_map={}
+                if gff3_annotation[i].isexon:
+                    cDNA_consensus_sequence += gff3_annotation[i].basecall
+                    gDNA_pos_to_cDNA_pos[gff3_annotation[i].sequence_position] = cDNA_base_counter
+                    cDNA_base_counter += 1
+
         cDNA_pos_to_gDNA_pos={}
         for item in gDNA_pos_to_cDNA_pos.iteritems():
             cDNA_pos_to_gDNA_pos[int(item[1])] = item[0]
         
-        for item in coverage_map.iteritems():
-            try:
-                cDNA_coverage_map[gDNA_pos_to_cDNA_pos[item[0]]] = item[1]
-            except:
-                pass
+        #cDNA_coverage_map={}
+        #for item in coverage_map.iteritems():
+        #    try:
+        #        cDNA_coverage_map[gDNA_pos_to_cDNA_pos[item[0]]] = item[1]
+        #    except:
+        #        pass
 
-        cDNA_quality_map={}
-        for item in quality_map.iteritems():
-            try:
-                cDNA_quality_map[gDNA_pos_to_cDNA_pos[item[0]]] = item[1]
-            except:
-                pass
+        #cDNA_quality_map={}
+        #for item in quality_map.iteritems():
+        #    try:
+        #        cDNA_quality_map[gDNA_pos_to_cDNA_pos[item[0]]] = item[1]
+        #    except:
+        #        pass
 
-        with open(self.args.proj+"/annotate/resequenced_hap_con_cDNA.fasta", "a") as of:
-            print>>of, ">"+r.name
-            print>>of, cDNA_consensus_sequence
+        with open( hap_con_fasta_path, "a") as of:
+            print >> of, ">" + r.name
+            print >> of, cDNA_consensus_sequence
 
         ### now that we have established the cDNA sequence ... we start all over again with a cDNA MSA!
         ### get cDNA profile fn
@@ -214,34 +234,37 @@ def annotate(self, file_list, output_dir):
         MSA_cDNA_info = {}
         with open(MSA_cDNA_info_fn, "r") as f2:
             for line in f2:
-                line = line.strip().split()
-                MSA_cDNA_info[int(line[0])] = info._make( ( line[1], line[2], line[3] ) )
+                pos1, pos2, region, pos3 = line.strip().split()
+                MSA_cDNA_info[int(pos1)] = info._make( ( pos2, region, pos3 ) )
+
         MSA_cDNA_fn = MSA_cDNA_fn_dict[locus]
         with open(tmp_fn, "w") as of:
-            print>>of, ">"+r.name       
-            print>>of, cDNA_consensus_sequence
+            print >> of, ">"+r.name       
+            print >> of, cDNA_consensus_sequence
 
         ### add artificial cDNA sequence to the cDNA profile
-        output = self.args.proj+"/annotate/"+name+"_cDNA.afa"
-        if not os.path.isfile(output):
+        output = os.path.join(output_dir, name + "_cDNA.afa")
+        if os.path.isfile(output):
+            log.info('Existing cDNA alignment found for "%s", skipping...' % name)
+        else:
+            log.info('Running MUSCLE to align "%s" to the canonical cDNA MSA' % name)
             try:
-                muscle_output = check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
+                muscle_output = subprocess.check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
                     muscle -profile -in1 %s -in2 %s -out %s 2> /dev/null" % (MSA_cDNA_fn, tmp_fn, output),
                     executable='/bin/bash', shell=True)
             except:
-                log.info("MSA failed for ( %s )" % (name+"_cDNA") )
+                log.info('MSA failed for  "%s"' % name+"_cDNA" )
                 os.remove(tmp_fn)
                 continue
 
         ### read out a reference sequence from the profile
-        f2 = FastaReader(MSA_cDNA_fn)
         letters_max = 0
-        for r2 in f2:
+        for r2 in FastaReader(MSA_cDNA_fn):
             num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
             if num_letters > letters_max:
                 letters_max = num_letters
-        f2 = FastaReader(MSA_cDNA_fn)
-        for r2 in f2:
+
+        for r2 in FastaReader(MSA_cDNA_fn):
             num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
             if num_letters == letters_max:
                 comparison_seq = r2.sequence
@@ -250,8 +273,7 @@ def annotate(self, file_list, output_dir):
 
         ### read out the same reference sequence from the NEW profile
         ### as well as our artificial cDNA consensus sequence
-        f2 = FastaReader(output)
-        for r2 in f2:
+        for r2 in FastaReader(output):
             if r2.name == comparison_seq_name:
                 new_comparison_seq = r2.sequence
                 new_comparison_seq_name = r2.name
@@ -260,21 +282,25 @@ def annotate(self, file_list, output_dir):
 
         ### create annotation gff3 for this sequence
         ### comparing the same ref between the new and old profile allows us to keep track of the "canonical" coordinates
-        gff3_annotation = create_annotation(comparison_seq, new_comparison_seq, consensus_seq, cDNA_coverage_map, MSA_cDNA_info, r.name, cDNA_quality_map, coord_dict = cDNA_pos_to_gDNA_pos )  
+        #gff3_annotation = create_annotation(comparison_seq, new_comparison_seq, consensus_seq, cDNA_coverage_map, MSA_cDNA_info, r.name, cDNA_quality_map, coord_dict = cDNA_pos_to_gDNA_pos )  
+        gff3_annotation = create_annotation2(comparison_seq, new_comparison_seq, consensus_seq, MSA_cDNA_info, r.name, coord_dict = cDNA_pos_to_gDNA_pos )  
         for record in gff3_annotation:
             cDNA_annot_writer.writeRecord(record)
         ## find best match among all profiles for our consensus sequence    
-        best_cDNA_match, best_cDNA_match_score, cDNA_var_map = MSA_aligner(consensus_seq, output, r.name)           
-        with open(self.args.proj+"/annotate/cDNA_allele_calls.txt", "a") as of:
-            print>>of, "%s %s %s" % (r.name, best_cDNA_match, best_cDNA_match_score)
+        best_cDNA, match, total, score, cDNA_var_map = MSA_aligner(consensus_seq, output, r.name)           
+        with open( cDNA_allele_path, "a") as of:
+            print >> of, "%s %s %s %s %s %s" % (locus, r.name, best_cDNA, total-match, total, score)
         cDNA_calls[r.name] = locus
 
         ### create variant gff3 to document differences between consensus sequence and best matching reference
-        gff3_var_annotation = create_var_annotation(consensus_seq, cDNA_var_map, r.name, coord_dict = cDNA_pos_to_gDNA_pos )    
-        for record in gff3_var_annotation:
-            cDNA_var_writer.writeRecord(record)
+        #gff3_var_annotation = create_var_annotation(consensus_seq, cDNA_var_map, r.name, coord_dict = cDNA_pos_to_gDNA_pos )    
+        #for record in gff3_var_annotation:
+        #    cDNA_var_writer.writeRecord(record)
 
         os.remove(tmp_fn)
+    return
+
+"""
     ### now we create a special gff that will allow us to do phase highlighting
     ### TODO: need to have a locus dict
     locus_counts = Counter(self.locus_dict.values())
@@ -316,18 +342,33 @@ def annotate(self, file_list, output_dir):
         t_vars = create_var_annotation(sequences[1].sequence, alignment.tvars, tname )
         for record in t_vars:
             phase_writer.writeRecord(record)
-    return
+"""
 
 if __name__ == '__main__':
     import argparse
+
+    logging.basicConfig( level=logging.INFO )
 
     desc = "A tool for annotating genomic HLA sequences"
     parser = argparse.ArgumentParser( description=desc )
 
     add = parser.add_argument
-    add('stuff')
+    add('msa_fofn',
+        metavar='MSA',
+        help='A FOFN of Multiple Sequence Alignments and information')
+    add('input_file',
+        metavar='FASTA',
+        help='A FASTA file of sequence data to annotate')
+    add('locus_dict',
+        metavar='LOCUS',
+        help='A file specifying which Locus to use to align each sequence')
+    add('--output',
+        metavar='DIR',
+        default='annotation',
+        help='Directory to output results to')
 
     args = parser.parse_args()
-
-    log.basicConfig( level=logging.INFO )
-
+    annotate( args.msa_fofn,
+              args.input_file,
+              args.locus_dict,
+              args.output )

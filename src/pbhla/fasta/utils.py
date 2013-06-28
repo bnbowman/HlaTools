@@ -1,15 +1,21 @@
-from pbcore.io.FastaIO import FastaReader, FastaWriter
+from string import maketrans
+
+from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
 
 from pbhla.utils import make_rand_string, getbash, runbash
 
-def write_fasta(fasta_obj, outfile, mode = "w"):
-    with open(outfile, mode) as of:
-        for r in fasta_obj:
-            if r.name[0] != ">":
-                print >>of, ">"+r.name
-            elif r.name[0] == ">":
-                print >>of, r.name
-            print >>of, r.sequence.upper().replace("N","")
+COMPLEMENT = maketrans('ACGT', 'TGCA')
+
+def reverse_complement( fasta_record ):
+    rev_seq = fasta_record.sequence[::-1]
+    rev_com_seq = rev_seq.translate( COMPLEMENT )
+    return FastaRecord( fasta_record.name,
+                        rev_com_seq )
+
+def write_fasta(fasta_records, output_file):
+    with FastaWriter( output_file ) as handle:
+        for record in fasta_records:
+            handle.writeRecord( record )
 
 def fasta_size(fasta):
     try:

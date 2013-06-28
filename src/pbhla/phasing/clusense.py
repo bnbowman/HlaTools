@@ -255,31 +255,31 @@ class Clusense( object ):
     def run(self):
         tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")
 
-        #log.info("Generating initial consensus")
-        #aln_g, seq = get_consensus(self.read_file, 
-        #                           self.ref_file, 
-        #                           tmp_cns, 
-        #                           "tmp_cns",
-        #                           self.entropy,
-        #                           hp_correction = True, 
-        #                           min_iteration = 4, 
-        #                           max_num_reads = 150,
-        #                           entropy_th = 0.65,
-        #                           min_cov = 8,
-        #                           max_cov = 200,
-        #                           nproc = 16,
-        #                           mark_lower_case = False,
-        #                           use_read_id = False)
-        #log.info("Finished generating initial consensus")
+        log.info("Generating initial consensus")
+        get_consensus( self.read_file, 
+                       self.ref_file, 
+                       tmp_cns, 
+                       "tmp_cns",
+                       self.entropy,
+                       hp_correction = True, 
+                       min_iteration = 4, 
+                       max_num_reads = 150,
+                       entropy_th = 0.65,
+                       min_cov = 8,
+                       max_cov = 200,
+                       nproc = 16,
+                       mark_lower_case = False,
+                       use_read_id = False)
+        log.info("Finished generating initial consensus")
 
         log.info("Generating initial alignment graph")
-        aln_g = construct_aln_graph_from_fasta(self.read_file, 
-                                               tmp_cns, 
-                                               max_num_reads = 5000, 
-                                               max_cov=5000, 
-                                               remove_in_del = False, 
-                                               nproc=16, 
-                                               use_read_id = False)
+        aln_g = construct_aln_graph_from_fasta( self.read_file, 
+                                                tmp_cns, 
+                                                max_num_reads = 5000, 
+                                                max_cov=5000, 
+                                                remove_in_del = False, 
+                                                nproc=16, 
+                                                use_read_id = False)
         seq, c_data = aln_g.generate_consensus(min_cov=0, compute_qv_data= True)
         log.info("Finished generating initial alignment graph")
 
@@ -346,17 +346,21 @@ class Clusense( object ):
         log.info("s: {0}".format(os.path.basename(read_file)))
         ignore_indel = False
         tmp_cns = os.path.join( self.output_dir, "tmp_cns.fa")
-        #aln_g, seq = get_consensus(read_file, ref_file, tmp_cns, "tmp_cns", 
-        #                           self.entropy,
-        #                           hp_correction = False, 
-        #                           min_iteration = 4, 
-        #                           max_num_reads = 150,
-        #                           entropy_th = 0.65,
-        #                           min_cov = 8,
-        #                           max_cov = 200,
-        #                           nproc = 16,
-        #                           mark_lower_case = False,
-        #                           use_read_id = False)
+
+        get_consensus( read_file, 
+                       ref_file, 
+                       tmp_cns, 
+                       "tmp_cns", 
+                       self.entropy,
+                       hp_correction = False, 
+                       min_iteration = 4, 
+                       max_num_reads = 150,
+                       entropy_th = 0.65,
+                       min_cov = 8,
+                       max_cov = 200,
+                       nproc = 16,
+                       mark_lower_case = False,
+                       use_read_id = False )
             
         aln_g = construct_aln_graph_from_fasta(read_file, 
                                                 tmp_cns, 
@@ -502,5 +506,6 @@ if __name__ == "__main__":
         help=argparse.SUPPRESS)
     args = parser.parse_args()
 
+    logging.basicConfig( level=logging.INFO )
     Clusense( args.read_file, args.reference, args.output_dir, 
               args.threshold, args.entropy, args.prefix, args.min_group)

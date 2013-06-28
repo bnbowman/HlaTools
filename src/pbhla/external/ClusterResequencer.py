@@ -41,10 +41,9 @@ PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,Subs
 NOISE_DATA = '-77.27,0.08654,0.00121'
 PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
 COVERAGE = 1000
+CHEMISTRY = 'P4-C2.AllQVsMergingByChannelModel'
 
 log = logging.getLogger()
-#log.setLevel( logging.INFO )
-#logging.basicConfig( level=logging.INFO )
 
 class ClusterResequencer(object):
     """
@@ -64,6 +63,8 @@ class ClusterResequencer(object):
         self._setup = setup
         self._names = names
         self._output = output
+        self._logs = os.path.join( self._output, 'logs' )
+        self._scripts = os.path.join( self._output, 'scripts' )
         self._nproc = nproc
         self._use_setup = None
         self.validate_settings()
@@ -109,6 +110,8 @@ class ClusterResequencer(object):
                   'path to a local SMRT Analysis setup script'
             raise Exception( msg )
         create_directory( self._output )
+        create_directory( self._scripts )
+        create_directory( self._logs )
 
     def __call__(self):
         # Second we create a Rng.H5 file to mask other reads from Blasr
@@ -125,9 +128,13 @@ class ClusterResequencer(object):
         if self._use_setup:
             log.info('Executing subprocess indirectly via Shell Script')
             script = self.write_script( process_args, name)
-            p = subprocess.Popen( ['source', script], executable='/bin/bash' )
-            p.wait()
-            #os.remove( script )
+            log_path = os.path.join( self._logs, name + '.log' )
+            with open( log_path, 'w' ) as log_handle:
+                p = subprocess.Popen( ['source', script], 
+                                       executable='/bin/bash',
+                                       stderr=subprocess.STDOUT,
+                                       stdout=log_handle)
+                p.wait()
         else:
             log.info('Executing subprocess directly via Subprocess')
             p = subprocess.Popen( process_args )
@@ -135,7 +142,7 @@ class ClusterResequencer(object):
         log.info('Child process finished successfully')
 
     def write_script( self, process_args, name ):
-        script_path = os.path.join( self._output, name + '_script.sh' )
+        script_path = os.path.join( self._scripts, name + '_script.sh' )
         with open( script_path, 'w') as handle:
             handle.write('source %s\n' % self._setup)
             handle.write( ' '.join(process_args) + '\n' )
@@ -236,6 +243,8 @@ class ClusterResequencer(object):
             return consensus_fastq, consensus_fasta
         process_args = [self.variant_caller,
                         '--algorithm=quiver',
+                        '--verbose',
+                        '--parameterSet=%s' % CHEMISTRY,
                         '--numWorkers=%s' % self._nproc,
                         '--reference=%s' % self.reference_file,
                         '--coverage=%s' % COVERAGE,
@@ -327,7 +336,11 @@ if __name__ == '__main__':
         help="Number of processors to use")
 
     args = parser.parse_args()
+    
+    # If the args were valid, initialize a logger before running
+    logging.basicConfig( level=logging.INFO )
 
+    # Run the specified resequencing process
     resequencer = ClusterResequencer( args.read_file, 
                                       args.ref_file, 
                                       args.fofn_file, 
