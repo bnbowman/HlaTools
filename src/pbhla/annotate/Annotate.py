@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import os, sys, argparse, logging, subprocess
+import os, re, sys, argparse, logging, subprocess
 
 from collections import namedtuple
 
@@ -10,6 +10,7 @@ from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 from pbhla.io.GffIO import ( create_annotation,
                              create_annotation2,
                              create_var_annotation )
+from pbhla.external.commandline_tools import run_muscle
 from pbhla.utils import create_directory, read_dict_file
 from pbhla.fasta.utils import write_fasta
 from pbhla.align.MultiSequenceAligner import MSA_aligner
@@ -17,6 +18,8 @@ from pbhla.align.MultiSequenceAligner import MSA_aligner
 log = logging.getLogger()
 
 info = namedtuple('info', 'canonical_pos, feature, codon')
+
+reference_cache = {}
 
 def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
     log.info("Initializing Annotation Process")
@@ -28,9 +31,9 @@ def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
 
     log.info("Found %s sequences to annotate" % len(locus_dict))
 
-    MSA_fn_dict={}; 
+    MSA_fn_dict={} 
     MSA_cDNA_fn_dict={}
-    MSA_info_fn_dict={}; 
+    MSA_info_fn_dict={} 
     MSA_cDNA_info_fn_dict={}
 
     tmp_fn = os.path.join( output_dir, 'tmp.fasta' )
@@ -77,11 +80,11 @@ def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
     for r in FastaReader( fasta_file ):
         write_fasta([r], tmp_fn)
 
-        name = r.name
+        name = r.name.strip()
         if name.endswith('quiver'):
             name = name.split("|")[0]
-        if name.endswith('_cns'):
-            name = name[:-4]
+        #if name.endswith('_cns'):
+        #    name = name[:-4]
 
         try:
             locus = locus_dict[name]
@@ -105,31 +108,16 @@ def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
 
         ### align sequence to profile for this locus
         output = os.path.join(output_dir, name + ".afa")
-        if os.path.isfile(output):
-            log.info('Existing genomic alignment found for "%s", skipping...' % name)
-        else:
-            log.info('Running MUSCLE to align "%s" to the canonical genomic MSA' % name)
-            try:
-                muscle_output = subprocess.check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-                    muscle -profile -in1 %s -in2 %s -out %s 2> /dev/null" % (MSA_fn, tmp_fn, output),
-                    executable='/bin/bash', shell=True)
-            except:
-                log.info('MSA failed for "%s"' % name )
-                os.remove( tmp_fn )
-                continue
+        add_to_alignment(tmp_fn, MSA_fn, output)
 
         ### read out a reference sequence from the old profile
         letters_max = 0
         for r2 in FastaReader(MSA_fn):
-            num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
+            num_letters = len(re.findall('[AGCT]', r2.sequence))
             if num_letters > letters_max:
                 letters_max = num_letters
-        for r2 in FastaReader(MSA_fn):
-            num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
-            if num_letters == letters_max:
                 comparison_seq = r2.sequence
                 comparison_seq_name = r2.name
-                break
 
         ### read out the same reference sequence from the NEW profile
         ### and read out our consensus sequence
@@ -158,7 +146,7 @@ def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
         ### comparing the same ref between the new and old profile allows us to keep track of the "canonical" coordinates
         #gff3_annotation = create_annotation(comparison_seq, new_comparison_seq, consensus_seq, coverage_map, MSA_info, r.name, quality_map)     
         gff3_annotation = create_annotation2(comparison_seq, new_comparison_seq, consensus_seq, MSA_info, r.name)     
-        last_feature = None;
+        last_feature = None
         feature_regions = {}
         for record in gff3_annotation:
             gDNA_annot_writer.writeRecord(record)
@@ -244,32 +232,16 @@ def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
 
         ### add artificial cDNA sequence to the cDNA profile
         output = os.path.join(output_dir, name + "_cDNA.afa")
-        if os.path.isfile(output):
-            log.info('Existing cDNA alignment found for "%s", skipping...' % name)
-        else:
-            log.info('Running MUSCLE to align "%s" to the canonical cDNA MSA' % name)
-            try:
-                muscle_output = subprocess.check_output(". /mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh; \
-                    muscle -profile -in1 %s -in2 %s -out %s 2> /dev/null" % (MSA_cDNA_fn, tmp_fn, output),
-                    executable='/bin/bash', shell=True)
-            except:
-                log.info('MSA failed for  "%s"' % name+"_cDNA" )
-                os.remove(tmp_fn)
-                continue
+        add_to_alignment(tmp_fn, MSA_cDNA_fn, output)
 
         ### read out a reference sequence from the profile
         letters_max = 0
         for r2 in FastaReader(MSA_cDNA_fn):
-            num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
+            num_letters = len(re.findall('[AGCT]', r2.sequence))
             if num_letters > letters_max:
                 letters_max = num_letters
-
-        for r2 in FastaReader(MSA_cDNA_fn):
-            num_letters = ( r2.sequence.count('A') + r2.sequence.count('G') + r2.sequence.count('C') + r2.sequence.count('T') )
-            if num_letters == letters_max:
                 comparison_seq = r2.sequence
                 comparison_seq_name = r2.name
-                break
 
         ### read out the same reference sequence from the NEW profile
         ### as well as our artificial cDNA consensus sequence
@@ -299,6 +271,17 @@ def annotate( MSA_fofn, fasta_file, locus_dict, output_dir ):
 
         os.remove(tmp_fn)
     return
+
+def add_to_alignment(fasta_file, alignment_file, output_file):
+    if os.path.isfile( output_file ):
+        log.info('Existing MSA alignment found for "%s", skipping...' % fasta_file)
+        return
+    log.info('Running MUSCLE to align "%s" to the canonical MSA' % fasta_file)
+    muscle_args = { 'profile': True,
+                    'in1': alignment_file,
+                    'in2': fasta_file,
+                    'out': output_file }
+    run_muscle( muscle_args )
 
 """
     ### now we create a special gff that will allow us to do phase highlighting

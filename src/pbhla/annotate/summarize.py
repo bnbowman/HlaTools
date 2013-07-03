@@ -33,12 +33,32 @@ def parse_contig_info( handle, locus ):
         info = [locus, '-\t\t\t', '-', '-', '-', '0.0']
     return ContigInfo(*info)
 
-def meta_summarize_contigs( contig_files, output_dir, excluded=[] ):
-    contig_summary = os.path.join( output_dir, 'Locus_Calls.txt')
-    with open(contig_summary, 'w') as output:
+def summarize_resequenced( locus_file, blasr_file, output_file ):
+    result_dict = {}
+    for entry in BlasrReader( blasr_file ):
+        name = entry.qname.split('|')[0]
+        name = name[:-4]
+        result_dict[name] = [entry.pctsimilarity, entry.tname]
+    with open( output_file, 'w') as output:
+        for line in open( locus_file ):
+            if line.startswith('Locus'):
+                print >> output, 'Locus\tContig\tLength\tCount\tPctId\tHit\tReseqPctId\tReseqHit'
+            else:
+                parts = line.strip().split()
+                name = parts[1]
+                if name == '-': 
+                    continue
+                reseq_results = result_dict[name]
+                output_parts = parts + reseq_results
+                print >> output, '\t'.join( output_parts )
+
+def meta_summarize_contigs( contig_files, output_file, excluded=[] ):
+    with open(output_file, 'w') as output:
         print >> output, "Locus\tContig\tLength\tCount\tHit\tPctId"
         for filepath in sorted(contig_files):
+            log.info( filepath )
             locus = filepath.split('_')[-2]
+            log.info( locus )
             if locus in excluded:
                 continue
             dummy = ContigInfo(locus, '-\t\t\t', '-', '-', '-', '0.0')
@@ -52,7 +72,6 @@ def meta_summarize_contigs( contig_files, output_dir, excluded=[] ):
                     second = dummy
                 print >> output, first
                 print >> output, second
-    return contig_summary
 
 def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, output_dir):
     groups = group_by_locus( locus_dict )
