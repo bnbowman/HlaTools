@@ -64,7 +64,10 @@ def parse_args():
         metavar='LOCUS',
         default=EXCLUDED,
         help="List of loci to not include in the final summary or phase")
-    #add("--MSA", help="FOFN of prealigned MSAs and their associated loci.")
+    add("--msa", 
+        metavar='FOFN',
+        default=None,
+        help="FOFN of prealigned MSAs and their associated loci")
     #add("--region_table", help="Region Table of White-Listed reads to use")
     #add("--phasr-args", nargs='*', default=[''], help="pass these args to phasr.")
     #add("--avoid_phasr", action='store_true',

@@ -12,7 +12,7 @@ from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 from pbcore.io.FastaIO import FastaReader, FastaWriter, FastaRecord
 from pbcore.io.FastqIO import FastqReader, FastqWriter
 
-from pbhla.options import args, parse_args
+from pbhla.arguments import args, parse_args
 from pbhla.fofn import create_baxh5_fofn
 from pbhla.separate_sequences import ( separate_sequences,
                                        separate_listed_sequences, 
@@ -36,9 +36,11 @@ from pbhla.align.MultiSequenceAligner import MSA_aligner
 from pbhla.phasing.clusense import Clusense
 from pbhla.phasing.SummarizeClusense import combine_clusense_output
 from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output 
-from pbhla.annotate.summarize import (summarize_contigs,
-                                      meta_summarize_contigs,
-                                      summarize_resequenced)
+from pbhla.annotation.summarize import ( summarize_contigs,
+                                         meta_summarize_contigs,
+                                         summarize_resequenced,
+                                         summarize_typing )
+from pbhla.annotation.typing import type_hla
 from pbhla.external.HbarTools import HbarRunner
 from pbhla.external.commandline_tools import run_blasr
 from pbhla.external.CdHit import cd_hit_est
@@ -62,7 +64,7 @@ class HlaPipeline( object ):
         for d in ['log_files', 'HBAR', 'references', 'subreads', 
                   'alignments', 'phasing', 'phasing_results', 
                   'resequencing', 'resequencing_results', 'results', 
-                  'stats']:
+                  'stats', 'annotation']:
             sub_dir = os.path.join( args.output, d )
             create_directory( sub_dir )
             setattr(self, d, sub_dir)
@@ -102,6 +104,7 @@ class HlaPipeline( object ):
         self.separate_off_target_subreads()
         # Next we create re-align just the HLA data for summarizing
         self.trim_contigs()
+        self.update_contig_orientation()
         self.remove_redundant_contigs()
         self.realign_hla_subreads()
         # Next we summarize our pre-phasing coverage of the contigs
@@ -123,9 +126,10 @@ class HlaPipeline( object ):
             self.align_resequenced_to_reference()
             self.add_resequencing_summary()
             self.extract_best_resequenced_contigs()
-            self.update_resequenced_orientation()
-            self.align_reoriented_to_reference()
-            self.trim_reoriented_contigs()
+            #self.align_reoriented_to_reference()
+            #self.trim_reoriented_contigs()
+            #self.type_hla_sequences()
+            #self.summarize_hla_typings()
         cleanup_directory( self.subreads )
 
     def create_baxh5_fofn(self):
@@ -397,6 +401,14 @@ class HlaPipeline( object ):
                 writer.writeRecord( record )
         log.info('Finished trimming contig sequences\n')
 
+    def update_contig_orientation(self):
+        log.info('Converting all resequenced contigs to the forward orientation')
+        self.reoriented = os.path.join(self.references, 'reoriented_hla_contigs.fasta')   
+        update_orientation( self.trimmed_contigs, 
+                            self.contigs_to_reference, 
+                            self.reoriented )
+        log.info('Finished updating the orientation of the resequenced contigs')
+
     def remove_redundant_contigs(self):
         log.info("Removing redundant contigs from the HLA contig file")
         self.selected_contigs = os.path.join(self.references, 'selected_contigs.fasta')
@@ -405,7 +417,7 @@ class HlaPipeline( object ):
             log.info("Skipping redundant contig filtering step...\n")
             return
         log.info('File of selected contigs not found, initializing Cd-Hit-Est')
-        cd_hit_est( self.trimmed_contigs, self.selected_contigs )
+        cd_hit_est( self.reoriented, self.selected_contigs )
         log.info('Finished selecting non-redundant contigs\n')
 
     def realign_hla_subreads(self):
@@ -725,6 +737,28 @@ class HlaPipeline( object ):
                 record = FastaRecord( name, record.sequence[start:end] )
                 writer.writeRecord( record )
         log.info('Finished trimming the reoriented contig sequences\n')
+
+    def type_hla_sequences(self):
+        log.info('Typing the selected HLA consensus sequences')
+        if args.msa is None:
+            log.info("No HLA MSA information supplied, can't perform HLA typing")
+            return 
+        self.gdna_types = os.path.join( self.annotation, 'gDNA_allele_calls.txt' )
+        self.cdna_types = os.path.join( self.annotation, 'cDNA_allele_calls.txt' )
+        type_hla( args.msa, 
+                  self.reoriented, 
+                  self.phased_locus_dict,
+                  self.annotation )
+        log.info('Finished typing the selected HLA sequences\n')
+
+    def summarize_hla_typings(self):
+        log.info('Typing the selected HLA consensus sequences')
+        self.typing_summary = os.path.join(self.clusense_results, 'Final_Summary.txt')
+        summarize_typing( self.resequenced_summary,
+                          self.gdna_types,
+                          self.cdna_types,
+                          self.typing_summary )
+        log.info('Finished typing the selected HLA sequences\n')
 
     ### Other functions, not currently used ###
     def find_amplicons(self):

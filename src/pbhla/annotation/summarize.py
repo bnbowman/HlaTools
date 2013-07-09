@@ -4,7 +4,7 @@ from pbcore.io.FastaIO import FastaReader
 
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.fasta.utils import fasta_size
-
+from pbhla.utils import get_base_sequence_name
 log = logging.getLogger()
 
 PCTID_THRESH = 97.0
@@ -33,12 +33,73 @@ def parse_contig_info( handle, locus ):
         info = [locus, '-\t\t\t', '-', '-', '-', '0.0']
     return ContigInfo(*info)
 
-def summarize_resequenced( locus_file, blasr_file, output_file ):
-    result_dict = {}
+def summarize_typing( summary_file, gdna_file, cdna_file, output_file ):
+    gdna_types = parse_typing( gdna_file )
+    cdna_types = parse_typing( cdna_file )
+    final_types = finalize_typing( gdna_types, cdna_types )
+    combined_types = combine_typings( gdna_types, cdna_types, final_types )
+    append_typing_results( summary_file, combined_types, output_file )
+
+def append_typing_results( summary_file, combined_typings, output_file):
+    typing_header = '\tGenType\tGenPctId\tExonType\tExonPctId\tType\t'
+    with open(output_file, 'w') as output:
+        with open(summary_file, 'r') as handle:
+            header = handle.next().strip()
+            output.write(header + typing_header)
+            for line in handle:
+                parts = line.strip().split()
+                name = get_base_sequence_name( parts[1] )
+                parts += combined_typings[name]
+                output.write('\t'.join(parts) + '\n')
+
+def combine_typings( gdna_types, cdna_types, final_types ):
+    results = {}
+    for name, final_type in final_types.iteritems():
+        gdna_type, gdna_pctid = gdna_types[name]
+        cdna_type, cdna_pctid = cdna_types[name]
+        results[name] = [ gdna_type, 
+                          gdna_pctid, 
+                          cdna_type, 
+                          cdna_pctid, 
+                          final_type ]
+    return results
+
+def finalize_typing( gdna_types, cdna_types ):
+    results = {}
+    for name, gdna_typing in gdna_types.iteritems():
+        gdna_type, gdna_pct = gdna_typing
+        if name in cdna_types:
+            cdna_type, cdna_pct = cdna_types[name]
+            if gdna_type.startswith(cdna_type):
+                results[name] = gdna_type
+            else:
+                results[name] = cdna_type
+        else:
+            results[name] = gdna_type
+    return results
+
+def parse_typing( typing_file ):
+    results = {}
+    with open( typing_file) as handle:
+        for line in handle:
+            if line.startswith('Locus'):
+                continue
+            parts = line.strip().split()
+            name = get_base_sequence_name( parts[1] )
+            typing = parts[2]
+            pctid = parts[5]
+            results[name] = [typing, pctid]
+    return results
+
+def parse_blasr_alignment( blasr_file ):
+    results = {}
     for entry in BlasrReader( blasr_file ):
-        name = entry.qname.split('|')[0]
-        name = name[:-4]
-        result_dict[name] = [entry.pctsimilarity, entry.tname]
+        name = get_base_sequence_name( entry.qname )
+        results[name] = [entry.pctsimilarity, entry.tname]
+    return results
+
+def summarize_resequenced( locus_file, blasr_file, output_file ):
+    blasr_typings = parse_blasr_alignment( blasr_file )
     with open( output_file, 'w') as output:
         for line in open( locus_file ):
             if line.startswith('Locus'):
@@ -48,7 +109,7 @@ def summarize_resequenced( locus_file, blasr_file, output_file ):
                 name = parts[1]
                 if name == '-': 
                     continue
-                reseq_results = result_dict[name]
+                reseq_results = blasr_typings[name]
                 output_parts = parts + reseq_results
                 print >> output, '\t'.join( output_parts )
 

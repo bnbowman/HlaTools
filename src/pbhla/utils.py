@@ -12,6 +12,13 @@ BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity
 BlasrM4 = namedtuple('BlasrM4', 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength mapqv ncells clusterScore probscore numSigClusters')
 BlasrM5 = namedtuple('BlasrM5', 'qname qlength z1 qalength qstrand tname tlength z2 talength tstrand score nmis nins ndel zscore qseq matchvector tseq')
 
+def get_base_sequence_name( name ):
+    if name.endswith('|quiver'):
+        name = name.split('|')[0]
+    if name.endswith('_cns'):
+        name = name[:-4]
+    return name
+
 def memoize(function):
     cache = {}
     def decorated_function(*args):

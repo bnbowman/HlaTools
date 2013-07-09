@@ -11,6 +11,7 @@ from pbhla.io.GffIO import ( create_annotation,
                              create_annotation2,
                              create_var_annotation )
 from pbhla.external.commandline_tools import run_muscle
+from pbhla.fasta.utils import fasta_size
 from pbhla.utils import ( create_directory, 
                           read_dict_file,
                           memoize )
@@ -21,7 +22,7 @@ log = logging.getLogger()
 
 info = namedtuple('info', 'canonical_pos, feature, codon')
 
-def type_hla_sequences( MSA_fofn, fasta_file, locus_dict, output_dir ):
+def type_hla( MSA_fofn, fasta_file, locus_dict, output_dir ):
     log.info("Initializing Annotation Process")
 
     create_directory( output_dir )
@@ -77,8 +78,8 @@ def type_hla_sequences( MSA_fofn, fasta_file, locus_dict, output_dir ):
         name = r.name.strip()
         if name.endswith('quiver'):
             name = name.split("|")[0]
-        #if name.endswith('_cns'):
-        #    name = name[:-4]
+        if name.endswith('_cns'):
+            name = name[:-4]
 
         try:
             locus = locus_dict[name]
@@ -141,7 +142,7 @@ def type_hla_sequences( MSA_fofn, fasta_file, locus_dict, output_dir ):
                                                            best_gDNA, 
                                                            total-match, 
                                                            total, 
-                                                           score ))
+                                                           100*float(score) ))
         
         ### create artificial cDNA sequence from the gDNA sequence
         ### create a dict between gDNA and cDNA position so that we can read in quality and coverage info to the cDNA gff
@@ -161,7 +162,7 @@ def type_hla_sequences( MSA_fofn, fasta_file, locus_dict, output_dir ):
         for item in gDNA_pos_to_cDNA_pos.iteritems():
             cDNA_pos_to_gDNA_pos[int(item[1])] = item[0]
         
-        cDNA_record = FastaRecord( r.name + '_cDNA', cDNA_consensus_sequence )
+        cDNA_record = FastaRecord( r.name, cDNA_consensus_sequence )
         cDNA_writer.writeRecord( cDNA_record )
         write_fasta( [cDNA_record], temp_fasta )
 
@@ -196,16 +197,23 @@ def type_hla_sequences( MSA_fofn, fasta_file, locus_dict, output_dir ):
         ## find best match among all profiles for our consensus sequence    
         best_cDNA, match, total, score, cDNA_var_map = MSA_aligner( aligned_query.sequence, 
                                                                     output, 
-                                                                    r.name )           
+                                                                    r.name ) 
+        best_cDNA = trim_cdna_type( best_cDNA )
         cDNA_allele_handle.write("%s %s %s %s %s %s\n" % ( locus, 
                                                            r.name, 
                                                            best_cDNA, 
                                                            total-match, 
                                                            total, 
-                                                           score ))
+                                                           100*float(score) ))
         os.remove(temp_fasta)
     return
     
+def trim_cdna_type( hla_type ):
+    parts = hla_type.split(':')
+    if len(parts) < 4:
+        return hla_type
+    return ':'.join(parts[:-1])
+
 def parse_genomic_info( info_file ):
     data = {}
     with open(info_file, "r") as handle:
@@ -272,7 +280,7 @@ if __name__ == '__main__':
         help='Directory to output results to')
 
     args = parser.parse_args()
-    annotate( args.msa_fofn,
+    type_hla( args.msa_fofn,
               args.input_file,
               args.locus_dict,
               args.output )
