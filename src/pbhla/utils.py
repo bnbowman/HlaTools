@@ -10,7 +10,7 @@ log = logging.getLogger()
 
 BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
 BlasrM4 = namedtuple('BlasrM4', 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength mapqv ncells clusterScore probscore numSigClusters')
-BlasrM5 = namedtuple('BlasrM5', 'qname qlength z1 qalength qstrand tname tlength z2 talength tstrand score nmis nins ndel zscore qseq matchvector tseq')
+BlasrM5 = namedtuple('BlasrM5', 'qname qlength z1 qalength qstrand tname tlength z2 talength tstrand score nmat nmis nins ndel zscore qseq matchvector tseq')
 
 def get_base_sequence_name( name ):
     if name.endswith('|quiver'):
@@ -97,10 +97,15 @@ def cross_ref_dict( query_dict, ref_dict ):
         new_dict[key] = new_value
     return new_dict
 
+def valid_file( filepath ):
+    if os.path.isfile( filepath ) and (os.path.getsize( filepath ) > 0):
+        return True
+    return False
+
 def check_output_file(filepath):
-    try:
-        assert os.path.isfile( filepath )
-    except:
+    if valid_file( filepath ):
+        return
+    else:
         msg = 'Expected output file not found! "{0}"'.format(filepath)
         log.info( msg )
         raise IOError( msg )

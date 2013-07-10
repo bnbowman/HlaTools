@@ -14,22 +14,26 @@ from pbcore.io.FastqIO import FastqReader, FastqWriter
 
 from pbhla.arguments import args, parse_args
 from pbhla.fofn import create_baxh5_fofn
-from pbhla.separate_sequences import ( separate_sequences,
-                                       separate_listed_sequences, 
-                                       separate_aligned_sequences, 
-                                       write_group,
-                                       write_all_groups )
+from pbhla.separate_sequences import (separate_sequences,
+                                      separate_listed_sequences, 
+                                      separate_aligned_sequences, 
+                                      write_group,
+                                      write_all_groups)
 from pbhla.fasta.utils import (fasta_size, 
                                extract_sequence,
                                combine_fasta)
 from pbhla.fasta.update_orientation import update_orientation
 from pbhla.fasta.subset_sequences import subset_sequences
-from pbhla.io.SubreadExtractor import SubreadExtractor
+from pbhla.fasta.trim_fasta import trim_fasta
+from pbhla.io.SubreadExtractor import extract_subreads
 from pbhla.io.SamIO import SamReader
 from pbhla.io.GffIO import create_annotation, create_var_annotation
-from pbhla.reference.ReferenceDict import ReferenceDict
-from pbhla.reference.ReferenceSelector import ReferenceSelector
-from pbhla.reference.LocusReference import LocusReference
+from pbhla.references import (create_fofn_reference,
+                              create_m1_reference,
+                              create_m5_reference,
+                              create_sam_reference,
+                              filter_m5_file,
+                              create_reference_fasta)
 from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.align.MultiSequenceAligner import MSA_aligner
@@ -84,7 +88,6 @@ class HlaPipeline( object ):
         self.create_baxh5_fofn()
         self.extract_subreads()
         self.create_input_fofn()
-        #self.parse_fullpass_readlist()
         self.assemble_contigs()
         self.export_hbar_subreads()
         self.create_renaming_key()
@@ -135,11 +138,12 @@ class HlaPipeline( object ):
     def create_baxh5_fofn(self):
         log.info('Creating Bax.H5 fofn')
         self.baxh5_fofn = os.path.join( args.output, 'baxh5.fofn' )
-        if os.path.isfile( self.baxh5_fofn ):
+        if valid_file( self.baxh5_fofn ):
             log.info('Found existing BaxH5 fofn file "%s"' % self.baxh5_fofn)
             log.info('Skipping fofn creation step\n')
             return
         create_baxh5_fofn( args.input_file, self.baxh5_fofn )
+        check_output_file( self.baxh5_fofn )
         log.info('Finished writing BaxH5 fofn file\n')
 
     def extract_subreads( self ):
@@ -148,17 +152,16 @@ class HlaPipeline( object ):
         output_path = os.path.join( self.subreads, "all_subreads" )
         self.raw_subread_file = output_path + '.fasta'
         self.fullpass_file = output_path + '_fullpass.txt'
-        if os.path.isfile( self.raw_subread_file ):
+        if valid_file( self.raw_subread_file ):
             log.info('Found existing subread file "%s"' % self.raw_subread_file)
             log.info('Skipping subread extraction step\n')
             return
         log.info('Extracting subreads from input files...')
-        extractor = SubreadExtractor( args.input_file, 
-                                      output_path,
-                                      min_length=args.min_read_length,
-                                      min_score=args.min_read_score,
-                                      dilution=args.dilution)
-        extractor()
+        extract_subreads(args.input_file, 
+                         output_path,
+                         min_length=args.min_read_length,
+                         min_score=args.min_read_score,
+                         dilution=args.dilution)
         check_output_file( self.raw_subread_file )
         check_output_file( self.fullpass_file )
         log.info('Finished the extraction of subread data\n')
@@ -166,7 +169,7 @@ class HlaPipeline( object ):
     def create_input_fofn(self):
         log.info('Creating input fofn')
         self.input_fofn = os.path.abspath( os.path.join( self.HBAR, 'input.fofn') )
-        if os.path.isfile( self.input_fofn ):
+        if valid_file( self.input_fofn ):
             log.info('Existing input fofn file found, skipping...\n')
             return
         with open( self.input_fofn, 'w' ) as handle:
@@ -181,7 +184,7 @@ class HlaPipeline( object ):
                                       "asm.utg.fasta" )
         self.contig_file = os.path.join( self.references,
                                          "all_contigs.fasta")
-        if os.path.isfile( self.contig_file ):
+        if valid_file( self.contig_file ):
             log.info('Found existing contig file "{0}"'.format(self.contig_file))
             log.info('Skipping HBAR assembly step\n')
             return
@@ -200,7 +203,7 @@ class HlaPipeline( object ):
     def export_hbar_subreads(self):
         log.info('Exporting renamed sub-reads from HBAR')
         self.subread_file = os.path.join( self.subreads, 'renamed_subreads.fasta' )
-        if os.path.isfile( self.subread_file ):
+        if valid_file( self.subread_file ):
             log.info('Found existing renamed subread file "%s"' % self.subread_file)
             log.info('Skipping HBAR subread export step\n')
             return
@@ -214,7 +217,7 @@ class HlaPipeline( object ):
 
     def create_renaming_key(self):
         self.renaming_key = os.path.join( self.subreads, 'renaming_key.txt' )
-        if os.path.isfile( self.renaming_key ):
+        if valid_file( self.renaming_key ):
             log.info('Found existing renaming key "%s"' % self.renaming_key)
             log.info('Skipping key generation step\n')
             return
@@ -238,19 +241,10 @@ class HlaPipeline( object ):
                 handle.write('%s\t%s\n' % (new_name, raw_name))
         self.renaming_dict = read_dict_file( self.renaming_key )
 
-    def parse_fullpass_readlist(self):
-        log.info('Reading the list of fullpass reads...')
-        fullpass_reads = []
-        with open( self.fullpass_file, 'r') as handle:
-            for line in handle:
-                fullpass_reads.append( line.strip() )
-        self.fullpass_reads = set(fullpass_reads)
-        log.info('Finished parsing the fullpass readlist\n')
-
     def align_subreads_to_contigs(self):
         log.info('"Aligning all subreads to the HBAR contigs')
         self.subreads_to_contigs = os.path.join(self.alignments, 'subreads_to_contigs.m1')   
-        if os.path.isfile( self.subreads_to_contigs ):
+        if valid_file( self.subreads_to_contigs ):
             log.info('Found existing alignment file "{0}"'.format(self.subreads_to_contigs))
             log.info("Skipping alignment step...\n")
         else:
@@ -269,12 +263,12 @@ class HlaPipeline( object ):
             # Check and save the output
             check_output_file( self.subreads_to_contigs )
         log.info("Finished aligning subreads to the created contigs\n")
-        self.subread_contig_dict = ReferenceDict( self.subreads_to_contigs )
+        self.subread_contig_dict = create_m1_reference( self.subreads_to_contigs )
 
     def align_contigs_to_genome(self):
         log.info('"Aligning all contigs to the Human Genome')
         self.contigs_to_genome = os.path.join(self.alignments, 'contigs_to_genome.m1')   
-        if os.path.isfile( self.contigs_to_genome ):
+        if valid_file( self.contigs_to_genome ):
             log.info('Found existing alignment file "{0}"'.format(self.contigs_to_genome))
             log.info("Skipping alignment step...\n")
         else:
@@ -293,26 +287,26 @@ class HlaPipeline( object ):
             # Check the output and convert it to 
             check_output_file( self.contigs_to_genome )
         log.info("Finished aligning contigs to the genomic reference\n")
-        self.contig_genome_dict = ReferenceDict( self.contigs_to_genome )
-        self.reference_locus_dict = ReferenceDict( args.reference_file )
+        self.contig_genome_dict = create_m1_reference( self.contigs_to_genome )
+        self.reference_locus_dict = create_fofn_reference( args.reference_file )
 
     def create_locus_reference(self):
         log.info("Creating locus reference fasta file")
         self.reference_seqs = os.path.join(self.references, "locus_references.fasta")
         # If no locus key and Choose_Ref is None, read the locus from the regular reference
-        if os.path.isfile( self.reference_seqs ):
+        if valid_file( self.reference_seqs ):
             log.info('Found existing locus reference sequences "{0}"'.format(self.reference_seqs))
             log.info('Skipping reference extraction step\n')
             return
         log.info("No locus reference sequences found, creating one...")
-        LocusReference(args.reference_file, self.reference_seqs)
+        create_reference_fasta( args.reference_file, self.reference_seqs )
         check_output_file( self.reference_seqs )
         log.info("Finished creating locus reference\n")
     
     def align_contigs_to_reference(self):
         log.info('"Aligning all HLA contigs to the Reference sequences')
         self.contigs_to_reference = os.path.join(self.alignments, 'contigs_to_reference.m1')   
-        if os.path.isfile( self.contigs_to_reference ):
+        if valid_file( self.contigs_to_reference ):
             log.info('Found existing alignment file "{0}"'.format(self.contigs_to_reference))
             log.info("Skipping alignment step...\n")
         else:   
@@ -324,6 +318,7 @@ class HlaPipeline( object ):
                           'out': self.contigs_to_reference,
                           'noSplitSubreads': True,
                           'bestn': 1,
+                          'm': 1,
                           'nCandidates': reference_count}
             run_blasr( self.contig_file, 
                        self.reference_seqs,
@@ -331,7 +326,7 @@ class HlaPipeline( object ):
             # Check the output and convert it into a dictionary
             check_output_file( self.contigs_to_reference )
         log.info("Finished aligning contigs to the HLA reference set\n")
-        self.contig_reference_dict = ReferenceDict( self.contigs_to_reference )
+        self.contig_reference_dict = create_m1_reference( self.contigs_to_reference )
         self.contig_locus_dict = cross_ref_dict( self.contig_reference_dict, self.reference_locus_dict )
 
     def find_on_target_contigs(self):
@@ -348,7 +343,7 @@ class HlaPipeline( object ):
         log.info('Separating off-target contigs by genomic alignment')
         self.hla_contigs = os.path.join(self.references, 'hla_contigs.fasta')
         self.non_hla_contigs = os.path.join(self.references, 'non_hla_contigs.fasta')
-        if os.path.isfile( self.hla_contigs ) and os.path.isfile( self.non_hla_contigs ):
+        if valid_file( self.hla_contigs ):
             log.info('Found existing sequence file "{0}"'.format(self.hla_contigs))
             log.info('Found existing sequence file "{0}"'.format(self.non_hla_contigs))
             log.info("Skipping separation step...\n")
@@ -364,7 +359,7 @@ class HlaPipeline( object ):
         log.info('Separating off-target subreads by contig alignment')
         self.hla_subreads = os.path.join(self.subreads, 'hla_subreads.fasta')
         self.non_hla_subreads = os.path.join(self.subreads, 'non_hla_subreads.fasta')
-        if os.path.isfile( self.hla_subreads ) and os.path.isfile( self.non_hla_subreads ):
+        if valid_file( self.hla_subreads ):
             log.info('Found existing sequence file "{0}"'.format(self.hla_subreads))
             log.info('Found existing sequence file "{0}"'.format(self.non_hla_subreads))
             log.info("Skipping separation step...\n")
@@ -380,30 +375,23 @@ class HlaPipeline( object ):
     def trim_contigs(self):
         log.info('Trimming contigs to their aligned region')
         self.trimmed_contigs = os.path.join(self.references, 'trimmed_contigs.fasta')
-        if os.path.isfile( self.trimmed_contigs ):
+        if valid_file( self.trimmed_contigs ):
             log.info('Found existing Trimmed contig file "%s"' % self.trimmed_contigs )
             log.info('Skipping contig trimming step...\n')
             return
-        trims = {}
-        with open(self.contigs_to_reference) as handle:
-            for record in map(BlasrM1._make, csv.reader(handle, delimiter=' ')):
-                start = max(int(record.qstart)-100, 0)
-                end = min(int(record.qend)+100, int(record.qlength))
-                trims[record.qname] = (start, end)
-        with FastaWriter(self.trimmed_contigs) as writer:
-            for record in FastaReader(self.hla_contigs):
-                name = record.name.split()[0]
-                if self.contig_locus_dict[name] not in ['A', 'B', 'C', 'DPA', 'DQA', 'DQB']:
-                    writer.writeRecord( record )
-                    continue
-                start, end = trims[name]
-                record = FastaRecord( name, record.sequence[start:end] )
-                writer.writeRecord( record )
+        trim_fasta( self.hla_contigs, 
+                    self.contigs_to_reference, 
+                    self.trimmed_contigs,
+                    self.contig_locus_dict)
         log.info('Finished trimming contig sequences\n')
 
     def update_contig_orientation(self):
         log.info('Converting all resequenced contigs to the forward orientation')
-        self.reoriented = os.path.join(self.references, 'reoriented_hla_contigs.fasta')   
+        self.reoriented = os.path.join(self.references, 'reoriented_hla_contigs.fasta')
+        if valid_file( self.reoriented ):
+            log.info('Found existing reoriented contig file "%s"' % self.reoriented)
+            log.info('Skipping contig reorientation step...\n')
+            return
         update_orientation( self.trimmed_contigs, 
                             self.contigs_to_reference, 
                             self.reoriented )
@@ -412,7 +400,7 @@ class HlaPipeline( object ):
     def remove_redundant_contigs(self):
         log.info("Removing redundant contigs from the HLA contig file")
         self.selected_contigs = os.path.join(self.references, 'selected_contigs.fasta')
-        if os.path.isfile( self.selected_contigs ):
+        if valid_file( self.selected_contigs ):
             log.info('Found existing non-redundant contig file "{0}"'.format(self.selected_contigs))
             log.info("Skipping redundant contig filtering step...\n")
             return
@@ -423,7 +411,7 @@ class HlaPipeline( object ):
     def realign_hla_subreads(self):
         log.info("Re-aligning HLA subreads to selected references")
         self.hla_alignment = os.path.join( self.alignments, "hla_subreads_to_contigs.sam" )
-        if os.path.isfile( self.hla_alignment ):
+        if valid_file( self.hla_alignment ):
             log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
             log.info("Skipping realignment step...\n")
             return
@@ -447,8 +435,8 @@ class HlaPipeline( object ):
         self.locus_stats = os.path.join(self.stats, "locus_statistics.csv")
         self.reference_stats = os.path.join(self.stats, "reference_statistics.csv")
         ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
-        if os.path.isfile( self.locus_stats ) and \
-           os.path.isfile( self.reference_stats ):
+        if valid_file( self.locus_stats ) and \
+           valid_file( self.reference_stats ):
             log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
             log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
             log.info("Skipping alignment summary step...\n")
@@ -463,7 +451,7 @@ class HlaPipeline( object ):
     def separate_contigs(self):
         log.info("Separating remaining contigs into individual files")
         contig_fofn = os.path.join( self.references, "Contig_Files.txt" )
-        if os.path.isfile( contig_fofn ):
+        if valid_file( contig_fofn ):
             log.info('Found existing Contig File List "{0}"'.format(contig_fofn))
             log.info("Skipping contig separation step...\n")
             self.contig_files = read_list_file( contig_fofn )
@@ -476,13 +464,13 @@ class HlaPipeline( object ):
 
     def create_subread_selected_contig_dict(self):
         log.info("Converting the Subreads-to-Contigs alignment to a Dictionary")
-        self.subread_selected_contig_dict = ReferenceDict( self.hla_alignment )
+        self.subread_selected_contig_dict = create_sam_reference( self.hla_alignment )
         log.info("Finished convereting the data to a Dictionary\n")
 
     def separate_subreads_by_contig(self):
         log.info("Separating subreads by aligned contig")
         subread_fofn = os.path.join( self.subreads, "Subread_Files.txt" )
-        if os.path.isfile( subread_fofn ):
+        if valid_file( subread_fofn ):
             log.info('Found existing Subread File List "{0}"'.format(subread_fofn))
             log.info("Skipping subread separation step...\n")
             self.subread_files = read_list_file( subread_fofn )
@@ -512,7 +500,7 @@ class HlaPipeline( object ):
 
     def summarize_clusense(self):
         log.info("Summarizing the output from Clusense")
-        output_folder = os.path.join(self.phasing_results, 'Clusense_Results')
+        output_folder = os.path.join(self.phasing_results, 'Clusense')
         self.clusense_cns_fofn, self.clusense_read_fofn = combine_clusense_output(self.clusense, output_folder)
         log.info('Finished Phasing subreads with Clusense')
 
@@ -528,8 +516,9 @@ class HlaPipeline( object ):
 
     def align_phased_to_reference(self):
         log.info('"Aligning all phased HLA contigs to the Reference sequences')
-        self.phased_to_reference = os.path.join(self.alignments, 'phased_to_reference.m1')   
-        if os.path.isfile( self.phased_to_reference ):
+        raw_phased_to_reference = os.path.join(self.alignments, 'raw_phased_to_reference.m5')   
+        self.phased_to_reference = os.path.join(self.alignments, 'phased_to_reference.m5')   
+        if valid_file( self.phased_to_reference ):
             log.info('Found existing alignment file "{0}"'.format(self.phased_to_reference))
             log.info("Skipping alignment step...\n")
         else:
@@ -539,15 +528,17 @@ class HlaPipeline( object ):
             log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
             blasr_args = {'nproc': args.nproc,
                           'noSplitSubreads': True,
-                          'out': self.phased_to_reference,
-                          'bestn': 1,
+                          'out': raw_phased_to_reference,
+                          'm': 5,
+                          'bestn': 5,
                           'nCandidates': reference_count}
             run_blasr( self.phased_hla, 
                        self.reference_seqs, 
                        blasr_args )
+            filter_m5_file( raw_phased_to_reference, self.phased_to_reference )
             # Check and save the output
             check_output_file( self.phased_to_reference )
-        self.phased_reference_dict = ReferenceDict( self.phased_to_reference )
+        self.phased_reference_dict = create_m5_reference( self.phased_to_reference )
         self.phased_locus_dict = cross_ref_dict( self.phased_reference_dict, self.reference_locus_dict )
         log.info("Finished aligning resequenced contigs to the HLA reference set\n")
 
@@ -571,7 +562,7 @@ class HlaPipeline( object ):
     def extract_best_contigs(self):
         log.info('Extracting the best contigs to their own file')
         self.raw_output = os.path.join(self.clusense_results, 'Final_Raw.fasta')
-        if os.path.isfile( self.raw_output ):
+        if valid_file( self.raw_output ):
             log.info('Found existing Resequencing Output')
             log.info('Skipping...\n')
             return
@@ -638,7 +629,7 @@ class HlaPipeline( object ):
     def align_resequenced_to_reference(self):
         log.info('"Aligning all resequenced HLA contigs to the Reference sequences')
         self.resequenced_to_reference = os.path.join(self.alignments, 'resequenced_to_reference.m1')   
-        if os.path.isfile( self.resequenced_to_reference ):
+        if valid_file( self.resequenced_to_reference ):
             log.info('Found existing alignment file "{0}"'.format(self.resequenced_to_reference))
             log.info("Skipping alignment step...\n")
         else:
@@ -661,7 +652,7 @@ class HlaPipeline( object ):
     def add_resequencing_summary(self):
         log.info('Summarizing the the resequenced contigs')
         self.resequenced_summary = os.path.join(self.clusense_results, 'Resequenced_Calls.txt')
-        if os.path.isfile( self.resequenced_summary ):
+        if valid_file( self.resequenced_summary ):
             log.info('Found existing resequenced summary file "%s"' % self.resequenced_summary )
             log.info('Skipping...\n')
             return
@@ -673,7 +664,7 @@ class HlaPipeline( object ):
     def extract_best_resequenced_contigs(self):
         log.info('Extracting the best resequenced contigs to their own file')
         self.resequenced_output = os.path.join(self.clusense_results, 'Final_Resequenced.fasta')
-        if os.path.isfile( self.resequenced_output ):
+        if valid_file( self.resequenced_output ):
             log.info('Found existing Resequencing Output')
             log.info('Skipping...\n')
             return
@@ -691,7 +682,7 @@ class HlaPipeline( object ):
     def align_reoriented_to_reference(self):
         log.info('"Aligning all reoriented HLA contigs to the Reference sequences')
         self.reoriented_to_reference = os.path.join(self.alignments, 'reoriented_to_reference.m1')   
-        if os.path.isfile( self.reoriented_to_reference ):
+        if valid_file( self.reoriented_to_reference ):
             log.info('Found existing alignment file "{0}"'.format(self.reoriented_to_reference))
             log.info("Skipping alignment step...\n")
         else:
@@ -714,7 +705,7 @@ class HlaPipeline( object ):
     def trim_reoriented_contigs(self):
         log.info('Trimming reoriented contigs to their aligned region')
         self.trimmed_reoriented = os.path.join(self.references, 'trimmed_reoriented_contigs.fasta')
-        if os.path.isfile( self.trimmed_reoriented ):
+        if valid_file( self.trimmed_reoriented ):
             log.info('Found existing Trimmed Reoriented contig file "%s"' % self.trimmed_reoriented )
             log.info('Skipping contig trimming step...\n')
             return
@@ -764,7 +755,7 @@ class HlaPipeline( object ):
     def find_amplicons(self):
         log.info("Finding amplicon locations within each reference")
         self.amplicon_summary = self.stats_dir + "/amplicon_summary.csv"
-        if os.path.isfile( self.amplicon_summary ):
+        if valid_file( self.amplicon_summary ):
             log.info('Found existing Amplicon Summary "{0}" )'.format(self.amplicon_summary))
             log.info("Skipping amplicon finding step...\n")
             return

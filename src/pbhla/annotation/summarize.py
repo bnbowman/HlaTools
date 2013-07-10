@@ -2,7 +2,7 @@ import os, logging
 
 from pbcore.io.FastaIO import FastaReader
 
-from pbhla.io.BlasrIO import BlasrReader
+from pbhla.io.BlasrIO import BlasrReader, BlasrM1, BlasrM5
 from pbhla.fasta.utils import fasta_size
 from pbhla.utils import get_base_sequence_name
 log = logging.getLogger()
@@ -23,8 +23,8 @@ class ContigInfo(object):
                                                      self.contig,
                                                      self.length,
                                                      self.count,
-                                                     self.pctid,
-                                                     self.hit)
+                                                     self.hit,
+                                                     self.pctid)
 
 def parse_contig_info( handle, locus ):
     try:
@@ -95,7 +95,13 @@ def parse_blasr_alignment( blasr_file ):
     results = {}
     for entry in BlasrReader( blasr_file ):
         name = get_base_sequence_name( entry.qname )
-        results[name] = [entry.pctsimilarity, entry.tname]
+        if isinstance(entry, BlasrM1):
+            results[name] = [entry.tname, entry.pctsimilarity]
+        elif isinstance(entry, BlasrM5):
+            print entry
+            diffs = int(entry.nmis) + int(entry.nins) + int(entry.ndel)
+            pctid = 100 * int(entry.nmat) / float(int(entry.nmat) + diffs)
+            results[name] = [entry.tname, pctid]
     return results
 
 def summarize_resequenced( locus_file, blasr_file, output_file ):
@@ -127,6 +133,9 @@ def meta_summarize_contigs( contig_files, output_file, excluded=[] ):
                 handle.next()
                 first = parse_contig_info( handle, locus )
                 second = parse_contig_info( handle, locus )
+                print first
+                print second
+                print first.hit, second.hit
                 while second.hit == first.hit:
                     second = parse_contig_info( handle, locus )
                 if second.pctid < PCTID_THRESH:
@@ -148,15 +157,6 @@ def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, outp
         output = write_summary( locus, summary, output_dir )
         summary_outputs.append( output )
     return summary_outputs
-
-def parse_blasr_alignment( blasr_file ):
-    hits = {}
-    for entry in BlasrReader( blasr_file ):
-        name = entry.qname
-        if name.endswith('_cns'):
-            name = entry.qname[:-4]
-        hits[name] = (entry.tname, entry.pctsimilarity)
-    return hits
 
 def parse_fasta_lengths( fasta_file ):
     lengths = {}

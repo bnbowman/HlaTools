@@ -1,7 +1,10 @@
 from collections import namedtuple
 
 from pbcore.io.base import ReaderBase, getFileHandle
-from pbhla.utils import BlasrM1, BlasrM4, BlasrM5
+
+BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
+BlasrM4 = namedtuple('BlasrM4', 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength mapqv ncells clusterScore probscore numSigClusters')
+BlasrM5 = namedtuple('BlasrM5', 'qname qlength qstart qend qstrand tname tlength tstart tend tstrand score nmat nmis nins ndel mapqv qstring astring tstring')
 
 class BlasrReader( ReaderBase ):
 
@@ -27,3 +30,25 @@ class BlasrReader( ReaderBase ):
                 yield self.datatype._make( line.strip().split() )
         except:
             raise ValueError("Invalid Blasr entry of type %s" % self.filetype)
+
+def blasr_to_string( record ):
+    if isinstance(record, BlasrM5):
+        return "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (record.qname,
+                                                                             record.qlength,
+                                                                             record.qstart,
+                                                                             record.qend,
+                                                                             record.qstrand,
+                                                                             record.tname,
+                                                                             record.tlength,
+                                                                             record.tstart,
+                                                                             record.tend,
+                                                                             record.tstrand,
+                                                                             record.score,
+                                                                             record.nmat,
+                                                                             record.nmis,
+                                                                             record.nins,
+                                                                             record.ndel,
+                                                                             record.mapqv,
+                                                                             record.qstring,
+                                                                             record.astring,
+                                                                             record.tstring)
