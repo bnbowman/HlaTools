@@ -67,10 +67,12 @@ def add_record( dictionary, record, key):
 
 def get_value(dictionary, key):
     try:
-        reference = dictionary[key]
+        value = dictionary[key]
     except:
-        reference = 'Unmapped'
-    return reference
+        value = 'Unmapped'
+    if value == 'N/A':
+        value = 'Unmapped'
+    return value
 
 def write_group(dictionary, key, output_file):
     log.info('Writing "{0}" sequences to "{1}"'.format(key, os.path.basename(output_file)))

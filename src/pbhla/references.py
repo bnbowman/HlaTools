@@ -68,6 +68,20 @@ def create_sam_reference( sam_file, reference=None ):
     log.info('Finished reading SAM file results')
     return results
 
+def create_phased_reference( phased_fofn ):
+    log.info('Parsing Phased FOFN alignments from "{0}"'.format(phased_fofn))
+    results = {}
+    with open(phased_fofn, 'r') as handle:
+        for line in handle:
+            fasta_path = line.strip()
+            fasta_file = os.path.basename( fasta_path )
+            contig_name = fasta_file.split('.')[0] + '_cns'
+            for record in FastaReader(fasta_path):
+                name = record.name.split()[0]
+                results[name] = contig_name
+    log.info('Finished reading phased FOFN results')
+    return results
+
 def filter_m5_file( m5_file, filtered_file ):
     """
     Filter an M5 alignment file to contain only the alignments with the fewest diffs
@@ -83,7 +97,7 @@ def filter_m5_file( m5_file, filtered_file ):
             selected[record.qname] = record
             diffs[record.qname] = diff_count
         elif diffs[record.qname] > diff_count:
-            results[record.qname] = record
+            selected[record.qname] = record
             diffs[record.qname] = diff_count
     log.info('Selected %s records from %s alignments' % (count, len(selected)))
     with open( filtered_file, 'w' ) as output:

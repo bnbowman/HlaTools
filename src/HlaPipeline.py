@@ -25,18 +25,16 @@ from pbhla.fasta.utils import (fasta_size,
 from pbhla.fasta.update_orientation import update_orientation
 from pbhla.fasta.subset_sequences import subset_sequences
 from pbhla.fasta.trim_fasta import trim_fasta
-from pbhla.io.SubreadExtractor import extract_subreads
-from pbhla.io.SamIO import SamReader
-from pbhla.io.GffIO import create_annotation, create_var_annotation
+from pbhla.io.extract_subreads import extract_subreads
 from pbhla.references import (create_fofn_reference,
                               create_m1_reference,
                               create_m5_reference,
                               create_sam_reference,
+                              create_phased_reference,
                               filter_m5_file,
                               create_reference_fasta)
 from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
-from pbhla.align.MultiSequenceAligner import MSA_aligner
 from pbhla.phasing.clusense import Clusense
 from pbhla.phasing.SummarizeClusense import combine_clusense_output
 from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output 
@@ -86,7 +84,7 @@ class HlaPipeline( object ):
     def run( self ):
         # First we assemble the supplied data via HGAP / HBAR
         self.create_baxh5_fofn()
-        self.extract_subreads()
+        self.extract_subread_data()
         self.create_input_fofn()
         self.assemble_contigs()
         self.export_hbar_subreads()
@@ -119,6 +117,7 @@ class HlaPipeline( object ):
         self.summarize_clusense()
         self.output_phased_contigs()
         self.align_phased_to_reference()
+        self.combine_subreads_by_locus()
         self.summarize_phased_by_locus()
         self.extract_best_contigs()
         if args.resequence:
@@ -137,33 +136,31 @@ class HlaPipeline( object ):
 
     def create_baxh5_fofn(self):
         log.info('Creating Bax.H5 fofn')
+        print args
         self.baxh5_fofn = os.path.join( args.output, 'baxh5.fofn' )
         if valid_file( self.baxh5_fofn ):
             log.info('Found existing BaxH5 fofn file "%s"' % self.baxh5_fofn)
             log.info('Skipping fofn creation step\n')
             return
-        create_baxh5_fofn( args.input_file, self.baxh5_fofn )
+        create_baxh5_fofn( args.raw_data, self.baxh5_fofn )
         check_output_file( self.baxh5_fofn )
         log.info('Finished writing BaxH5 fofn file\n')
 
-    def extract_subreads( self ):
+    def extract_subread_data( self ):
         log.info('Beginning the extraction of subread data')
         # Dump all valid reads from the above files
-        output_path = os.path.join( self.subreads, "all_subreads" )
-        self.raw_subread_file = output_path + '.fasta'
-        self.fullpass_file = output_path + '_fullpass.txt'
+        self.raw_subread_file = os.path.join( self.subreads, "all_subreads.fasta" )
         if valid_file( self.raw_subread_file ):
             log.info('Found existing subread file "%s"' % self.raw_subread_file)
             log.info('Skipping subread extraction step\n')
             return
         log.info('Extracting subreads from input files...')
         extract_subreads(args.input_file, 
-                         output_path,
+                         self.raw_subread_file,
                          min_length=args.min_read_length,
                          min_score=args.min_read_score,
-                         dilution=args.dilution)
+                         max_count=args.max_count)
         check_output_file( self.raw_subread_file )
-        check_output_file( self.fullpass_file )
         log.info('Finished the extraction of subread data\n')
 
     def create_input_fofn(self):
@@ -414,20 +411,22 @@ class HlaPipeline( object ):
         if valid_file( self.hla_alignment ):
             log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
             log.info("Skipping realignment step...\n")
-            return
-        query_count = fasta_size( self.hla_subreads )
-        ref_count = fasta_size( self.selected_contigs )
-        log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-        blasr_args = {'nproc': args.nproc,
-                      'noSplitSubreads': True,
-                      'out': self.hla_alignment,
-                      'sam': True,
-                      'bestn': 1,
-                      'nCandidates': ref_count}
-        run_blasr( self.hla_subreads, 
-                   self.selected_contigs, 
-                   blasr_args)
-        check_output_file( self.hla_alignment )
+        else:
+            query_count = fasta_size( self.hla_subreads )
+            ref_count = fasta_size( self.selected_contigs )
+            log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
+            blasr_args = {'nproc': args.nproc,
+                          'noSplitSubreads': True,
+                          'out': self.hla_alignment,
+                          'sam': True,
+                          'bestn': 1,
+                          'nCandidates': ref_count}
+            run_blasr( self.hla_subreads, 
+                       self.selected_contigs, 
+                       blasr_args)
+            check_output_file( self.hla_alignment )
+        self.subread_contig_dict = create_sam_reference( self.hla_alignment )
+        self.subread_locus_dict = cross_ref_dict( self.subread_contig_dict, self.contig_locus_dict )
         log.info("Finished realigning HLA subreads to HLA contigs\n")
 
     def summarize_aligned_hla_subreads(self):
@@ -502,6 +501,7 @@ class HlaPipeline( object ):
         log.info("Summarizing the output from Clusense")
         output_folder = os.path.join(self.phasing_results, 'Clusense')
         self.clusense_cns_fofn, self.clusense_read_fofn = combine_clusense_output(self.clusense, output_folder)
+        self.phased_read_dict = create_phased_reference( self.clusense_read_fofn )
         log.info('Finished Phasing subreads with Clusense')
 
     def output_phased_contigs(self):
@@ -515,7 +515,7 @@ class HlaPipeline( object ):
         log.info('Finished creating combined reference')
 
     def align_phased_to_reference(self):
-        log.info('"Aligning all phased HLA contigs to the Reference sequences')
+        log.info('Aligning all phased HLA contigs to the Reference sequences')
         raw_phased_to_reference = os.path.join(self.alignments, 'raw_phased_to_reference.m5')   
         self.phased_to_reference = os.path.join(self.alignments, 'phased_to_reference.m5')   
         if valid_file( self.phased_to_reference ):
@@ -539,8 +539,28 @@ class HlaPipeline( object ):
             # Check and save the output
             check_output_file( self.phased_to_reference )
         self.phased_reference_dict = create_m5_reference( self.phased_to_reference )
+        print self.phased_reference_dict
+        print self.reference_locus_dict
         self.phased_locus_dict = cross_ref_dict( self.phased_reference_dict, self.reference_locus_dict )
+        print self.phased_locus_dict
+        self.subread_locus_dict = cross_ref_dict( self.phased_read_dict, self.phased_locus_dict )
         log.info("Finished aligning resequenced contigs to the HLA reference set\n")
+
+    def combine_subreads_by_locus(self):
+        log.info("Separating subreads by the locus of their assigned contig")
+        locus_fofn = os.path.join( self.subreads, "Locus_Files.txt" )
+        if valid_file( locus_fofn ):
+            log.info('Found existing Locus File List "{0}"'.format(locus_fofn))
+            log.info("Skipping subread separation step...\n")
+            self.locus_files = read_list_file( locus_fofn )
+            return
+        separated_seqs = separate_sequences( self.hla_subreads, 
+                                             self.subread_locus_dict )
+        locus_prefix = os.path.join(self.subreads, 'Locus')
+        self.locus_files = write_all_groups( separated_seqs, locus_prefix )
+        self.locus_files = [fn for fn in self.locus_files if not fn.endswith('Unmapped.fasta')]
+        write_list_file( self.locus_files, locus_fofn )
+        log.info('Finished separating subreads by Locus')
 
     def summarize_phased_by_locus(self):
         log.info("Picking the best contigs from the phasing results")

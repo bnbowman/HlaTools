@@ -1,14 +1,16 @@
 import os, argparse
 
 from . import __VERSION__
+from pbhla.fasta.utils import is_fasta
 
 # Default values for optiond
-SMRT_ANALYSIS = "/mnt/secondary/Smrtanalysis/opt/smrtanalysis/etc/setup.sh"
-EXCLUDED = ['DPB2', 'DRB3', 'DRB4', 'DRB5']
-DILUTION = 1.0
+NUM_PROC = 8
 MIN_SCORE = 0.75
 MIN_LENGTH = 2000
-NUM_PROC = 8
+MAX_COUNT = None
+
+#EXCLUDED = ['DPB2', 'DRB3', 'DRB4', 'DRB5']
+EXCLUDED = ['DPB2']
 
 args = argparse.Namespace()
 
@@ -22,13 +24,16 @@ def parse_args():
     add = parser.add_argument
     add("input_file", 
         metavar="INPUT",
-        help="A BasH5 or FOFN of BasH5s to haplotype.")
+        help="A Fasta, BasH5 or FOFN of HLA data to haplotype.")
     add("reference_file", 
         metavar="REFERENCE", 
         help="FOFN of reference fasta files and their associated loci")
     add("genome", 
         metavar="GENOME", 
         help="Fasta file of the Human Genome")
+    add("--raw_data",
+        metavar="FILE",
+        help='A BasH5 or FOFN of raw HLA data.  Only used if Input is Fasta.')
     add("--output", 
         metavar="DIR", 
         help="Destination folder for process results")
@@ -47,14 +52,13 @@ def parse_args():
         type=int,
         default=MIN_LENGTH,
         help="Only use subreads longer than this ({0})".format(MIN_LENGTH))
-    add("--dilution", 
-        metavar='FLOAT', 
-        type=float,
-        default=DILUTION,
-        help="Fraction of subreads to use ({0})".format(DILUTION))
+    add("--max_count", 
+        metavar='INT', 
+        type=int,
+        default=MAX_COUNT,
+        help="Maximum number of subreads to use ({0})".format(MAX_COUNT))
     add("--smrt_path", 
         metavar="PATH", 
-        default=SMRT_ANALYSIS,
         help="Path to the setup script for the local SMRT Analysis installation")
     add("--resequence", 
         action="store_true", 
@@ -68,15 +72,11 @@ def parse_args():
         metavar='FOFN',
         default=None,
         help="FOFN of prealigned MSAs and their associated loci")
-    #add("--region_table", help="Region Table of White-Listed reads to use")
-    #add("--phasr-args", nargs='*', default=[''], help="pass these args to phasr.")
-    #add("--avoid_phasr", action='store_true',
-    #    help="Avoid phasr if reference mapping has identified two likely phases.")
     #add("--annotate", action='store_true', help="Avoid annotation.")
 
     class PrintVersionAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
-            print "    HLA Analysis Pipeline version: %s" % __VERSION__
+            print "\tHLA Analysis Pipeline version: %s" % __VERSION__
             raise SystemExit
 
     add("--version",
@@ -86,20 +86,15 @@ def parse_args():
     parser.parse_args( namespace=args )
 
     args.input_file = os.path.abspath( args.input_file )
+
+    if is_fasta( args.input_file ) and args.raw_data is None:
+        msg = "Raw Data option must be specified in Input is Fasta"
+        log.error( msg )
+        raise ValueError( msg )
+    elif args.raw_data:
+        args.raw_data = os.path.abspath( args.raw_data )
+    else:
+        args.raw_data = args.input_file
+
     if args.output is None:
         args.output = args.input_file.split('.')[0]
-
-    # Check dilution factors
-    if args.dilution <= 0.0 or args.dilution > 1.0:
-        parser.error("Dilute factor must be between 0 and 1")
-
-    # parse phasr args
-    #self.phasr_argstring = ''
-    #for argument in self.phasr_args:
-    #    if ':' in argument:
-    #        param, value = argument.split(":")
-    #        self.phasr_argstring += '--%s %s ' % (param, value)
-    #    elif 'output' in argument or 'cname' in argument:
-    #        pass    
-    #    else:
-    #        self.phasr_argstring += '--%s ' % argument

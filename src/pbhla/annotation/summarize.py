@@ -98,7 +98,6 @@ def parse_blasr_alignment( blasr_file ):
         if isinstance(entry, BlasrM1):
             results[name] = [entry.tname, entry.pctsimilarity]
         elif isinstance(entry, BlasrM5):
-            print entry
             diffs = int(entry.nmis) + int(entry.nins) + int(entry.ndel)
             pctid = 100 * int(entry.nmat) / float(int(entry.nmat) + diffs)
             results[name] = [entry.tname, pctid]
@@ -133,9 +132,6 @@ def meta_summarize_contigs( contig_files, output_file, excluded=[] ):
                 handle.next()
                 first = parse_contig_info( handle, locus )
                 second = parse_contig_info( handle, locus )
-                print first
-                print second
-                print first.hit, second.hit
                 while second.hit == first.hit:
                     second = parse_contig_info( handle, locus )
                 if second.pctid < PCTID_THRESH:

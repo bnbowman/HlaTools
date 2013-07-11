@@ -6,6 +6,13 @@ from pbhla.utils import make_rand_string, getbash, runbash
 
 COMPLEMENT = maketrans('ACGT', 'TGCA')
 
+def is_fasta( filename ):
+    if filename.endswith('.fa'):
+        return True
+    elif filename.endswith('.fasta'):
+        return True
+    return False
+
 def reverse_complement( fasta_record ):
     rev_seq = fasta_record.sequence[::-1]
     rev_com_seq = rev_seq.translate( COMPLEMENT )
