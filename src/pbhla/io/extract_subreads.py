@@ -64,7 +64,7 @@ def _extract_from_bash5( bash5_file, min_length, min_score ):
     filename = os.path.basename( bash5_file )
     log.info("Extracting subreads from %s" % filename)
 
-    count = 0
+    records = []
     for zmw in BasH5Reader( bash5_file ):
         if zmw.readScore < min_score:
             continue
