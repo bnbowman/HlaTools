@@ -25,11 +25,11 @@ def extract_subreads(input_file, output_file, min_length, min_score, max_count):
 
     subreads = []
     for i, filename in enumerate(_iterate_input_files( input_file )):
-        if input_file.endswith('.bas.h5') or input_file.endswith('bax.h5'):
+        if filename.endswith('.bas.h5') or filename.endswith('bax.h5'):
             subreads += _extract_from_bash5( filename, min_length, min_score )
-        elif input_file.endswith('.fa') or input_file.endswith('.fasta'):
+        elif filename.endswith('.fa') or filename.endswith('.fasta'):
             subreads += _extract_from_fasta( filename, min_length )
-    log.info("Extracted %s subreads from %s files" % (len(subreads), i))
+    log.info("Extracted %s subreads from %s files" % (len(subreads), i+1))
 
     if max_count:
         subreads = _subset_subreads( subreads, max_count )
