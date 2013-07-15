@@ -77,8 +77,11 @@ def get_value(dictionary, key):
 def write_group(dictionary, key, output_file):
     log.info('Writing "{0}" sequences to "{1}"'.format(key, os.path.basename(output_file)))
     with FastaWriter( output_file ) as handle:
-        for record in dictionary[key]:
-            handle.writeRecord( record )
+        try:
+            for record in dictionary[key]:
+                handle.writeRecord( record )
+        except:
+            log.warn('No records found associated with "%s"' % key)
 
 def write_all_groups(dictionary, prefix):
     log.info('Writing fasta sequences from all loci to file')

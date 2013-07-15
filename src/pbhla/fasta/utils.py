@@ -1,10 +1,12 @@
+import logging
 from string import maketrans
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
 
-from pbhla.utils import make_rand_string, getbash, runbash
+from pbhla.utils import make_rand_string, getbash, runbash, valid_file
 
 COMPLEMENT = maketrans('ACGT', 'TGCA')
+log = logging.getLogger(__name__)
 
 def is_fasta( filename ):
     if filename.endswith('.fa'):
@@ -64,5 +66,8 @@ def copy_fasta( fasta, destination, name=None ):
 def combine_fasta( fasta_files, destination ):
     with FastaWriter( destination ) as handle:
         for fasta in fasta_files:
-            for record in FastaReader( fasta ):
-                handle.writeRecord( record )
+            try:
+                for record in FastaReader( fasta ):
+                    handle.writeRecord( record )
+            except:
+                log.warn('Could not open "%s" as Fasta' % fasta)

@@ -11,6 +11,7 @@ from collections import namedtuple, Counter
 from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
 from pbcore.io.FastaIO import FastaReader, FastaWriter, FastaRecord
 from pbcore.io.FastqIO import FastqReader, FastqWriter
+from pbphase.clusense import Clusense
 
 from pbhla.arguments import args, parse_args
 from pbhla.fofn import create_baxh5_fofn
@@ -35,7 +36,6 @@ from pbhla.references import (create_fofn_reference,
                               create_reference_fasta)
 from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
-from pbhla.phasing.clusense import Clusense
 from pbhla.phasing.SummarizeClusense import combine_clusense_output
 from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output 
 from pbhla.annotation.summarize import ( summarize_contigs,
@@ -136,7 +136,6 @@ class HlaPipeline( object ):
 
     def create_baxh5_fofn(self):
         log.info('Creating Bax.H5 fofn')
-        print args
         self.baxh5_fofn = os.path.join( args.output, 'baxh5.fofn' )
         if valid_file( self.baxh5_fofn ):
             log.info('Found existing BaxH5 fofn file "%s"' % self.baxh5_fofn)
@@ -539,10 +538,7 @@ class HlaPipeline( object ):
             # Check and save the output
             check_output_file( self.phased_to_reference )
         self.phased_reference_dict = create_m5_reference( self.phased_to_reference )
-        print self.phased_reference_dict
-        print self.reference_locus_dict
         self.phased_locus_dict = cross_ref_dict( self.phased_reference_dict, self.reference_locus_dict )
-        print self.phased_locus_dict
         self.subread_locus_dict = cross_ref_dict( self.phased_read_dict, self.phased_locus_dict )
         log.info("Finished aligning resequenced contigs to the HLA reference set\n")
 

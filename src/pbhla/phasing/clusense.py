@@ -18,7 +18,7 @@ from pbtools.pbdagcon.c_utils import read_node_vector
 from pbtools.pbdagcon.c_utils import detect_missing
 
 # Default values
-MIN_GROUP = 25
+MIN_GROUP = 10
 THRESHOLD = 0.1
 PREFIX = 'Unknown'
 
