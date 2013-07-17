@@ -9,19 +9,18 @@ is important.
 ## Requirements ##
 
 The central pipeline in HlaTools is built upon HBAR, formerly known as
-HGAP, which is available online at:
-http://github.com/PacificBiosciences/HBAR-DTK.git
-HBAR-DTK itself as a fairly intensive installation procedure, detailed
-in the README on the
+HGAP.  The HBAR-DTK itself has a fairly intensive installation procedure, detailed
+in the README distributed with the tool from the HBAR-DTK github page:
+`http://github.com/PacificBiosciences/HBAR-DTK.git`
 
 In addition, the HlaTools pipeline also wraps two commandline utilites:
 Blasr for the alignment of reads and Cd-Hit-Est for the reduction of
 redundancy:
-https://github.com/PacificBiosciences/blasr.git
-http://weizhong-lab.ucsd.edu/cd-hit/
+`https://github.com/PacificBiosciences/blasr.git`
+`http://weizhong-lab.ucsd.edu/cd-hit/`
 
 Currently the pipeline also has an option, still in development, to
 resequence the resulting contigs with the PacBio Quiver consensus
 algorithm.  If you wish to use this option, you will also need the
 full PacBio SMRT Analysis installation available here:
-http://pacbiodevnet.com
+`http://pacbiodevnet.com`
