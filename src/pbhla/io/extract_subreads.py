@@ -69,7 +69,7 @@ def _extract_from_bash5( bash5_file, min_length, min_score ):
         if zmw.readScore < min_score:
             continue
         for subread in zmw.subreads:
-            if len(subread.basecalls()) < min_length:
+            if len(subread) < min_length:
                 continue
             record = FastaRecord( subread.readName, subread.basecalls() )
             records.append( record )

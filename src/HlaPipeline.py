@@ -1,16 +1,9 @@
 #! /usr/bin/env python
 import re, os, sys, csv
 import shutil
-import random
-import math
 import logging
 
-from subprocess import check_output
-from collections import namedtuple, Counter
-
-from pbcore.io.GffIO import GffReader, Gff3Record, GffWriter
-from pbcore.io.FastaIO import FastaReader, FastaWriter, FastaRecord
-from pbcore.io.FastqIO import FastqReader, FastqWriter
+from pbcore.io.FastaIO import FastaReader 
 from pbphase.clusense import Clusense
 
 from pbhla.arguments import args, parse_args
@@ -34,7 +27,6 @@ from pbhla.references import (create_fofn_reference,
                               create_phased_reference,
                               filter_m5_file,
                               create_reference_fasta)
-from pbhla.stats.AmpliconFinder import AmpliconFinder
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.phasing.SummarizeClusense import combine_clusense_output
 from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output 
@@ -128,10 +120,14 @@ class HlaPipeline( object ):
             self.align_resequenced_to_reference()
             self.add_resequencing_summary()
             self.extract_best_resequenced_contigs()
+            self.align_subreads_to_resequenced()
             #self.align_reoriented_to_reference()
             #self.trim_reoriented_contigs()
             #self.type_hla_sequences()
             #self.summarize_hla_typings()
+        else:
+            self.align_subreads_to_raw()
+
         cleanup_directory( self.subreads )
 
     def create_baxh5_fofn(self):
@@ -689,61 +685,29 @@ class HlaPipeline( object ):
                           self.resequenced_output )
         log.info('Finished extracting the best resequenced contigs\n')
 
-    def update_resequenced_orientation(self):
-        log.info('Converting all resequenced contigs to the forward orientation')
-        self.reoriented = os.path.join(self.references, 'reoriented_resequenced_contigs.fasta')   
-        update_orientation( self.resequenced_hla_contigs, self.resequenced_to_reference, self.reoriented )
-        log.info('Finished updating the orientation of the resequenced contigs')
-
-    def align_reoriented_to_reference(self):
-        log.info('"Aligning all reoriented HLA contigs to the Reference sequences')
-        self.reoriented_to_reference = os.path.join(self.alignments, 'reoriented_to_reference.m1')   
-        if valid_file( self.reoriented_to_reference ):
-            log.info('Found existing alignment file "{0}"'.format(self.reoriented_to_reference))
-            log.info("Skipping alignment step...\n")
+    def realign_hla_subreads(self):
+        log.info("Re-aligning HLA subreads to selected references")
+        self.hla_alignment = os.path.join( self.alignments, "hla_subreads_to_contigs.sam" )
+        if valid_file( self.hla_alignment ):
+            log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
+            log.info("Skipping realignment step...\n")
         else:
-            contig_count = fasta_size( self.reoriented )
-            reference_count = fasta_size( self.reference_seqs )
-            # Run BLASR
-            log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
+            query_count = fasta_size( self.hla_subreads )
+            ref_count = fasta_size( self.selected_contigs )
+            log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
             blasr_args = {'nproc': args.nproc,
                           'noSplitSubreads': True,
-                          'out': self.reoriented_to_reference,
+                          'out': self.hla_alignment,
+                          'sam': True,
                           'bestn': 1,
-                          'nCandidates': reference_count}
-            run_blasr( self.reoriented, 
-                       self.reference_seqs, 
-                       blasr_args )
-            # Check and save the output
-            check_output_file( self.reoriented_to_reference )
-        log.info("Finished aligning resequenced contigs to the HLA reference set\n")
-
-    def trim_reoriented_contigs(self):
-        log.info('Trimming reoriented contigs to their aligned region')
-        self.trimmed_reoriented = os.path.join(self.references, 'trimmed_reoriented_contigs.fasta')
-        if valid_file( self.trimmed_reoriented ):
-            log.info('Found existing Trimmed Reoriented contig file "%s"' % self.trimmed_reoriented )
-            log.info('Skipping contig trimming step...\n')
-            return
-        trims = {}
-        with open(self.reoriented_to_reference) as handle:
-            for record in map(BlasrM1._make, csv.reader(handle, delimiter=' ')):
-                start = max(int(record.qstart), 0)
-                end = min(int(record.qend), int(record.qlength))
-                name = record.qname.split()[0]
-                name = name.split('|')[0]
-                trims[name] = (start, end)
-        with FastaWriter(self.trimmed_reoriented) as writer:
-            for record in FastaReader(self.reoriented):
-                name = record.name.split()[0]
-                name = name.split('|')[0]
-                if self.phased_locus_dict[name] not in ['A', 'B', 'C']:
-                    writer.writeRecord( record )
-                    continue
-                start, end = trims[name]
-                record = FastaRecord( name, record.sequence[start:end] )
-                writer.writeRecord( record )
-        log.info('Finished trimming the reoriented contig sequences\n')
+                          'nCandidates': ref_count}
+            run_blasr( self.hla_subreads, 
+                       self.selected_contigs, 
+                       blasr_args)
+            check_output_file( self.hla_alignment )
+        self.subread_contig_dict = create_sam_reference( self.hla_alignment )
+        self.subread_locus_dict = cross_ref_dict( self.subread_contig_dict, self.contig_locus_dict )
+        log.info("Finished realigning HLA subreads to HLA contigs\n")
 
     def type_hla_sequences(self):
         log.info('Typing the selected HLA consensus sequences')
@@ -766,17 +730,6 @@ class HlaPipeline( object ):
                           self.cdna_types,
                           self.typing_summary )
         log.info('Finished typing the selected HLA sequences\n')
-
-    ### Other functions, not currently used ###
-    def find_amplicons(self):
-        log.info("Finding amplicon locations within each reference")
-        self.amplicon_summary = self.stats_dir + "/amplicon_summary.csv"
-        if valid_file( self.amplicon_summary ):
-            log.info('Found existing Amplicon Summary "{0}" )'.format(self.amplicon_summary))
-            log.info("Skipping amplicon finding step...\n")
-            return
-        AmpliconFinder(self.sam_file, self.amplicon_summary, self.locus_dict)
-        log.info("Finished finding amplicon locations\n")
 
 if __name__ == '__main__':
     HlaPipeline().run()
