@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-import re, os, sys, csv
+import os, sys
 import shutil
 import logging
 
@@ -109,7 +109,6 @@ class HlaPipeline( object ):
         self.summarize_clusense()
         self.output_phased_contigs()
         self.align_phased_to_reference()
-        self.combine_subreads_by_locus()
         self.summarize_phased_by_locus()
         self.extract_best_contigs()
         if args.resequence:
@@ -127,7 +126,8 @@ class HlaPipeline( object ):
             #self.summarize_hla_typings()
         else:
             self.align_subreads_to_raw()
-
+        self.combine_subreads_by_allele()
+        self.combine_subreads_by_locus()
         cleanup_directory( self.subreads )
 
     def create_baxh5_fofn(self):
@@ -685,29 +685,89 @@ class HlaPipeline( object ):
                           self.resequenced_output )
         log.info('Finished extracting the best resequenced contigs\n')
 
-    def realign_hla_subreads(self):
+    def align_subreads_to_raw(self):
         log.info("Re-aligning HLA subreads to selected references")
-        self.hla_alignment = os.path.join( self.alignments, "hla_subreads_to_contigs.sam" )
-        if valid_file( self.hla_alignment ):
-            log.info('Found existing SAM file "{0}"'.format(self.hla_alignment))
+        self.hla_to_raw = os.path.join( self.alignments, "hla_subreads_to_raw.sam" )
+        if valid_file( self.hla_to_raw ):
+            log.info('Found existing SAM file "%s"' % self.hla_to_raw)
             log.info("Skipping realignment step...\n")
         else:
             query_count = fasta_size( self.hla_subreads )
-            ref_count = fasta_size( self.selected_contigs )
+            ref_count = fasta_size( self.raw_output )
             log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
             blasr_args = {'nproc': args.nproc,
                           'noSplitSubreads': True,
-                          'out': self.hla_alignment,
+                          'out': self.hla_to_raw,
                           'sam': True,
                           'bestn': 1,
                           'nCandidates': ref_count}
             run_blasr( self.hla_subreads, 
-                       self.selected_contigs, 
+                       self.raw_output, 
                        blasr_args)
-            check_output_file( self.hla_alignment )
-        self.subread_contig_dict = create_sam_reference( self.hla_alignment )
-        self.subread_locus_dict = cross_ref_dict( self.subread_contig_dict, self.contig_locus_dict )
+            check_output_file( self.hla_to_raw )
+        self.subread_allele_dict = create_sam_reference( self.hla_to_raw )
+        self.subread_locus_dict = cross_ref_dict( self.subread_allele_dict, self.phased_locus_dict )
         log.info("Finished realigning HLA subreads to HLA contigs\n")
+
+    def align_subreads_to_resequenced(self):
+        log.info("Re-aligning HLA subreads to selected references")
+        self.hla_to_resequenced = os.path.join( self.alignments, "hla_subreads_to_resequenced.sam" )
+        if valid_file( self.hla_to_resequenced ):
+            log.info('Found existing SAM file "%s"' % self.hla_to_resequenced)
+            log.info("Skipping realignment step...\n")
+        else:
+            query_count = fasta_size( self.hla_subreads )
+            ref_count = fasta_size( self.resequenced_output )
+            log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
+            blasr_args = {'nproc': args.nproc,
+                          'noSplitSubreads': True,
+                          'out': self.hla_to_resequenced,
+                          'sam': True,
+                          'bestn': 1,
+                          'nCandidates': ref_count}
+            run_blasr( self.hla_subreads, 
+                       self.resequenced_output, 
+                       blasr_args)
+            check_output_file( self.hla_to_resequenced )
+        self.subread_allele_dict = create_sam_reference( self.hla_to_resequenced )
+        self.subread_locus_dict = cross_ref_dict( self.subread_allele_dict, self.phased_locus_dict )
+        print [k for k in sorted(self.subread_allele_dict)[:5]]
+        print [self.subread_allele_dict[k] for k in sorted(self.subread_allele_dict)[:5]]
+        print self.phased_locus_dict
+        print sorted(self.subread_locus_dict)[:5]
+        log.info("Finished realigning HLA subreads to HLA contigs\n")
+
+    def combine_subreads_by_allele(self):
+        log.info("Separating subreads by their best matching allele")
+        allele_fofn = os.path.join( self.subreads, "Alleles_Files.txt" )
+        if valid_file( allele_fofn ):
+            log.info('Found existing Allele File List "%s"' % allele_fofn)
+            log.info("Skipping subread separation step...\n")
+            self.allele_files = read_list_file( allele_fofn )
+            return
+        separated_seqs = separate_sequences( self.hla_subreads, 
+                                             self.subread_allele_dict )
+        allele_prefix = os.path.join(self.subreads, 'Allele')
+        self.allele_files = write_all_groups( separated_seqs, allele_prefix )
+        self.allele_files = [fn for fn in self.allele_files if not fn.endswith('Unmapped.fasta')]
+        write_list_file( self.allele_files, allele_fofn )
+        log.info('Finished separating subreads by Allele')
+
+    def combine_subreads_by_locus(self):
+        log.info("Separating subreads by the locus of their assigned contig")
+        locus_fofn = os.path.join( self.subreads, "Locus_Files.txt" )
+        if valid_file( locus_fofn ):
+            log.info('Found existing Locus File List "{0}"'.format(locus_fofn))
+            log.info("Skipping subread separation step...\n")
+            self.locus_files = read_list_file( locus_fofn )
+            return
+        separated_seqs = separate_sequences( self.hla_subreads, 
+                                             self.subread_locus_dict )
+        locus_prefix = os.path.join(self.subreads, 'Locus')
+        self.locus_files = write_all_groups( separated_seqs, locus_prefix )
+        self.locus_files = [fn for fn in self.locus_files if not fn.endswith('Unmapped.fasta')]
+        write_list_file( self.locus_files, locus_fofn )
+        log.info('Finished separating subreads by Locus')
 
     def type_hla_sequences(self):
         log.info('Typing the selected HLA consensus sequences')

@@ -1,6 +1,7 @@
 import os, logging
 
 from pbcore.io.FastaIO import FastaReader, FastaWriter
+from pbhla.utils import get_base_sequence_name
 
 log = logging.getLogger()
 
@@ -51,7 +52,7 @@ def separate_sequences( fasta_file, dictionary=None ):
     log.info('Separating out individual sequences')
     sequence_dict = {}
     for record in FastaReader( fasta_file ):
-        name = record.name.split()[0]
+        name = get_base_sequence_name( record.name )
         if dictionary:
             value = get_value( dictionary, name )
             add_record( sequence_dict, record, value )
