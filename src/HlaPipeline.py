@@ -1,7 +1,5 @@
 #! /usr/bin/env python
-import os, sys
-import shutil
-import logging
+import os, sys, shutil, logging
 
 from pbcore.io.FastaIO import FastaReader 
 from pbphase.clusense import Clusense
@@ -731,10 +729,6 @@ class HlaPipeline( object ):
             check_output_file( self.hla_to_resequenced )
         self.subread_allele_dict = create_sam_reference( self.hla_to_resequenced )
         self.subread_locus_dict = cross_ref_dict( self.subread_allele_dict, self.phased_locus_dict )
-        print [k for k in sorted(self.subread_allele_dict)[:5]]
-        print [self.subread_allele_dict[k] for k in sorted(self.subread_allele_dict)[:5]]
-        print self.phased_locus_dict
-        print sorted(self.subread_locus_dict)[:5]
         log.info("Finished realigning HLA subreads to HLA contigs\n")
 
     def combine_subreads_by_allele(self):
