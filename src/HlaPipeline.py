@@ -27,6 +27,7 @@ from pbhla.references import (create_fofn_reference,
                               create_reference_fasta)
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.phasing.SummarizeClusense import combine_clusense_output
+from pbhla.resequencing.identify import identify_resequencing_data
 from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output 
 from pbhla.annotation.summarize import ( summarize_contigs,
                                          meta_summarize_contigs,
@@ -583,24 +584,9 @@ class HlaPipeline( object ):
 
     def identify_resequencing_files(self):
         log.info("Identifying files for resequencing based on selected contigs")
-        selected_contigs = []
-        with open(self.meta_summary, 'r') as handle:
-            handle.next()
-            for line in handle:
-                contig = line.split()[1]
-                if contig == '-':
-                    continue
-                selected_contigs.append( contig )
-        self.resequencing_pairs = []
-        with open(self.clusense_cns_fofn, 'r') as cns_handle:
-            with open(self.clusense_read_fofn, 'r') as read_handle:
-                for cns_fn, read_fn in zip(cns_handle, read_handle):
-                    base_name = os.path.basename( read_fn )
-                    root_name = base_name.split('.')[0]
-                    if root_name in selected_contigs:
-                        self.resequencing_pairs.append( (root_name,
-                                                         cns_fn.strip(), 
-                                                         read_fn.strip()) )
+        self.resequencing_pairs = identify_resequencing_data( self.meta_summary,
+                                                              self.clusense_cns_fofn, 
+                                                              self.clusense_read_fofn )
         log.info('Finished the idenifying the requisite files')
 
     def resequence_contigs(self):

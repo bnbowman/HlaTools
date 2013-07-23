@@ -60,6 +60,9 @@ def parse_args():
     add("--smrt_path", 
         metavar="PATH", 
         help="Path to the setup script for the local SMRT Analysis installation")
+    add("--new_subreads",
+        action="store_true",
+        help="Re-align a new-subset of reads to the existing results")
     add("--resequence", 
         action="store_true", 
         help="Use quiver to resequence the")

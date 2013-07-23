@@ -114,6 +114,7 @@ def summarize_resequenced( locus_file, blasr_file, output_file ):
                 name = parts[1]
                 if name == '-': 
                     continue
+                print name
                 reseq_results = blasr_typings[name]
                 output_parts = parts + reseq_results
                 print >> output, '\t'.join( output_parts )
