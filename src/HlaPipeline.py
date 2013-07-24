@@ -3,6 +3,7 @@ import os, sys, shutil, logging
 
 from pbcore.io.FastaIO import FastaReader 
 from pbphase.clusense import Clusense
+from pbphase.AmpliconAssembly import AmpliconAssembly
 
 from pbhla.arguments import args, parse_args
 from pbhla.fofn import create_baxh5_fofn
@@ -99,35 +100,36 @@ class HlaPipeline( object ):
         self.update_contig_orientation()
         self.remove_redundant_contigs()
         self.realign_hla_subreads()
-        # Next we summarize our pre-phasing coverage of the contigs
-        #self.summarize_aligned_hla_subreads()
-        self.separate_contigs()
-        self.create_subread_selected_contig_dict()
         self.separate_subreads_by_contig()
-        self.phase_reads_with_clusense()
-        self.summarize_clusense()
-        self.output_phased_contigs()
-        self.align_phased_to_reference()
-        self.summarize_phased_by_locus()
-        self.extract_best_contigs()
-        if args.resequence:
-            self.identify_resequencing_files()
-            self.resequence_contigs()
-            self.summarize_resequencing()
-            self.output_resequenced_contigs()
-            self.align_resequenced_to_reference()
-            self.add_resequencing_summary()
-            self.extract_best_resequenced_contigs()
-            self.align_subreads_to_resequenced()
-            #self.align_reoriented_to_reference()
-            #self.trim_reoriented_contigs()
-            #self.type_hla_sequences()
-            #self.summarize_hla_typings()
+        self.separate_subreads_by_locus()
+        if args.amplicon_assembly:
+            pass
         else:
-            self.align_subreads_to_raw()
-        self.combine_subreads_by_allele()
-        self.combine_subreads_by_locus()
-        cleanup_directory( self.subreads )
+            self.separate_contigs()
+            self.phase_reads_with_clusense()
+            self.summarize_clusense()
+            self.output_phased_contigs()
+            self.align_phased_to_reference()
+            self.summarize_phased_by_locus()
+            self.extract_best_contigs()
+            if args.resequence:
+                self.identify_resequencing_files()
+                self.resequence_contigs()
+                self.summarize_resequencing()
+                self.output_resequenced_contigs()
+                self.align_resequenced_to_reference()
+                self.add_resequencing_summary()
+                self.extract_best_resequenced_contigs()
+                self.align_subreads_to_resequenced()
+                #self.align_reoriented_to_reference()
+                #self.trim_reoriented_contigs()
+                #self.type_hla_sequences()
+                #self.summarize_hla_typings()
+            else:
+                self.align_subreads_to_raw()
+            self.combine_subreads_by_allele()
+            self.combine_subreads_by_locus()
+            cleanup_directory( self.subreads )
 
     def create_baxh5_fofn(self):
         log.info('Creating Bax.H5 fofn')
@@ -149,11 +151,11 @@ class HlaPipeline( object ):
             log.info('Skipping subread extraction step\n')
             return
         log.info('Extracting subreads from input files...')
-        extract_subreads(args.input_file, 
-                         self.raw_subread_file,
-                         min_length=args.min_read_length,
-                         min_score=args.min_read_score,
-                         max_count=args.max_count)
+        extract_subreads( args.input_file, 
+                          self.raw_subread_file,
+                          min_length=args.min_read_length,
+                          min_score=args.min_read_score,
+                          max_count=args.max_count )
         check_output_file( self.raw_subread_file )
         log.info('Finished the extraction of subread data\n')
 
@@ -184,7 +186,7 @@ class HlaPipeline( object ):
         hbar = HbarRunner( self.input_fofn, 
                            self.HBAR,
                            min_length=args.min_read_length,
-                           min_score=args.min_read_score)
+                           min_score=args.min_read_score )
         hbar()
         # Copy the contig file to a more convenient location
         shutil.copy( contig_output, self.contig_file )
@@ -373,7 +375,7 @@ class HlaPipeline( object ):
         trim_fasta( self.hla_contigs, 
                     self.contigs_to_reference, 
                     self.trimmed_contigs,
-                    self.contig_locus_dict)
+                    self.contig_locus_dict )
         log.info('Finished trimming contig sequences\n')
 
     def update_contig_orientation(self):
@@ -417,29 +419,43 @@ class HlaPipeline( object ):
                           'nCandidates': ref_count}
             run_blasr( self.hla_subreads, 
                        self.selected_contigs, 
-                       blasr_args)
+                       blasr_args )
             check_output_file( self.hla_alignment )
         self.subread_contig_dict = create_sam_reference( self.hla_alignment )
         self.subread_locus_dict = cross_ref_dict( self.subread_contig_dict, self.contig_locus_dict )
         log.info("Finished realigning HLA subreads to HLA contigs\n")
 
-    def summarize_aligned_hla_subreads(self):
-        log.info("Summarizing coverage of the HLA contigs by the HLA subreads")
-        self.locus_stats = os.path.join(self.stats, "locus_statistics.csv")
-        self.reference_stats = os.path.join(self.stats, "reference_statistics.csv")
-        ### will go through sam file, sort out the raw reads, and tabulate statistics while we do it
-        if valid_file( self.locus_stats ) and \
-           valid_file( self.reference_stats ):
-            log.info('Found existing Locus Statistics at "{0}"'.format(self.locus_stats))
-            log.info('Found existing Reference Statistics at "{0}"'.format(self.reference_stats))
-            log.info("Skipping alignment summary step...\n")
+    def separate_subreads_by_contig(self):
+        log.info("Separating subreads by aligned contig")
+        contig_subread_fofn = os.path.join( self.subreads, "Contig_Subread_Files.fofn" )
+        if valid_file( contig_subread_fofn ):
+            log.info('Found existing Contig-Subread File "{0}"'.format(contig_subread_fofn))
+            log.info("Skipping subread separation step...\n")
+            self.subread_files = read_list_file( contig_subread_fofn )
             return
-        stats = SubreadStats( self.hla_contigs, self.contig_locus_dict )
-        stats.add_sam_file( self.hla_alignment )
-        ### finally write out the subread statistics
-        stats.write( self.locus_stats, 'locus' )
-        stats.write( self.reference_stats, 'reference' )
-        log.info("Finished summarizing coverage of the HLA contigs")
+        separated_seqs = separate_sequences( self.hla_subreads, 
+                                             self.subread_contig_dict )
+        subread_prefix = os.path.join(self.subreads, 'Subreads')
+        self.subread_files = write_all_groups( separated_seqs, subread_prefix )
+        self.subread_files = [fn for fn in self.subread_files if not fn.endswith('Unmapped.fasta')]
+        write_list_file( self.subread_files, contig_subread_fofn )
+        log.info('Finished separating subreads by contig')
+
+    def separate_subreads_by_locus(self):
+        log.info("Separating subreads by aligned contig")
+        locus_subread_fofn = os.path.join( self.subreads, "Locus_Subread_Files.fofn" )
+        if valid_file( locus_subread_fofn ):
+            log.info('Found existing Locus-Subread File List "{0}"'.format(locus_subread_fofn))
+            log.info("Skipping subread separation step...\n")
+            self.subread_files = read_list_file( locus_subread_fofn )
+            return
+        separated_seqs = separate_sequences( self.hla_subreads, 
+                                             self.subread_locus_dict )
+        subread_prefix = os.path.join(self.subreads, 'Subreads')
+        self.subread_files = write_all_groups( separated_seqs, subread_prefix )
+        self.subread_files = [fn for fn in self.subread_files if not fn.endswith('Unmapped.fasta')]
+        write_list_file( self.subread_files, locus_subread_fofn )
+        log.info('Finished separating subreads by locus')
 
     def separate_contigs(self):
         log.info("Separating remaining contigs into individual files")
@@ -454,27 +470,6 @@ class HlaPipeline( object ):
         self.contig_files = write_all_groups( separated_seqs, contig_prefix )
         write_list_file( self.contig_files, contig_fofn)
         log.info('Finished separating contigs')
-
-    def create_subread_selected_contig_dict(self):
-        log.info("Converting the Subreads-to-Contigs alignment to a Dictionary")
-        self.subread_selected_contig_dict = create_sam_reference( self.hla_alignment )
-        log.info("Finished convereting the data to a Dictionary\n")
-
-    def separate_subreads_by_contig(self):
-        log.info("Separating subreads by aligned contig")
-        subread_fofn = os.path.join( self.subreads, "Subread_Files.txt" )
-        if valid_file( subread_fofn ):
-            log.info('Found existing Subread File List "{0}"'.format(subread_fofn))
-            log.info("Skipping subread separation step...\n")
-            self.subread_files = read_list_file( subread_fofn )
-            return
-        separated_seqs = separate_sequences( self.hla_subreads, 
-                                             self.subread_selected_contig_dict )
-        subread_prefix = os.path.join(self.subreads, 'Subreads')
-        self.subread_files = write_all_groups( separated_seqs, subread_prefix )
-        self.subread_files = [fn for fn in self.subread_files if not fn.endswith('Unmapped.fasta')]
-        write_list_file( self.subread_files, subread_fofn )
-        log.info('Finished separating subreads by contig')
 
     def phase_reads_with_clusense(self):
         log.info("Phasing subreads with Clusense")
