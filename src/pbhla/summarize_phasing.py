@@ -13,7 +13,6 @@ CNS_FOFN = 'Clusense_Consensus_Files.txt'
 READ_FOFN = 'Clusense_Read_Files.txt'
 
 def combine_clusense_output(input_dir, output_dir):
-    assert os.path.isdir( input_dir )
     create_directory( output_dir )
     log.info('Combining clusense output from "{0}" in "{1}"'.format(input_dir, output_dir))
 
@@ -104,16 +103,20 @@ def cluster_exists( dir_name, cluster ):
         return ( cns_path, read_path )
     return False
 
-if __name__ == "__main__":
-    import argparse
-    desc = "Combine the "
-    parser = argparse.ArgumentParser(description=desc)
+def combine_amp_assem_output(input_dir, output_dir):
+    create_directory( output_dir )
+    log.info('Combining AmpliconAssembly output from "{0}" in "{1}"'.format(input_dir, output_dir))
+    results = list( find_amp_assem_outputs(input_dir) )
+    print results
 
-    add = parser.add_argument
-    add("input_dir", metavar="INPUT_DIR", 
-        help="Fasta-format file of the reference sequence to use")
-    add("output_dir", metavar="OUTPUT_DIR", 
-        help="Name of the directory to output results to")
-    args = parser.parse_args()
-
-    combine_clusense_output( args.input_dir, args.output_dir )
+def find_amp_assem_outputs( directory ):
+    log.info('Identifying individual Amplicon Assembly results')
+    counter = 0
+    for outer_entry in os.listdir( directory ):
+        entry_path = os.path.join( directory, outer_entry )
+        if os.path.isdir( entry_path ):
+            for inner_entry in os.listdir( entry_path ):
+                if inner_entry == 'amplicon_assembly.fasta':
+                    counter += 1
+                    yield os.path.join( entry_path, inner_entry )
+    log.info('Identified %s individual Clusense cluster' % counter)
