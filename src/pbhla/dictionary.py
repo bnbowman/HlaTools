@@ -3,7 +3,6 @@ import os, re, csv, logging
 from pbcore.io.FastaIO import FastaReader
 from pbhla.io.BlasrIO import BlasrReader, blasr_to_string
 from pbhla.io.SamIO import SamReader
-from pbhla.fasta.utils import write_fasta
 from pbhla.utils import get_base_sequence_name
 
 log = logging.getLogger()
@@ -110,21 +109,3 @@ def filter_m5_file( m5_file, filtered_file ):
         for record in selected.itervalues():
             output.write('%s\n' % blasr_to_string( record ))
     log.info('Finished filtering Blasr results')
-
-def create_reference_fasta( fofn_file, output_file ):
-    log.info("Creating a reference Fasta from a FOFN of sequence files")
-    log.debug("\tInput File:\t%s" % fofn_file)
-    log.debug("\tOutput File:\t%s" % output_file)
-
-    records = _parse_sequence_records( fofn_file )
-    log.info("Found %s reference sequence records" % len(records))
-    write_fasta( records, output_file )
-    log.info("Finished creating reference Fasta file")
-
-def _parse_sequence_records( fofn_file ):
-    records = []
-    with open( fofn_file, 'r') as handle:
-        for line in handle:
-            filename, locus = line.strip().split()
-            records += list( FastaReader( filename ) )
-    return records

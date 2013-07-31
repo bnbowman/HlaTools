@@ -103,13 +103,17 @@ def cluster_exists( dir_name, cluster ):
         return ( cns_path, read_path )
     return False
 
-def combine_amp_assem_output(input_dir, output_dir):
+def summarize_amp_assem_output( input_dir, output_dir ):
     create_directory( output_dir )
     log.info('Combining AmpliconAssembly output from "{0}" in "{1}"'.format(input_dir, output_dir))
-    results = list( find_amp_assem_outputs(input_dir) )
-    print results
+    results = list( find_amp_assem_results(input_dir) )
+    output_files = list( output_amp_assem_results(results, output_dir) )
 
-def find_amp_assem_outputs( directory ):
+    result_output = os.path.join( output_dir, "AmpliconAssembly_Results.fofn" )
+    write_list_file( output_files, result_output )
+    return result_output
+
+def find_amp_assem_results( directory ):
     log.info('Identifying individual Amplicon Assembly results')
     counter = 0
     for outer_entry in os.listdir( directory ):
@@ -119,4 +123,17 @@ def find_amp_assem_outputs( directory ):
                 if inner_entry == 'amplicon_assembly.fasta':
                     counter += 1
                     yield os.path.join( entry_path, inner_entry )
-    log.info('Identified %s individual Clusense cluster' % counter)
+    log.info('Identified %s individual Amplicon Assembly results' % counter)
+
+def output_amp_assem_results( results, output_dir ):
+    log.info('Outputing Amplicon Assembly Results')
+    for result_file in results:
+        folder, filename = os.path.split( result_file )
+        folder_name = os.path.basename( folder )
+        locus = folder_name.split('_')[1]
+        output_file = "amplicon_assembly_%s.fasta" % locus
+        output_path = os.path.join( output_dir, output_file )
+        copy( result_file, output_path)
+        yield output_path
+    log.info('Finished outputting Amplicon Assembly Results')
+

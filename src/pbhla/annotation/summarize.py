@@ -155,6 +155,28 @@ def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, outp
         summary_outputs.append( output )
     return summary_outputs
 
+def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, output_dir):
+    groups = group_by_locus( locus_dict )
+    print groups
+    lengths = parse_fasta_lengths( sequence_file )
+    print lengths
+    sizes = parse_subread_counts( subread_fofn )
+    print sizes
+    hits = parse_blasr_alignment( blasr_file )
+    print hits
+    # Summarize each locus group
+    summary_outputs = []
+    for locus, group in groups.iteritems():
+        print locus, group
+        if locus == 'N/A':
+            continue
+        summary = summarize_group( group, lengths, sizes, hits )
+        print summary
+        output = write_summary( locus, summary, output_dir )
+        print output
+        summary_outputs.append( output )
+    return summary_outputs
+
 def parse_fasta_lengths( fasta_file ):
     lengths = {}
     for record in FastaReader( fasta_file ):
@@ -171,6 +193,8 @@ def parse_subread_counts( subread_fofn ):
             filepath = filepath.strip()
             filename = os.path.basename( filepath )
             contig_name = filename.split('.')[0]
+            if contig_name.startswith('Allele_'):
+                contig_name = '_'.join( contig_name.split('_')[1:] )
             if contig_name.startswith('Resequenced_'):
                 contig_name = '_'.join( contig_name.split('_')[1:] )
             sizes[contig_name] = fasta_size( filepath )
