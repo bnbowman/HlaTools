@@ -12,7 +12,8 @@ from pbhla.separate_sequences import (separate_sequences,
                                       separate_aligned_sequences, 
                                       write_group,
                                       write_all_groups )
-from pbhla.fasta.utils import ( fasta_size, 
+from pbhla.fasta.utils import ( write_fasta,
+                                fasta_size, 
                                 extract_sequence,
                                 combine_fasta )
 from pbhla.fasta.update_orientation import update_orientation
@@ -20,23 +21,22 @@ from pbhla.fasta.subset_sequences import subset_sequences
 from pbhla.fasta.trim_fasta import trim_fasta
 from pbhla.fasta.rename_fasta import rename_fasta
 from pbhla.io.extract_subreads import extract_subreads
-from pbhla.dictionary import ( create_fofn_reference,
-                               create_m1_reference,
+from pbhla.io.BlasrIO import add_header_to_m5
+from pbhla.dictionary import ( create_m1_reference,
                                create_m5_reference,
                                create_sam_reference,
                                create_phased_reference,
                                filter_m5_file )
-from pbhla.reference import ( create_reference_fasta,
-                              read_reference_metadata )
+from pbhla.reference import parse_reference_fofn
 from pbhla.stats.SubreadStats import SubreadStats
 from pbhla.summarize_phasing import ( combine_clusense_output,
                                       summarize_amp_assem_output )
 from pbhla.resequencing.identify import identify_resequencing_data
 from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output 
 from pbhla.annotation.summarize import ( summarize_contigs,
-                                         meta_summarize_contigs,
                                          summarize_resequenced,
                                          summarize_typing )
+from pbhla.annotation.meta_summarize import meta_summarize_contigs
 from pbhla.annotation.typing import type_hla
 from pbhla.external.HbarTools import HbarRunner
 from pbhla.external.commandline_tools import run_blasr
@@ -58,22 +58,28 @@ class HlaPipeline( object ):
     def _initialize_project( self ):
         create_directory( args.output )
         # Create the various sub-directories
-        for d in ['log_files', 'HBAR', 'references', 'subreads', 
+        for d in ['HBAR', 'references', 'subreads', 'results',
                   'alignments', 'phasing', 'phasing_results', 
-                  'resequencing', 'resequencing_results', 'results']:
+                  'resequencing', 'resequencing_results']:
             sub_dir = os.path.join( args.output, d )
             create_directory( sub_dir )
             setattr(self, d, sub_dir)
 
     def _initialize_logging( self ):
-        log_format = "%(asctime)s [%(levelname)s] %(funcName)s %(message)s"
-        log_file = os.path.join( self.log_files, "HLA_Pipeline.log" )
+        log_format = "%(asctime)s [%(levelname)s - %(module)s] %(message)s"
+        time_format = "%Y-%m-%d %H:%M:%S"
+        log_file = os.path.join( args.output, "HLA_Pipeline.log" )
+        # Set up a simple Stream handler
         logging.basicConfig( level=logging.INFO, 
                              format=log_format,
+                             datefmt=time_format,
                              stream=sys.stdout )
-        logging.basicConfig( level=logging.INFO, 
-                             format=log_format, 
-                             filename=log_file )
+        # Set a second handler for the log file
+        file_handler = logging.FileHandler( log_file )
+        formatter = logging.Formatter( log_format, time_format )
+        file_handler.setFormatter( formatter )
+        file_handler.setLevel( logging.INFO )
+        log.addHandler( file_handler )
     
     def run( self ):
         # First we assemble the supplied data via HGAP / HBAR
@@ -89,7 +95,7 @@ class HlaPipeline( object ):
         # Third, we align the contigs to the Human Genome ...
         self.align_contigs_to_genome()
         # ... and the locus reference sequences ...
-        self.create_locus_reference()
+        self.parse_reference()
         self.align_contigs_to_reference()
         # ... in order to separate the on-target from off-target hits
         self.find_on_target_contigs()
@@ -105,8 +111,10 @@ class HlaPipeline( object ):
         self.separate_subreads_by_contig()
         self.separate_subreads_by_locus()
         if args.amplicon_assembly:
-            self.rename_locus_subread_files()
-            self.phase_reads_with_amp_assem()
+            #self.rename_locus_subread_files()
+            #self.phase_loci_with_amp_assem()
+            self.rename_contig_subread_files()
+            self.phase_contigs_with_amp_assem()
             self.summarize_amp_assem()
             self.output_amp_assem_contigs()
             self.align_amp_assem_to_reference()
@@ -114,6 +122,7 @@ class HlaPipeline( object ):
             self.separate_subreads_by_allele()
             self.summarize_amp_assem_results()
             self.extract_final_amp_assem_contigs()
+            self.align_final_amp_assem_to_reference()
         else:
             self.separate_contigs()
             self.phase_reads_with_clusense()
@@ -291,19 +300,15 @@ class HlaPipeline( object ):
             check_output_file( self.contigs_to_genome )
         log.info("Finished aligning contigs to the genomic reference\n")
         self.contig_genome_dict = create_m1_reference( self.contigs_to_genome )
-        self.reference_locus_dict = create_fofn_reference( args.reference_file )
 
-    def create_locus_reference(self):
+    def parse_reference(self):
         log.info("Creating locus reference fasta file")
         self.reference_seqs = os.path.join(self.references, "locus_references.fasta")
         # If no locus key and Choose_Ref is None, read the locus from the regular reference
-        if valid_file( self.reference_seqs ):
-            log.info('Found existing locus reference sequences "{0}"'.format(self.reference_seqs))
-            log.info('Skipping reference extraction step\n')
-            return
-        log.info("No locus reference sequences found, creating one...")
-        create_reference_fasta( args.reference_file, self.reference_seqs )
-        self.reference_metadata = read_reference_metadata( self.reference_file )
+        sequences, metadata, loci = parse_reference_fofn( args.reference_file )
+        write_fasta( sequences, self.reference_seqs )
+        self.reference_metadata = metadata
+        self.reference_locus_dict = loci
         check_output_file( self.reference_seqs )
         log.info("Finished creating locus reference\n")
     
@@ -478,8 +483,18 @@ class HlaPipeline( object ):
             self.renamed_locus_subread_files.append( renamed_file )
         log.info("Finished renaming Locus Subread files\n")
 
-    def phase_reads_with_amp_assem( self ):
-        log.info("Phasing subreads with Amplicon Assembler")
+    def rename_contig_subread_files( self ):
+        log.info("Renaming Contig Subread files with cannonical subread names")
+        self.renamed_contig_subread_files = []
+        for subread_file in self.contig_subread_files:
+            renamed_file = subread_file.split('.')[0] + '_renamed.fasta'
+            rename_fasta( subread_file, renamed_file, self.renaming_key )
+            check_output_file( renamed_file )
+            self.renamed_contig_subread_files.append( renamed_file )
+        log.info("Finished renaming Contig Subread files\n")
+
+    def phase_loci_with_amp_assem( self ):
+        log.info("Phasing subreads by Locus with Amplicon Assembler")
         self.amp_assem = os.path.join( self.phasing, 'AmpliconAssembly' )
         create_directory( self.amp_assem )
         assembler = AmpliconAssembler( args.smrt_path, args.nproc )
@@ -499,19 +514,39 @@ class HlaPipeline( object ):
                 assembler.run( args.input_file, output_folder, assembler_args)
         log.info('Finished phasing subreads with Amplicon Assembler\n')
 
+    def phase_contigs_with_amp_assem( self ):
+        log.info("Phasing subreads by contig with Amplicon Assembler")
+        self.amp_assem = os.path.join( self.phasing, 'AmpliconAssembly' )
+        create_directory( self.amp_assem )
+        assembler = AmpliconAssembler( args.smrt_path, args.nproc )
+        for subread_file in self.renamed_contig_subread_files:
+            folder_name = os.path.basename(subread_file).split('.')[0]
+            contig_name = '_'.join( folder_name.split('_')[:2] )
+            output_folder = os.path.join(self.amp_assem, folder_name)
+            output_file = os.path.join( output_folder, 'amplicon_assembly.fasta' )
+            if os.path.exists( output_file ):
+                log.info('AmpliconAssembly output detected for "%s", skipping...' % folder_name)
+            else:
+                log.info('Phasing subreads for "%s"' % folder_name)
+                assembler_args = {'whiteList': subread_file,
+                                  'noClustering': True,
+                                  'sampleName': contig_name,
+                                  'minLength': args.min_read_length,
+                                  'minReadScore': args.min_read_score}
+                assembler.run( args.input_file, output_folder, assembler_args)
+        log.info('Finished phasing subreads with Amplicon Assembler\n')
+
     def summarize_amp_assem( self ):
         log.info("Summarizing the output from Amplicon Assembly")
         output_folder = os.path.join(self.phasing_results, 'AmpliconAssembly')
         self.amp_assem_results = summarize_amp_assem_output( self.amp_assem, 
                                                              output_folder )
-        print self.amp_assem_results
         log.info('Finished Phasing subreads with Amplicon Assembly')
 
     def output_amp_assem_contigs( self ):
         log.info("Combining the output from Amplicon Assembly")
         self.amp_assem_contigs = os.path.join( self.references, 'amp_assem_contigs.fasta')
         result_files = read_list_file( self.amp_assem_results )
-        print result_files
         combine_fasta( result_files, self.amp_assem_contigs )
         log.info("Finished combining the output from Amplicon Assembly")
 
@@ -592,6 +627,7 @@ class HlaPipeline( object ):
         log.info("Combining the summaries of the various HLA loci")
         self.meta_summary = os.path.join( self.amp_assem_results, 'Locus_Calls.txt')
         meta_summarize_contigs( summaries, 
+                                self.reference_metadata,
                                 self.meta_summary,
                                 excluded=args.exclude)
         log.info("Finished selected best contigs")
@@ -607,6 +643,27 @@ class HlaPipeline( object ):
                           self.meta_summary,
                           self.amp_assem_output )
         log.info('Finished extracting the best resequenced contigs\n')
+
+    def align_final_amp_assem_to_reference(self):
+        log.info('Aligning all final phased HLA contigs to the reference sequences')
+        self.final_to_reference = os.path.join(self.amp_assem_results, 'Final_to_Reference.m5')   
+        contig_count = fasta_size( self.amp_assem_contigs )
+        reference_count = fasta_size( self.reference_seqs )
+        log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
+        # Run BLASR
+        blasr_args = {'nproc': args.nproc,
+                      'noSplitSubreads': True,
+                      'out': self.final_to_reference,
+                      'm': 5,
+                      'bestn': 1,
+                      'nCandidates': reference_count}
+        run_blasr( self.amp_assem_output, 
+                   self.reference_seqs, 
+                   blasr_args )
+        check_output_file( self.final_to_reference )
+        add_header_to_m5( self.final_to_reference )
+        check_output_file( self.final_to_reference )
+        log.info("Finished aligning resequenced contigs to the HLA reference set\n")
 
     def separate_contigs(self):
         log.info("Separating remaining contigs into individual files")

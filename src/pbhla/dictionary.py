@@ -7,22 +7,6 @@ from pbhla.utils import get_base_sequence_name
 
 log = logging.getLogger()
 
-def create_fofn_reference( fofn_file ):
-    log.info('Reading Locus References from "{0}"'.format(fofn_file))
-    results = {}
-    with open(fofn_file, 'r') as handle:
-        for line in handle:
-            fasta_path, locus = line.strip().split()
-            fasta_file = os.path.basename( fasta_path )
-            log.info('Reading "{0}" sequences from "{1}"'.format(locus, fasta_file))
-            for record in FastaReader( fasta_path ):
-                name = record.name.split()[0]
-                if not re.search('__', name):
-                    name = name.split('_')[0]
-                results[name] = locus
-    log.info('Finished reading Locus References')
-    return results
-
 def create_m1_reference( m1_file, reference=None ):
     log.info('Parsing Blasr M1 results from "{0}"'.format( m1_file ))
     results = {}

@@ -5,33 +5,8 @@ from pbcore.io.FastaIO import FastaReader
 from pbhla.io.BlasrIO import BlasrReader, BlasrM1, BlasrM5
 from pbhla.fasta.utils import fasta_size
 from pbhla.utils import get_base_sequence_name
+
 log = logging.getLogger()
-
-PCTID_THRESH = 97.0
-
-class ContigInfo(object):
-    def __init__(self, locus, contig, length, count, hit, pctid):
-        self.locus = locus
-        self.contig = contig
-        self.length = int(length) if length.isdigit() else length
-        self.count = int(count) if count.isdigit() else count
-        self.hit = hit
-        self.pctid = float(pctid)
-
-    def __str__(self):
-        return '{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(self.locus,
-                                                     self.contig,
-                                                     self.length,
-                                                     self.count,
-                                                     self.hit,
-                                                     self.pctid)
-
-def parse_contig_info( handle, locus ):
-    try:
-        info = [locus] + handle.next().strip().split()
-    except:
-        info = [locus, '-\t\t\t', '-', '-', '-', '0.0']
-    return ContigInfo(*info)
 
 def summarize_typing( summary_file, gdna_file, cdna_file, output_file ):
     gdna_types = parse_typing( gdna_file )
@@ -114,32 +89,10 @@ def summarize_resequenced( locus_file, blasr_file, output_file ):
                 name = parts[1]
                 if name == '-': 
                     continue
-                print name
                 reseq_results = blasr_typings[name]
                 output_parts = parts + reseq_results
                 print >> output, '\t'.join( output_parts )
 
-def meta_summarize_contigs( contig_files, output_file, excluded=[] ):
-    with open(output_file, 'w') as output:
-        print >> output, "Locus\tContig\tLength\tCount\tHit\tPctId"
-        for filepath in sorted(contig_files):
-            log.info( filepath )
-            locus = filepath.split('_')[-2]
-            log.info( locus )
-            if locus in excluded:
-                continue
-            dummy = ContigInfo(locus, '-\t\t\t', '-', '-', '-', '0.0')
-            with open(filepath, 'r') as handle:
-                handle.next()
-                first = parse_contig_info( handle, locus )
-                second = parse_contig_info( handle, locus )
-                while second.hit == first.hit:
-                    second = parse_contig_info( handle, locus )
-                if second.pctid < PCTID_THRESH:
-                    second = dummy
-                print >> output, first
-                print >> output, second
-
 def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, output_dir):
     groups = group_by_locus( locus_dict )
     lengths = parse_fasta_lengths( sequence_file )
@@ -152,28 +105,6 @@ def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, outp
             continue
         summary = summarize_group( group, lengths, sizes, hits )
         output = write_summary( locus, summary, output_dir )
-        summary_outputs.append( output )
-    return summary_outputs
-
-def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, output_dir):
-    groups = group_by_locus( locus_dict )
-    print groups
-    lengths = parse_fasta_lengths( sequence_file )
-    print lengths
-    sizes = parse_subread_counts( subread_fofn )
-    print sizes
-    hits = parse_blasr_alignment( blasr_file )
-    print hits
-    # Summarize each locus group
-    summary_outputs = []
-    for locus, group in groups.iteritems():
-        print locus, group
-        if locus == 'N/A':
-            continue
-        summary = summarize_group( group, lengths, sizes, hits )
-        print summary
-        output = write_summary( locus, summary, output_dir )
-        print output
         summary_outputs.append( output )
     return summary_outputs
 

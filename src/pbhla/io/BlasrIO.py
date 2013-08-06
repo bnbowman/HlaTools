@@ -31,6 +31,14 @@ class BlasrReader( ReaderBase ):
         except:
             raise ValueError("Invalid Blasr entry of type %s" % self.filetype)
 
+def add_header_to_m5( m5_file ):
+    with open( m5_file ) as handle:
+        lines = list( handle )
+    with open( m5_file, 'w') as handle:
+        handle.write('qname qlength qstart qend qstrand tname tlength tstart tend tstrand score nmat nmis nins ndel mapqv qstring astring tstring\n')
+        for line in lines:
+            handle.write( line )
+
 def blasr_to_string( record ):
     if isinstance(record, BlasrM5):
         return "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (record.qname,
