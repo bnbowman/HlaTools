@@ -14,9 +14,7 @@ def extract_exons( afa_file, info_file):
         output_file = _get_output_file( info_file, exon )
         with FastaWriter( output_file ) as output:
             for record in _extract_fasta_region( records, exon ):
-                if record.sequence.startswith('-'):
-                    continue
-                elif record.sequence.endswith('-'):
+                if len(set(record.sequence)) == 1:
                     continue
                 output.writeRecord( record )
     
@@ -39,7 +37,7 @@ def _parse_info_file( info_file ):
                 yield (region, start, end)
                 start = int( record.pos0 )
             region = record.region
-            start = start or int( record.pos0 )
+            start = int( record.pos0 ) if start is None else start
 
 def _select_exons( regions ):
     for region in regions:
@@ -53,9 +51,10 @@ def _get_output_file( info_file, region ):
 
 def _extract_fasta_region( records, region ):
     name, start, end = region
+    print name, start, end
     for record in records:
         yield FastaRecord( record.name,
-                           record.sequence[start:end+1] )
+                           record.sequence[start:end] )
 
 if __name__ == '__main__':
     afa_file = sys.argv[1]

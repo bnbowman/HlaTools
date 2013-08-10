@@ -72,8 +72,12 @@ def _parse_exon_location( alignment_file ):
     """
     Parse the most likely Exon location from an Exon-Fasta alignment
     """
-    alignments = sorted( BlasrReader( alignment_file ), 
-                         key=lambda x: int(x.score))
+    alignments = list( BlasrReader( alignment_file ))
+    alignments = sorted( alignments, key=lambda x: int(x.score))
+    alignments = sorted( alignments, key=lambda x: float(x.pctsimilarity), reverse=True)
+    print alignments
+    print alignments[0]
+    print alignments[-1]
     return int(alignments[0].tstart), int(alignments[0].tend)
 
 def _extract_exon_sequence( fasta, exon_num, start, end ):
@@ -81,7 +85,7 @@ def _extract_exon_sequence( fasta, exon_num, start, end ):
     Create an Exon record from its coordinates and a Fasta
     """
     exon_name = '%s_exon%s' % (fasta.name, exon_num)
-    exon_sequence = fasta.sequence[start:end+1]
+    exon_sequence = fasta.sequence[start:end]
     return FastaRecord( exon_name, exon_sequence )
 
 ### Utilities ###
