@@ -73,14 +73,17 @@ def type_hla( MSA_fofn, fasta_file, locus_dict, output_dir ):
     cDNA_writer = FastaWriter( cDNA_path )
 
     for r in FastaReader( fasta_file ):
+        print r
         write_fasta([r], temp_fasta)
 
         name = r.name.strip()
+        print r.name, name
         if name.endswith('quiver'):
             name = name.split("|")[0]
         if name.endswith('_cns'):
             name = name[:-4]
 
+        print locus_dict
         try:
             locus = locus_dict[name]
         except:

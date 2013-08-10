@@ -8,6 +8,9 @@ from pbhla.utils import get_base_sequence_name
 
 log = logging.getLogger()
 
+MIN_PCTID = 80.0
+MIN_COUNT = 100
+
 def summarize_typing( summary_file, gdna_file, cdna_file, output_file ):
     gdna_types = parse_typing( gdna_file )
     cdna_types = parse_typing( cdna_file )
@@ -103,8 +106,9 @@ def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, outp
     for locus, group in groups.iteritems():
         if locus == 'N/A':
             continue
-        summary = summarize_group( group, lengths, sizes, hits )
-        output = write_summary( locus, summary, output_dir )
+        summaries = summarize_group( group, lengths, sizes, hits )
+        filtered_summaries = list(_filter_summaries( summaries ))
+        output = write_summary( locus, filtered_summaries, output_dir )
         summary_outputs.append( output )
     return summary_outputs
 
@@ -155,6 +159,15 @@ def summarize_group( group, lengths, sizes, hits):
         except:
             pass
     return sorted(summary, key=lambda x: x[2], reverse=True)
+
+def _filter_summaries( summaries ):
+    for summary in summaries:
+        if summary[2] < MIN_COUNT:
+            continue
+        print summary[4], type(summary[4])
+        if float(summary[4]) < MIN_PCTID:
+            continue
+        yield summary
 
 def write_summary( locus, summary, output_dir ):
     output_file = 'Locus_{0}_Summary.txt'.format( locus )
