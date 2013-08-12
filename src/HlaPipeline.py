@@ -122,6 +122,7 @@ class HlaPipeline( object ):
             self.separate_subreads_by_allele()
             self.summarize_amp_assem_results()
             self.extract_final_amp_assem_contigs()
+            self.update_amp_assem_orientation()
             self.align_final_amp_assem_to_reference()
         else:
             self.separate_contigs()
@@ -634,15 +635,21 @@ class HlaPipeline( object ):
 
     def extract_final_amp_assem_contigs(self):
         log.info('Extracting the best contigs to their own file')
-        self.amp_assem_output = os.path.join(self.amp_assem_results, 'Final_Consensus.fasta')
-        if valid_file( self.amp_assem_output ):
-            log.info('Found existing Resequencing Output')
-            log.info('Skipping...\n')
-            return
+        self.final_contigs = os.path.join(self.references, 'final_contigs.fasta')
         subset_sequences( self.amp_assem_contigs,
                           self.meta_summary,
-                          self.amp_assem_output )
+                          self.final_contigs )
         log.info('Finished extracting the best resequenced contigs\n')
+
+    def update_amp_assem_orientation(self):
+        log.info('Converting all resequenced contigs to the forward orientation')
+        self.reoriented = os.path.join(self.references, 'reoriented_final_contigs.fasta')
+        self.final_output = os.path.join(self.amp_assem_results, 'Final_Sequences.fasta')
+        update_orientation( self.final_contigs, 
+                            self.amp_assem_to_reference,
+                            self.reoriented )
+        shutil.copy( self.reoriented, self.final_output )
+        log.info('Finished updating the orientation of the resequenced contigs')
 
     def align_final_amp_assem_to_reference(self):
         log.info('Aligning all final phased HLA contigs to the reference sequences')
@@ -657,7 +664,7 @@ class HlaPipeline( object ):
                       'm': 5,
                       'bestn': 1,
                       'nCandidates': reference_count}
-        run_blasr( self.amp_assem_output, 
+        run_blasr( self.final_output, 
                    self.reference_seqs, 
                    blasr_args )
         check_output_file( self.final_to_reference )
