@@ -23,6 +23,7 @@ def extract_all_exons( input_fasta, exon_fofn ):
     with FastaWriter( output_file ) as output:
         for exon in _extract_exons( fasta_record, exon_fofn ):
             output.writeRecord( exon )
+    return output_file
 
 def _extract_exons( fasta_record, exon_fofn ):
     """
