@@ -13,9 +13,10 @@ def exons_to_cDNA( exon_fasta ):
     """
     output_file = _get_output_file( exon_fasta )
     fasta_records = list( FastaReader( exon_fasta ))
-    sorted_records = _sort_fasta_records( fasta_records )
-    cDNA_record = _combine_records( sorted_records )
-    write_fasta( [cDNA_record], output_file )
+    if len(fasta_records):
+        sorted_records = _sort_fasta_records( fasta_records )
+        cDNA_record = _combine_records( sorted_records )
+        write_fasta( [cDNA_record], output_file )
 
 def _get_output_file( exon_fasta ):
     basename = '_'.join( exon_fasta.split('_')[:-1] )

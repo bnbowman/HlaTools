@@ -7,6 +7,23 @@ from pbhla.utils import get_base_sequence_name
 
 log = logging.getLogger()
 
+def create_amp_assem_reference( m1_file, reference=None ):
+    log.info('Parsing Blasr M1 results from "{0}"'.format( m1_file ))
+    results = {}
+    for record in BlasrReader( m1_file ):
+        qname = get_base_sequence_name( record.qname )
+        locus = qname.split('_')[1]
+        if qname in results:
+            msg = 'Duplicate sequence ids found! "{0}"'.format( qname )
+            log.info( msg )
+            raise KeyError( msg )
+        if reference:
+            results[qname] = reference[locus]
+        else:
+            results[qname] = locus
+    log.info('Finished reading Blasr results')
+    return results
+
 def create_m1_reference( m1_file, reference=None ):
     log.info('Parsing Blasr M1 results from "{0}"'.format( m1_file ))
     results = {}

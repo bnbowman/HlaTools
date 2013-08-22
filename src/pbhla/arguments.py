@@ -11,6 +11,7 @@ MAX_COUNT = None
 
 #EXCLUDED = ['DPB2', 'DRB3', 'DRB4', 'DRB5']
 EXCLUDED = ['DPB2']
+SPLIT = ['DPB1', 'DRB1']
 
 args = argparse.Namespace()
 
@@ -71,6 +72,11 @@ def parse_args():
         metavar='LOCUS',
         default=EXCLUDED,
         help="List of loci to not include in the final summary or phase")
+    add("--split",
+        nargs='*',
+        metavar='LOCUS',
+        default=SPLIT,
+        help="List of loci to split into two contigs")
     add("--msa", 
         metavar='FOFN',
         default=None,

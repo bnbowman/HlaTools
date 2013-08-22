@@ -22,7 +22,8 @@ def identify_reversed_sequences( blasr_file ):
 def reverse_records( fasta_records, reversed_seqs ):
     reversed_records = []
     for record in fasta_records:
-        if record.name in reversed_seqs:
+        name = record.name.split()[0]
+        if name in reversed_seqs:
             record = reverse_complement( record )
         reversed_records.append( record )
     return reversed_records

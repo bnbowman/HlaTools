@@ -9,7 +9,7 @@ from pbhla.utils import get_base_sequence_name
 log = logging.getLogger()
 
 MIN_PCTID = 80.0
-MIN_COUNT = 100
+MIN_COUNT = 20
 
 def summarize_typing( summary_file, gdna_file, cdna_file, output_file ):
     gdna_types = parse_typing( gdna_file )
@@ -69,7 +69,7 @@ def parse_typing( typing_file ):
             results[name] = [typing, pctid]
     return results
 
-def parse_blasr_alignment( blasr_file ):
+def _parse_blasr_alignment( blasr_file ):
     results = {}
     for entry in BlasrReader( blasr_file ):
         name = get_base_sequence_name( entry.qname )
@@ -97,22 +97,26 @@ def summarize_resequenced( locus_file, blasr_file, output_file ):
                 print >> output, '\t'.join( output_parts )
 
 def summarize_contigs( sequence_file, subread_fofn, locus_dict, blasr_file, output_dir):
-    groups = group_by_locus( locus_dict )
-    lengths = parse_fasta_lengths( sequence_file )
-    sizes = parse_subread_counts( subread_fofn )
-    hits = parse_blasr_alignment( blasr_file )
+    groups = _group_by_locus( locus_dict )
+    lengths = _parse_fasta_lengths( sequence_file )
+    sizes = _parse_subread_counts( subread_fofn )
+    hits = _parse_blasr_alignment( blasr_file )
     # Summarize each locus group
     summary_outputs = []
     for locus, group in groups.iteritems():
         if locus == 'N/A':
             continue
-        summaries = summarize_group( group, lengths, sizes, hits )
-        filtered_summaries = list(_filter_summaries( summaries ))
+        fractions = _calculate_subread_fractions( group, sizes )
+        summaries = _summarize_group( group, lengths, sizes, fractions, hits )
+        filtered_summaries = list( _filter_summaries( summaries ))
         output = write_summary( locus, filtered_summaries, output_dir )
         summary_outputs.append( output )
     return summary_outputs
 
-def parse_fasta_lengths( fasta_file ):
+def _parse_fasta_lengths( fasta_file ):
+    """
+    Count the number of bases in each consensus sequence
+    """
     lengths = {}
     for record in FastaReader( fasta_file ):
         name = record.name
@@ -121,7 +125,10 @@ def parse_fasta_lengths( fasta_file ):
         lengths[name] = len(record.sequence)
     return lengths
 
-def parse_subread_counts( subread_fofn ):
+def _parse_subread_counts( subread_fofn ):
+    """
+    Count the number of subreads assocated with each consensus
+    """
     sizes = {}
     with open( subread_fofn ) as handle:
         for filepath in handle:
@@ -135,7 +142,20 @@ def parse_subread_counts( subread_fofn ):
             sizes[contig_name] = fasta_size( filepath )
     return sizes
 
-def group_by_locus( locus_dict ):
+def _calculate_subread_fractions( group, subread_counts ):
+    """
+    Calculate the fraction of subreads associated with each consensus
+    """
+    fractions = {}
+    total = float(sum([subread_counts[key] for key in group]))
+    for key, count in subread_counts.iteritems():
+        fractions[key] = round(count / total, 3)
+    return fractions
+
+def _group_by_locus( locus_dict ):
+    """
+    Reverse the locus dictionary to group contigs by locus
+    """
     groups = {}
     for key, value in locus_dict.iteritems():
         try:
@@ -144,7 +164,10 @@ def group_by_locus( locus_dict ):
             groups[value] = [ key ]
     return groups
 
-def summarize_group( group, lengths, sizes, hits):
+def _summarize_group( group, lengths, sizes, fractions, hits):
+    """
+    Iterate over the contigs in a group, summarizing each
+    """
     summary = []
     for contig in group:
         if contig.endswith('_cns'):
@@ -154,6 +177,7 @@ def summarize_group( group, lengths, sizes, hits):
             summary.append( (contig, 
                              lengths[contig], 
                              sizes[contig],
+                             fractions[contig],
                              hit,
                              pctid) )
         except:
@@ -164,8 +188,7 @@ def _filter_summaries( summaries ):
     for summary in summaries:
         if summary[2] < MIN_COUNT:
             continue
-        print summary[4], type(summary[4])
-        if float(summary[4]) < MIN_PCTID:
+        if float(summary[5]) < MIN_PCTID:
             continue
         yield summary
 
@@ -173,7 +196,7 @@ def write_summary( locus, summary, output_dir ):
     output_file = 'Locus_{0}_Summary.txt'.format( locus )
     output_path = os.path.join( output_dir, output_file )
     with open(output_path, 'w') as handle:
-        handle.write( 'Contig\tLength\tCount\tBestHit\tPctId\n' )
+        handle.write( 'Contig\tLength\tCount\tFrac\tBestHit\tPctId\n' )
         for item in summary:
             line = '\t'.join( map(str, item) ) 
             handle.write( line + '\n' )

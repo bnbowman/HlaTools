@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import os, random, logging
+import os, sys, random, logging
 
 from pbcore.io.BasH5Reader import BasH5Reader
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter

@@ -2,9 +2,10 @@ import os, logging, subprocess
 
 log = logging.getLogger()
 
-def run_blasr(query, reference, args):
+def run_blasr(query, reference, args, verbose=False):
     command_args = create_blasr_command(query, reference, args)
-    log_command( command_args )
+    if verbose:
+        log_command( command_args )
     execute_command( command_args )
 
 def run_muscle( args ):

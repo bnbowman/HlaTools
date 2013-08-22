@@ -3,11 +3,12 @@ import os, logging
 log = logging.getLogger()
 
 class ContigInfo(object):
-    def __init__(self, locus, contig, length, count, hit, pctid):
+    def __init__(self, locus, contig, length, count, fraction, hit, pctid):
         self.locus = locus
         self.contig = contig
         self.length = int(length) if length.isdigit() else length
         self.count = int(count) if count.isdigit() else count
+        self.fraction = float(fraction) if fraction[1:].isdigit() else fraction
         self.hit = hit
         self.pctid = float(pctid)
 
@@ -16,6 +17,7 @@ class ContigInfo(object):
                            self.contig,
                            str(self.length),
                            str(self.count),
+                           str(self.fraction),
                            self.hit,
                            str(self.pctid) ])
 
@@ -25,7 +27,7 @@ def meta_summarize_contigs( contig_files, metadata, output_file, excluded=[] ):
         for key, value in metadata.iteritems():
             print >> output, "# %s=%s" % (key, value)
         # Write the column headers
-        print >> output, "Locus\tContig\tLength\tCount\tHit\tPctId"
+        print >> output, "Locus\tContig\tLength\tCount\tFraction\tHit\tPctId"
         # Finally parse and write the data
         for filepath in sorted(contig_files):
             basename = os.path.basename( filepath )
@@ -46,13 +48,16 @@ def _parse_contig_summaries( filepath, locus ):
             yield ContigInfo( *info )
 
 def _select_contig_summaries( summaries, locus ): 
-    dummy = ContigInfo(locus, '-\t\t\t', '-', '-', '-', '0.0')
+    dummy = ContigInfo(locus, '-\t\t\t', '-', '-', '-', '-', '0.0')
     if len( summaries ) == 0:
         return [dummy, dummy]
     elif len( summaries ) == 1:
         return [summaries[0], dummy]
-    else:
+    elif locus in ['A', 'B', 'C']:
         for summary in summaries:
             if summary.hit != summaries[0].hit:
                 return [ summaries[0], summary ]
         return [ summaries[0], dummy ]
+    else:
+        return [ summaries[0], summaries[1] ]
+
