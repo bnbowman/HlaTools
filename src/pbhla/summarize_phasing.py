@@ -120,7 +120,7 @@ def find_amp_assem_results( directory ):
         entry_path = os.path.join( directory, outer_entry )
         if os.path.isdir( entry_path ):
             for inner_entry in os.listdir( entry_path ):
-                if inner_entry == 'amplicon_assembly.fasta':
+                if inner_entry == 'amplicon_analysis.fasta':
                     counter += 1
                     yield os.path.join( entry_path, inner_entry )
     log.info('Identified %s individual Amplicon Assembly results' % counter)
@@ -131,7 +131,7 @@ def output_amp_assem_results( results, output_dir ):
         folder, filename = os.path.split( result_file )
         folder_name = os.path.basename( folder )
         locus = folder_name.split('_')[1]
-        output_file = "amplicon_assembly_%s.fasta" % locus
+        output_file = "amplicon_analysis_%s.fasta" % locus
         output_path = os.path.join( output_dir, output_file )
         copy( result_file, output_path)
         yield output_path

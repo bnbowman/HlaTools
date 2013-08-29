@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from pbcore.io.base import ReaderBase, getFileHandle
+from pbcore.io.base import ReaderBase, WriterBase, getFileHandle
 
 BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
 BlasrM4 = namedtuple('BlasrM4', 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength mapqv ncells clusterScore probscore numSigClusters')
@@ -31,6 +31,30 @@ class BlasrReader( ReaderBase ):
         except:
             raise ValueError("Invalid Blasr entry of type %s" % self.filetype)
 
+
+
+class BlasrWriter( WriterBase ):
+    """
+    A Class for writing out Blasr records
+    """
+
+    def writeHeader( self ):
+        """
+        Write a Blasr header out to the file handle 
+        """
+        self.file.write("qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells")
+        self.file.write("\n")
+
+    def write( self, record ):
+        """
+        Write a Blasr record out to the file handle
+        """
+        assert isinstance( record, BlasrM1 ) or isinstance( BlasrM5 )
+        self.file.write( record_to_string( record ))
+        self.file.write("\n")
+
+
+
 def add_header_to_m5( m5_file ):
     with open( m5_file ) as handle:
         lines = list( handle )
@@ -39,8 +63,22 @@ def add_header_to_m5( m5_file ):
         for line in lines:
             handle.write( line )
 
-def blasr_to_string( record ):
-    if isinstance(record, BlasrM5):
+def record_to_string( record ):
+    if isinstance(record, BlasrM1):
+        return "%s %s %s %s %s %s %s %s %s %s %s %s %s" % (record.qname,
+                                                           record.tname,
+                                                           record.qstrand,
+                                                           record.tstrand,
+                                                           record.score,
+                                                           record.pctsimilarity,
+                                                           record.tstart,
+                                                           record.tend,
+                                                           record.tlength,
+                                                           record.qstart,
+                                                           record.qend,
+                                                           record.qlength,
+                                                           record.ncells)
+    elif isinstance(record, BlasrM5):
         return "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (record.qname,
                                                                              record.qlength,
                                                                              record.qstart,

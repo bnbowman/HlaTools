@@ -21,10 +21,20 @@ def reverse_complement( fasta_record ):
     return FastaRecord( fasta_record.name,
                         rev_com_seq )
 
-def write_fasta(fasta_records, output_file):
+def write_fasta( fasta_records, output_file):
+    """
+    Write a FastaRecord, or list of records, out to file
+    """
     with FastaWriter( output_file ) as handle:
-        for record in fasta_records:
-            handle.writeRecord( record )
+        if isinstance( fasta_records, FastaRecord ):
+            handle.writeRecord( fasta_records )
+        elif isinstance( fasta_records, list):
+            for record in fasta_records:
+                handle.writeRecord( record )
+        else:
+            msg = "Input Record(s) type not recognized"
+            log.error( msg )
+            raise TypeError( msg )
 
 def fasta_size(fasta):
     try:

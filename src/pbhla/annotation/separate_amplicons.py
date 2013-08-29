@@ -71,6 +71,7 @@ def _separate_file_list( file_list, target_locus ):
     log.info("Parsing locus-specific subread FOFN")
     target_fasta = None
     other_fasta = []
+    print file_list, target_locus
     for filename in file_list:
         basename = filename.split('.')[0]
         locus = basename.split('_')[-1]
@@ -96,6 +97,7 @@ def _parse_reference_fofn( reference_fofn, target_locus ):
     with open( reference_fofn, 'r' ) as handle:
         for line in handle:
             filename, locus = line.strip().split()
+            print locus, target_locus
             if locus == target_locus:
                 return filename
     msg = 'No fasta file for target locus found!'
@@ -106,7 +108,8 @@ def _align_subreads( subread_fasta, reference_fasta, locus ):
     """
     Align all locus-specific subreads against the appropriate references
     """
-    alignment_file = 'temp.m1'
+    location = os.path.dirname( subread_fasta )
+    alignment_file = os.path.join(location, 'temp.m1')
     subread_count = fasta_size( subread_fasta )
     reference_count = fasta_size( reference_fasta )
     blasr_args = {'nproc': 8,

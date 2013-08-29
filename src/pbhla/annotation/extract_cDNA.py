@@ -48,8 +48,13 @@ def _parse_loci( blasr_file ):
     for entry in BlasrReader( blasr_file ):
         if entry.tname == 'tname':
             continue
+        # Parse the locus from either Tokai or IMGT references
         reference = entry.tname.split('*')[0]
-        locus = reference.split('_')[1]
+        if reference.startswith('HLA-'):
+            locus = reference[-1]
+        else:
+            locus = reference.split('_')[1]
+        # Save the Locus/Sequence pair unless duplicate
         if entry.qname in locus_calls:
             msg = 'Duplicate sequence name found "%s"!' % entry.qname
             log.error( msg )
@@ -82,7 +87,10 @@ def _extract_cDNA( fasta_file, loci, fofn, output ):
         write_fasta( [record], query_path )
         # Find the appropriate Locus and FOFN
         locus = loci[name]
-        exon_fofn = fofn[locus]
+        if locus in fofn:
+            exon_fofn = fofn[locus]
+        else:
+            continue
         # Extract the exons and make the cDNA
         exon_file = extract_all_exons( query_path, exon_fofn )
         cDNA_file = exons_to_cDNA( exon_file )

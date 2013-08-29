@@ -3,7 +3,7 @@ import os, sys, shutil, logging
 
 from pbcore.io.FastaIO import FastaReader 
 from pbphase.clusense import Clusense
-from pbphase.AmpliconAssembler import AmpliconAssembler
+from pbphase.AmpliconAnalyzer import AmpliconAnalyzer
 
 from pbhla.arguments import args, parse_args
 from pbhla.fofn import create_baxh5_fofn
@@ -506,9 +506,9 @@ class HlaPipeline( object ):
 
     def phase_loci_with_amp_assem( self ):
         log.info("Phasing subreads by Locus with Amplicon Assembler")
-        self.amp_assem = os.path.join( self.phasing, 'AmpliconAssembly' )
+        self.amp_assem = os.path.join( self.phasing, 'AmpliconAnalyzer' )
         create_directory( self.amp_assem )
-        assembler = AmpliconAssembler( args.smrt_path, args.nproc )
+        analyzer = AmpliconAnalyzer( args.smrt_path, args.nproc )
         for subread_file in self.renamed_locus_subread_files:
             base_name = os.path.basename(subread_file).split('.')[0]
             parts = base_name.split('_')
@@ -518,41 +518,41 @@ class HlaPipeline( object ):
                 locus_name = '%s_%s' % (parts[0], parts[1])
             output_folder = os.path.join(self.amp_assem, locus_name)
             if os.path.exists( output_folder ):
-                log.info('AmpliconAssembly output detected for "%s", skipping...' % locus_name)
+                log.info('AmpliconAnalyzer output detected for "%s", skipping...' % locus_name)
             else:
                 log.info('Phasing subreads for "%s"' % locus_name)
-                assembler_args = {'whiteList': subread_file,
-                                  'sampleName': locus_name,
-                                  'minLength': args.min_read_length,
-                                  'minReadScore': args.min_read_score}
-                assembler.run( args.input_file, output_folder, assembler_args)
+                analyzer_args = {'whiteList': subread_file,
+                                 'sampleName': locus_name,
+                                 'minLength': args.min_read_length,
+                                 'minReadScore': args.min_read_score}
+                analyzer.run( args.input_file, output_folder, analyzer_args)
         log.info('Finished phasing subreads with Amplicon Assembler\n')
 
     def phase_contigs_with_amp_assem( self ):
         log.info("Phasing subreads by contig with Amplicon Assembler")
-        self.amp_assem = os.path.join( self.phasing, 'AmpliconAssembly' )
+        self.amp_assem = os.path.join( self.phasing, 'AmpliconAnalyzer' )
         create_directory( self.amp_assem )
-        assembler = AmpliconAssembler( args.smrt_path, args.nproc )
+        analyzer = AmpliconAnalyzer( args.smrt_path, args.nproc )
         for subread_file in self.renamed_contig_subread_files:
             folder_name = os.path.basename(subread_file).split('.')[0]
             contig_name = '_'.join( folder_name.split('_')[:2] )
             output_folder = os.path.join(self.amp_assem, folder_name)
             output_file = os.path.join( output_folder, 'amplicon_assembly.fasta' )
             if os.path.exists( output_file ):
-                log.info('AmpliconAssembly output detected for "%s", skipping...' % folder_name)
+                log.info('AmpliconAnalyzer output detected for "%s", skipping...' % folder_name)
             else:
                 log.info('Phasing subreads for "%s"' % folder_name)
-                assembler_args = {'whiteList': subread_file,
-                                  'noClustering': True,
-                                  'sampleName': contig_name,
-                                  'minLength': args.min_read_length,
-                                  'minReadScore': args.min_read_score}
-                assembler.run( args.input_file, output_folder, assembler_args)
+                analyzer_args = {'whiteList': subread_file,
+                                 'noClustering': True,
+                                 'sampleName': contig_name,
+                                 'minLength': args.min_read_length,
+                                 'minReadScore': args.min_read_score}
+                analyzer.run( args.input_file, output_folder, analyzer_args)
         log.info('Finished phasing subreads with Amplicon Assembler\n')
 
     def summarize_amp_assem( self ):
         log.info("Summarizing the output from Amplicon Assembly")
-        output_folder = os.path.join(self.phasing_results, 'AmpliconAssembly')
+        output_folder = os.path.join(self.phasing_results, 'AmpliconAnalyzer')
         self.amp_assem_results = summarize_amp_assem_output( self.amp_assem, 
                                                              output_folder )
         log.info('Finished Phasing subreads with Amplicon Assembly')

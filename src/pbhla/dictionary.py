@@ -1,7 +1,7 @@
 import os, re, csv, logging
 
 from pbcore.io.FastaIO import FastaReader
-from pbhla.io.BlasrIO import BlasrReader, blasr_to_string
+from pbhla.io.BlasrIO import BlasrReader, record_to_string
 from pbhla.io.SamIO import SamReader
 from pbhla.utils import get_base_sequence_name
 
@@ -108,5 +108,5 @@ def filter_m5_file( m5_file, filtered_file ):
     log.info('Selected %s records from %s alignments' % (count, len(selected)))
     with open( filtered_file, 'w' ) as output:
         for record in selected.itervalues():
-            output.write('%s\n' % blasr_to_string( record ))
+            output.write('%s\n' % record_to_string( record ))
     log.info('Finished filtering Blasr results')

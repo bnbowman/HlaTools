@@ -103,13 +103,23 @@ def valid_file( filepath ):
         return True
     return False
 
-def check_output_file(filepath):
+def check_output_file( filepath ):
     if valid_file( filepath ):
         return
     else:
         msg = 'Expected output file not found! "{0}"'.format(filepath)
-        log.info( msg )
+        log.error( msg )
         raise IOError( msg )
+
+def remove_file( filepath ):
+    if os.path.isfile( filepath ):
+        try:
+            os.remove( filepath )
+        except:
+            basename = os.path.basename( filepath )
+            msg = 'Could not delete file! "%s"' % basename
+            log.error( msg )
+            raise IOError( msg )
 
 def is_exe( file_path ):
     if file_path is None:
