@@ -8,8 +8,8 @@ from pbhla.utils import get_base_sequence_name
 
 log = logging.getLogger()
 
-MIN_PCTID = 80.0
-MIN_COUNT = 20
+MIN_PCTID = 40.0
+MIN_COUNT = 10
 
 def summarize_typing( summary_file, gdna_file, cdna_file, output_file ):
     gdna_types = parse_typing( gdna_file )

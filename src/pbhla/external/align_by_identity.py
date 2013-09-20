@@ -1,47 +1,55 @@
 #! /usr/bin/env python
 
-import sys, os, logging
+import sys, os, logging, tempfile
 
 from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbhla.fasta.utils import write_fasta, fasta_size
 from pbhla.external.commandline_tools import run_blasr
 from pbhla.io.BlasrIO import BlasrReader, BlasrWriter
+from pbhla.utils import check_output_file
 
-TMP_FASTA = 'temp.fasta'
-TMP_ALIGN = 'temp.m1'
 NPROC = 4
 
 log = logging.getLogger()
 
-def align_by_identity( query_fasta, reference_fasta, output_file ):
+def align_by_identity( query_fasta, reference_fasta, output=None ):
     """
     Type sequences in a fasta file by finding the closet reference
     """
-    with BlasrWriter( output_file ) as handle:
+    # If output isn't specified, base it on the query
+    if output is None:
+        basename = '.'.join( query_fasta.split('.')[:-1] )
+        output = '%s.m1' % basename
+    # Iterate over each Fasta, aligning individually.
+    with BlasrWriter( output ) as handle:
         handle.writeHeader()
         for record in FastaReader( query_fasta ):
-            write_fasta( record, TMP_FASTA )
-            alignments = _align_fasta( TMP_FASTA, reference_fasta )
+            temp = tempfile.NamedTemporaryFile( suffix='.fasta', delete=False )
+            write_fasta( record, temp.name )
+            alignments = _align_fasta( temp.name, reference_fasta )
             alignments = _sort_alignments( alignments )
             alignments = _filter_alignments( alignments )
             for alignment in alignments:
                 handle.write( alignment )
-            os.remove( TMP_FASTA )
+            os.unlink( temp.name )
+    check_output_file( output )
+    return output
 
 def _align_fasta( query, reference ):
     """
     Align a single query sequence to all valid references
     """
+    temp_align = tempfile.NamedTemporaryFile( suffix='.m1', delete=False )
     reference_count = fasta_size( reference )
     blasr_args = {'nproc': NPROC,
-                  'out': TMP_ALIGN,
+                  'out': temp_align.name,
                   'bestn': reference_count,
                   'nCandidates': reference_count,
                   'noSplitSubreads': True}
     run_blasr( query, reference, blasr_args )
     # Parse the output for return and delete the file
-    alignments = list( BlasrReader( TMP_ALIGN ))
-    os.remove( TMP_ALIGN )
+    alignments = list( BlasrReader( temp_align.name ))
+    os.unlink( temp_align.name )
     return alignments
 
 def _sort_alignments( alignments ):

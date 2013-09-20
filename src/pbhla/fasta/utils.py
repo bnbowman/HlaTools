@@ -2,20 +2,15 @@ import logging
 from string import maketrans
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
-
-from pbhla.utils import make_rand_string, getbash, runbash, valid_file
+from pbhla.utils import check_output_file
 
 COMPLEMENT = maketrans('ACGT', 'TGCA')
 log = logging.getLogger(__name__)
 
-def is_fasta( filename ):
-    if filename.endswith('.fa'):
-        return True
-    elif filename.endswith('.fasta'):
-        return True
-    return False
-
 def reverse_complement( fasta_record ):
+    """
+    Reverse complement a FastaRecord
+    """
     rev_seq = fasta_record.sequence[::-1]
     rev_com_seq = rev_seq.translate( COMPLEMENT )
     return FastaRecord( fasta_record.name,
@@ -35,8 +30,12 @@ def write_fasta( fasta_records, output_file):
             msg = "Input Record(s) type not recognized"
             log.error( msg )
             raise TypeError( msg )
+    check_output_file( output_file )
 
 def fasta_size(fasta):
+    """
+    Count the number of sequences in a Fasta
+    """
     try:
         f = FastaReader(fasta)
         count=0
@@ -47,11 +46,24 @@ def fasta_size(fasta):
 	return None
 
 def fasta_length( fasta ):
+    """
+    Return the maximum sequence length in a Fasta file
+    """
     try:
         f = FastaReader( fasta )
     except:
         return 0
     return max([len(read.sequence) for read in f])
+
+def extract_names( fasta ):
+    """
+    Extract all of the names from a Fasta file
+    """
+    names = []
+    for record in FastaReader( fasta ):
+        name = record.name.split()[0]
+        names.append( name )
+    return names
 
 def extract_sequence(fasta, names):
     f = FastaReader(fasta)
@@ -65,6 +77,11 @@ def extract_sequence(fasta, names):
             if r.name in names:
                 output.append(r)
         return output
+
+def is_fasta( filename ):
+    if filename.endswith('.fa') or filename.endswith('.fasta'):
+        return True
+    return False
 
 def copy_fasta( fasta, destination, name=None ):
     with FastaWriter( destination ) as handle:
@@ -81,3 +98,4 @@ def combine_fasta( fasta_files, destination ):
                     handle.writeRecord( record )
             except:
                 log.warn('Could not open "%s" as Fasta' % fasta)
+    check_output_file( destination )

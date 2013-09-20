@@ -1,16 +1,6 @@
-import os
-import subprocess
-import logging
-import string
-import random
-
-from collections import namedtuple
+import os, logging
 
 log = logging.getLogger()
-
-BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
-BlasrM4 = namedtuple('BlasrM4', 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength mapqv ncells clusterScore probscore numSigClusters')
-BlasrM5 = namedtuple('BlasrM5', 'qname qlength z1 qalength qstrand tname tlength z2 talength tstrand score nmat nmis nins ndel zscore qseq matchvector tseq')
 
 def get_base_sequence_name( name ):
     name = name.split()[0]
@@ -19,6 +9,20 @@ def get_base_sequence_name( name ):
     if name.endswith('_cns'):
         name = name[:-4]
     return name
+
+def get_file_type( filename ):
+    if filename.endswith('.fa') or filename.endswith('.fasta'):
+        return 'fasta'
+    elif filename.endswith('.fq') or filename.endswith('.fastq'):
+        return 'fastq'
+    elif filename.endswith('.fofn'):
+        return 'fofn'
+    elif filename.endswith('.bas.h5') or filename.endswith('.bax.h5'):
+        return 'bas.h5'
+    else:
+        msg = 'File is not of a recognized filetype'
+        log.error( msg )
+        raise TypeError( msg )
 
 def memoize(function):
     cache = {}
@@ -68,22 +72,6 @@ def read_dict_file( dict_file ):
             except:
                 pass
     return dict_contents
-
-def make_rand_string(minlength=6,maxlength=8):  
-    length=random.randint(minlength,maxlength)  
-    letters=string.ascii_letters+string.digits # alphanumeric, upper and lowercase  
-    return ''.join([random.choice(letters) for _ in range(length)]) 
-
-def getbash(cmd):
-    out = subprocess.check_output(cmd, shell=True)
-    return out  #This is the stdout from the shell command
-
-def runbash(cmd):
-    p = subprocess.call(cmd, 
-                        shell=True, 
-                        stdout=subprocess.PIPE, 
-                        stderr=subprocess.PIPE)
-    return p
 
 def cross_ref_dict( query_dict, ref_dict ):
     new_dict = {}

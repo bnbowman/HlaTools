@@ -11,7 +11,8 @@ MAX_COUNT = None
 
 #EXCLUDED = ['DPB2', 'DRB3', 'DRB4', 'DRB5']
 EXCLUDED = ['DPB2']
-SPLIT = ['DPB1', 'DRB1']
+#SPLIT = ['DPB1', 'DRB1']
+SPLIT = []
 
 args = argparse.Namespace()
 

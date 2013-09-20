@@ -524,6 +524,7 @@ class HlaPipeline( object ):
                 analyzer_args = {'whiteList': subread_file,
                                  'sampleName': locus_name,
                                  'minLength': args.min_read_length,
+                                 'noClustering': True,
                                  'minReadScore': args.min_read_score}
                 analyzer.run( args.input_file, output_folder, analyzer_args)
         log.info('Finished phasing subreads with Amplicon Assembler\n')

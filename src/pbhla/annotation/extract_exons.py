@@ -1,10 +1,10 @@
 #! /usr/bin/env python
 
-import sys, os, logging
+import os, logging, tempfile
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
 from pbhla.external.commandline_tools import run_blasr
-from pbhla.utils import check_output_file
+from pbhla.utils import check_output_file, remove_file, read_list_file
 from pbhla.fasta.utils import write_fasta
 from pbhla.io.BlasrIO import BlasrReader
 
@@ -13,23 +13,31 @@ TEMP_FASTA = 'temp.fasta'
 
 log = logging.getLogger()
 
-def extract_all_exons( input_fasta, exon_fofn ):
+def extract_exons( input_file, exon_fofn ):
     """
     Extract all exons from a particular Fasta File into a separate Fasta File
     """
-    fasta_record = list(FastaReader( input_fasta ))[0]
-    output_prefix = _get_output_prefix( input_fasta )
-    output_file = output_prefix + '_exons.fasta'
+    basename = '.'.join( input_file.split('.')[:-1] )
+    output_file = '%s.exons.fasta' % basename
+    fasta_record = _read_fasta_record( input_file )
     with FastaWriter( output_file ) as output:
-        for exon in _extract_exons( fasta_record, exon_fofn, output_prefix ):
+        for exon in _extract_exons( fasta_record, exon_fofn, basename ):
             output.writeRecord( exon )
     return output_file
+
+def _read_fasta_record( input_file ):
+    records = list(FastaReader( input_file ))
+    if len( records ) == 1:
+        return records[0]
+    msg = 'expected a single Fasta, found MultiFasta!'
+    log.error( msg )
+    raise TypeError( msg )
 
 def _extract_exons( fasta_record, exon_fofn, prefix ):
     """
     Extract Fasta Records of each Exon from a Fasta Record
     """
-    for exon_fasta in _parse_fofn( exon_fofn ):
+    for exon_fasta in read_list_file( exon_fofn ):
         exon_num = exon_fasta[-7]
         start, end = _find_exon_position( fasta_record, exon_fasta, prefix )
         if start is None or end is None:
@@ -41,9 +49,10 @@ def _find_exon_position( fasta_record, exon_fasta, prefix ):
     """
     Find the start and end position of a certain Exon in a given Fasta Record
     """
-    write_fasta( [fasta_record], TEMP_FASTA )
-    alignment_file = _align_exons( TEMP_FASTA, exon_fasta, prefix )
-    remove_file( TEMP_FASTA )
+    temp = tempfile.NamedTemporaryFile( suffix='.fasta', delete=False )
+    write_fasta( [fasta_record], temp.name )
+    alignment_file = _align_exons( temp.name, exon_fasta, prefix )
+    os.unlink( temp.name )
     if alignment_file:
         return _parse_exon_location( alignment_file )
     return None, None
@@ -53,7 +62,7 @@ def _align_exons( query_fasta, exon_fasta, prefix ):
     Align all supplied exon sequences to a "Query" Fasta
     """
     exon_num = exon_fasta[-7]
-    alignment_file = '%s_exon%s.m1' % (prefix, exon_num)
+    alignment_file = '%s.exon%s.m1' % (prefix, exon_num)
     log.info('Attempting')
     blasr_args = {'nproc': NPROC,
                   'out': alignment_file,
@@ -88,14 +97,6 @@ def _extract_exon_sequence( fasta, exon_num, start, end ):
 
 ### Utilities ###
 
-def _get_output_prefix( filename ):
-    return '.'.join( filename.split('.')[:-1] )
-
-def _parse_fofn( exon_fofn ):
-    with open(exon_fofn, 'r') as handle:
-        for line in handle:
-            yield line.strip()
-
 def count_hits( filename ):
     count = 0
     with open(filename, 'r') as handle:
@@ -103,16 +104,11 @@ def count_hits( filename ):
             count += 1
     return count
 
-def remove_file( filename ):
-    try:
-        os.remove( filename )
-    except:
-        pass
-
 if __name__ == '__main__':
+    import sys
+    logging.basicConfig( stream=sys.stdout, level=logging.INFO )
+
     input_fasta = sys.argv[1]
     exon_fofn = sys.argv[2]
-
-    logging.basicConfig( stream=sys.stdout, level=logging.INFO )
 
     extract_all_exons( input_fasta, exon_fofn )
