@@ -23,7 +23,7 @@ def reverse_complement( record, length ):
                        Coverage      = record.Coverage,
                        HetScore      = record.HetScore)
 
-def rev_comp_amp_analysis( input_file, alignment_file, output_file=None ):
+def orient_amp_analysis( input_file, alignment_file, output_file=None ):
     """
     Reverse-complement, re-sort and output AmpliconAnalysis records
     """

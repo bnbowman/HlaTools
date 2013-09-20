@@ -5,6 +5,7 @@ import os, logging
 from pbhla.external.utils import full_align_best_reference, align_best_reference
 from pbhla.external.align_by_identity import align_by_identity
 from pbhla.utilities.orient_sequences import orient_sequences
+
 from pbhla.annotation.extract_alleles import extract_alleles
 from pbhla.annotation.extract_cDNA import extract_cDNA
 from pbhla.annotation.summarize_typing import summarize_typing
@@ -15,7 +16,7 @@ from pbhla.annotation.summarize_alleles import summarize_alleles
 
 log = logging.getLogger()
 
-def type_fasta( input_fofn, input_file, exon_fofn, genomic_reference, cDNA_reference ):
+def type_sequences( input_fofn, input_file, exon_fofn, genomic_reference, cDNA_reference ):
     """
     Pick the top N Amplicon Analysis consensus seqs from a Fasta by Nreads
     """
@@ -49,4 +50,4 @@ if __name__ == '__main__':
     genomic_reference = sys.argv[4]
     cDNA_reference = sys.argv[5]
     
-    type_fasta( input_fofn, input_file,  exon_fofn, genomic_reference, cDNA_reference )
+    type_sequences( input_fofn, input_file,  exon_fofn, genomic_reference, cDNA_reference )
