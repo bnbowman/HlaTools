@@ -27,7 +27,10 @@ class BlasrReader( ReaderBase ):
     def __iter__(self):
         try:
             for line in self.file:
-                yield self.datatype._make( line.strip().split() )
+                entry = self.datatype._make( line.strip().split() )
+                if entry.qname == 'qname':
+                    continue
+                yield entry
         except:
             raise ValueError("Invalid Blasr entry of type %s" % self.filetype)
 

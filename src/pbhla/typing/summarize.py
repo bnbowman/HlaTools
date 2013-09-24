@@ -3,7 +3,7 @@
 import os, logging
 
 from pbhla.io.BlasrIO import BlasrReader
-from pbhla.annotation.HlaType import HlaType
+from pbhla.typing.HlaTypes import HlaType
 
 log = logging.getLogger()
 

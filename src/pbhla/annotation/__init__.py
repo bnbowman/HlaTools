@@ -27,3 +27,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #################################################################################
+
+# Author: Brett Bowman
+
+__VERSION__ = "0.3.0"

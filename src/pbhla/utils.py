@@ -1,6 +1,21 @@
 import os, logging
 
+from pbhla.io.BlasrIO import BlasrReader
+
 log = logging.getLogger()
+
+def is_fasta( filename ):
+    if filename.endswith('.fasta') or filename.endswith('.fa'):
+        return True
+    return False
+
+def is_fastq( filename ):
+    if filename.endswith('.fastq') or filename.endswith('.fq'):
+        return True
+    return False
+
+def count_hits( filename ):
+    return len( list( BlasrReader( filename )))
 
 def get_base_sequence_name( name ):
     name = name.split()[0]

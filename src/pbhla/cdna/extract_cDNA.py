@@ -5,10 +5,10 @@ import os, logging
 from pbcore.io.FastaIO import FastaReader, FastaRecord
 from pbcore.io.FastqIO import FastqReader, FastqRecord
 from pbhla.io.BlasrIO import BlasrReader
-from pbhla.fasta.utils import write_fasta, combine_fasta
+from pbhla.cdna.extract_exons import extract_exons
+from pbhla.cdna.exons_to_cDNA import exons_to_cDNA
+from pbhla.sequences.utils import combine_sequences, write_sequences
 from pbhla.utils import check_output_file, create_directory, get_file_type
-from pbhla.annotation.extract_exons import extract_exons
-from pbhla.annotation.exons_to_cDNA import exons_to_cDNA
 
 log = logging.getLogger()
 
@@ -98,31 +98,24 @@ def _parse_input_records( input_file ):
         msg = 'Input file must be either Fasta or Fastq'
         log.error( msg )
 
-def _extract_cDNA( records, loci, fofn, output ):
+def _extract_cDNA( records, loci, fofn, directory ):
     """
     Extract and create a cDNA record for each Fasta Sequence
     """
     for record in records:
-        # Create a directory for each sequence
+        # Create an output folder for each record to process
         name = record.name.split()[0]
-        record_dir = os.path.join( output, name )
-        create_directory( record_dir )
-        # Write out each sequence individually 
-        query_file = "%s.fasta" % name
-        query_path = os.path.join( record_dir, query_file )
-        if isinstance(record, FastaRecord):
-            write_fasta( [record], query_path )
-        elif isinstance(record, FastqRecord):
-            temp = FastaRecord( record.name, record.sequence )
-            write_fasta( [temp], query_path )
+        record_directory = os.path.join( directory, name )
+        create_directory( record_directory )
         # Find the appropriate Locus and FOFN
         locus = loci[name]
         if locus in fofn:
             exon_fofn = fofn[locus]
         else:
-            continue
+            msg = 'No exonic reference for %s' % locus
+            log.warn( msg )
         # Extract the exons and make the cDNA
-        exon_file = extract_exons( query_path, exon_fofn )
+        exon_file = extract_exons( record, exon_fofn, record_directory )
         cDNA_file = exons_to_cDNA( exon_file )
 
 def _collect_cDNA( folder, output_file ):
@@ -134,10 +127,10 @@ def _collect_cDNA( folder, output_file ):
         entry_path = os.path.join( folder, entry )
         if os.path.isdir( entry_path ):
             for filename in os.listdir( entry_path ):
-                if filename.endswith( '.cDNA.fasta' ):
+                if filename.endswith('cDNA.fasta') or filename.endswith('cDNA.fastq'):
                     filepath = os.path.join( entry_path, filename )
                     cDNA_files.append( filepath )
-    combine_fasta( cDNA_files, output_file )
+    combine_sequences( cDNA_files, output_file )
     check_output_file( output_file )
 
 if __name__ == '__main__':
