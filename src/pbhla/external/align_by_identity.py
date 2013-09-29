@@ -3,7 +3,8 @@
 import sys, os, logging, tempfile
 
 from pbcore.io.FastaIO import FastaReader, FastaWriter
-from pbhla.fasta.utils import write_fasta, fasta_size
+from pbhla.fasta.utils import fasta_size, write_temp_fasta
+from pbhla.sequences.utils import read_sequences
 from pbhla.external.commandline_tools import run_blasr
 from pbhla.io.BlasrIO import BlasrReader, BlasrWriter
 from pbhla.utils import check_output_file
@@ -12,20 +13,19 @@ NPROC = 4
 
 log = logging.getLogger()
 
-def align_by_identity( query_fasta, reference_fasta, output=None ):
+def align_by_identity( query, reference_fasta, output=None ):
     """
     Type sequences in a fasta file by finding the closet reference
     """
     # If output isn't specified, base it on the query
     if output is None:
-        basename = '.'.join( query_fasta.split('.')[:-1] )
+        basename = '.'.join( query.split('.')[:-1] )
         output = '%s.m1' % basename
     # Iterate over each Fasta, aligning individually.
     with BlasrWriter( output ) as handle:
         handle.writeHeader()
-        for record in FastaReader( query_fasta ):
-            temp = tempfile.NamedTemporaryFile( suffix='.fasta', delete=False )
-            write_fasta( record, temp.name )
+        for record in read_sequences( query ):
+            temp = write_temp_fasta( record )
             alignments = _align_fasta( temp.name, reference_fasta )
             alignments = _sort_alignments( alignments )
             alignments = _filter_alignments( alignments )

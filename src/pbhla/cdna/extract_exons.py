@@ -139,8 +139,6 @@ def _extract_exon_record( record, exon_num, start, end ):
     """
     Create an Exon record from its coordinates and a Fasta
     """
-    print record.name, exon_num, start, end
-    print type(record)
     exon_name = '%s_exon%s' % (record.name, exon_num)
     exon_sequence = record.sequence[start:end]
     if isinstance( record, FastaRecord ):

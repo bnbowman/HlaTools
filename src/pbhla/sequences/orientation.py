@@ -7,26 +7,22 @@ from pbcore.io.FastqIO import FastqReader, FastqWriter
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utilities.reverse_complement import reverse_complement
 from pbhla.fasta.utils import write_fasta
-from pbhla.external.utils import align_best_reference
-from pbhla.utils import get_file_type, check_output_file
+from pbhla.external.utils import get_alignment_file
+from pbhla.utils import get_file_type, check_output_file, valid_file
 
 log = logging.getLogger()
 
-def orient_sequences( input_file, output_file=None, reference_file=None, alignment_file=None):
+def orient_sequences( input_file, reference_file=None, alignment_file=None, output_file=None ):
     """
     Reorient a fasta file so all sequences are in the same direction as their reference
     """
-    # Check the input files, and align the input file if needed
-    if reference_file and alignment_file is None:
-        alignment_file = align_best_reference( input_file, reference_file )
-    elif reference_file is None and alignment_file is None:
-        msg = "orient_sequences requires either an Alignment or a Reference!"
-        log.error( msg )
-        raise IOError( msg )
     # Set the output file and type
     output_file = output_file or _get_output_file( input_file )
     output_type = _get_output_type( output_file )
-    # Identify and reverse the sequences
+    if valid_file( output_file ):
+        return output_file
+    # Check the input files, and align the input file if needed
+    alignment_file = get_alignment_file( input_file, reference_file, alignment_file )
     reversed_seqs = _identify_reversed_sequences( alignment_file )
     input_records = _parse_input_records( input_file )
     reversed_records = _reverse_records( input_records, reversed_seqs )
@@ -99,7 +95,8 @@ def _write_output( records, output_file, output_type ):
         with FastqWriter( output_file ) as writer:
             for record in records:
                 writer.writeRecord( record )
-        check_output_file( output_file )
+    check_output_file( output_file )
+    return output_file
 
 if __name__ == '__main__':
     import sys

@@ -105,15 +105,19 @@ def _extract_cDNA( records, loci, fofn, directory ):
     for record in records:
         # Create an output folder for each record to process
         name = record.name.split()[0]
+        try:
+            locus = loci[name]
+        except:
+            log.warn( 'No HLA locus associated with "%s" - skipping' % name )
+            continue
+        # Create a directory 
         record_directory = os.path.join( directory, name )
         create_directory( record_directory )
         # Find the appropriate Locus and FOFN
-        locus = loci[name]
         if locus in fofn:
             exon_fofn = fofn[locus]
         else:
-            msg = 'No exonic reference for %s' % locus
-            log.warn( msg )
+            log.warn( 'No exonic reference for %s' % locus )
         # Extract the exons and make the cDNA
         exon_file = extract_exons( record, exon_fofn, record_directory )
         cDNA_file = exons_to_cDNA( exon_file )
