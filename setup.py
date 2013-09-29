@@ -25,6 +25,6 @@ setup(
         "PhasingTools >= 0.1.0",
         "pbcore >= 0.6.3",
         "pypeflow >= 0.1.1",
-        "pbtools.pbdagcon >= 0.2.3",
-        "pbtools.pbh5tools >= 0.75.0"]
-    )
+        "pbtools.pbdagcon >= 0.2.3"
+    ]
+)
