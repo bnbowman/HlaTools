@@ -22,7 +22,6 @@ def exons_to_cDNA( exon_file ):
         write_sequences( cDNA_record, output_file )
 
 def _parse_exon_records( exon_file, output_type ):
-    print exon_file, output_type
     if output_type == 'fasta':
         return list( FastaReader( exon_file ))
     elif output_type == 'fastq':

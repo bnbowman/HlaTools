@@ -6,7 +6,7 @@ from operator import itemgetter
 from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbcore.io.FastqIO import FastqReader, FastqWriter
 from pbhla.fasta.utils import fasta_size, write_fasta
-from pbhla.external.utils import align_best_reference
+from pbhla.external.utils import get_alignment_file
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utils import get_file_type, check_output_file
 
@@ -18,13 +18,7 @@ def extract_alleles( input_file, output_file=None, reference_file=None, alignmen
     """
     Pick the top N Amplicon Analysis consensus seqs from a Fasta by Nreads
     """
-    # Check the input files, and align the input file if needed
-    if reference_file and alignment_file is None:
-        alignment_file = align_best_reference( input_file, reference_file )
-    elif reference_file is None and alignment_file is None:
-        msg = "extract_alleles requires either an Alignment or a Reference!"
-        log.error( msg )
-        raise IOError( msg )
+    alignment_file = get_alignment_file( input_file, reference_file, alignment_file )
     # Set the output file if not specified
     output_file = output_file or _get_output_file( input_file )
     output_type = get_file_type( output_file )
@@ -37,11 +31,6 @@ def extract_alleles( input_file, output_file=None, reference_file=None, alignmen
     subset = list( _subset_sequences( sequences, selected ))
     _write_output( subset, output_file, output_type )
     return output_file
-
-def _get_output_file( input_file ):
-    basename = '.'.join( input_file.split('.')[:-1] )
-    file_type = get_file_type( input_file )
-    return '%s.selected.%s' % (basename, file_type)
 
 def _group_by_locus( alignments ):
     """
@@ -130,6 +119,11 @@ def _write_output( records, output_file, output_type ):
             for record in records:
                 writer.writeRecord( record )
         check_output_file( output_file )
+
+def _get_output_file( input_file ):
+    basename = '.'.join( input_file.split('.')[:-1] )
+    file_type = get_file_type( input_file )
+    return '%s.selected.%s' % (basename, file_type)
 
 if __name__ == '__main__':
     import sys

@@ -30,7 +30,7 @@ def orient_amp_analysis( input_file, alignment_file, output_file=None ):
     output_file = output_file or _get_output_file( input_file, 'oriented' )
     lengths = read_amp_analysis_lengths( input_file )
     orientations = OrientationReader( alignment_file )
-    records = rev_comp_amp_analysis_records( input_file, lengths )
+    records = rev_comp_amp_analysis_records( input_file, orientations, lengths )
     # Re-sort and output the AA records now that they're in the correct orientation
     records = sorted(records, key=lambda x: int(x.Position))
     records = sorted(records, key=lambda x: x.FastaName)
@@ -38,6 +38,7 @@ def orient_amp_analysis( input_file, alignment_file, output_file=None ):
         writer.write_header()
         for record in records:
             writer.write_record( record )
+    return output_file
 
 def subset_amp_analysis( input_file, whitelist_file, output_file=None ):
     """
@@ -50,6 +51,7 @@ def subset_amp_analysis( input_file, whitelist_file, output_file=None ):
         for record in AmpAnalysisReader( input_file ):
             if record.FastaName in white_list:
                 writer.write_record( record )
+    return output_file
 
 def read_amp_analysis_lengths( input_file ):
     """
@@ -63,15 +65,18 @@ def read_amp_analysis_lengths( input_file ):
             lengths[record.FastaName] = int(record.Position)
     return lengths
 
-def rev_comp_amp_analysis_records( input_file, lengths ):
+def rev_comp_amp_analysis_records( input_file, orientations, lengths ):
     """
     Read the records from an AmpliconAnalysis file, reverse-complementing as needed
     """
     records = []
     for record in AmpAnalysisReader( input_file ):
-        if orientations.is_reverse( record.FastaName ):
-            records.append( reverse_complement( record, lengths[record.FastaName] ))
-        else:
+        try:
+            if orientations.is_reverse( record.FastaName ):
+                records.append( reverse_complement( record, lengths[record.FastaName] ))
+            else:
+                records.append( record )
+        except:
             records.append( record )
     return records
 

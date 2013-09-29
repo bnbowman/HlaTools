@@ -133,11 +133,11 @@ def _write_type_summary( summaries, output ):
             if summary['Notes']:
                 summary['Notes'] = '"%s"' % summary['Notes']
             handle.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (summary['Sequence'],
-                                                                   summary['gDNA_Type'],
+                                                                   str(summary['gDNA_Type']).ljust(17),
                                                                    summary['gDNA_PctId'],
                                                                    summary['gDNA_Mismatch'],
                                                                    summary['gDNA_Indel'],
-                                                                   summary['cDNA_Type'],
+                                                                   str(summary['cDNA_Type']).ljust(14),
                                                                    summary['cDNA_PctId'],
                                                                    summary['Type'],
                                                                    summary['Notes']))

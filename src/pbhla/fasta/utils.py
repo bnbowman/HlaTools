@@ -1,11 +1,28 @@
-import logging
+import logging, tempfile
 from string import maketrans
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
+from pbcore.io.FastqIO import FastqRecord
 from pbhla.utils import check_output_file
 
 COMPLEMENT = maketrans('ACGT', 'TGCA')
 log = logging.getLogger(__name__)
+
+def write_temp_fasta( record ):
+    """
+    Write a temporary Fasta file
+    """
+    temp = tempfile.NamedTemporaryFile( suffix='.fasta', delete=False )
+    if isinstance( record, FastaRecord ):
+        write_fasta( record, temp.name )
+    elif isinstance( record, FastqRecord ):
+        fasta = FastaRecord( record.name, record.sequence )
+        write_fasta( fasta, temp.name )
+    else:
+        msg = 'Sequence record must be either Fasta or Fastq'
+        log.error( msg )
+        raise TypeError( msg )
+    return temp
 
 def reverse_complement( fasta_record ):
     """

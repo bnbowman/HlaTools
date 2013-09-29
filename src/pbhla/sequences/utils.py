@@ -43,7 +43,6 @@ def write_fastq( records, output_file ):
     """
     with FastqWriter( output_file ) as handle:
         for record in records:
-            print record
             assert isinstance( record, FastqRecord )
             handle.writeRecord( record )
     check_output_file( output_file )
@@ -91,3 +90,16 @@ def combine_fastq( sequence_files, output_file ):
                 log.warn('Could not open "%s" as Fastq' % fasta)
     check_output_file( output_file )
     return output_file
+
+def read_sequences( sequence_file ):
+    """
+    Parse a list of records from either a Fasta or Fastq file
+    """
+    if is_fasta( sequence_file ):
+        return list( FastaReader( sequence_file ))
+    elif is_fastq( sequence_file ):
+        return list( FastqReader( sequence_file ))
+    else:
+        msg = 'Sequence file must be either Fasta or Fastq'
+        log.error( msg )
+        raise TypeError( msg )
