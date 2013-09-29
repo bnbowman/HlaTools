@@ -2,7 +2,6 @@
 
 from pbcore.io.base import (getFileHandle,
                             WriterBase)
-from pbcore.io._utils import splitFileContents
 
 __author__ = 'bbowman@pacificbiosciences.com'
 
@@ -168,10 +167,10 @@ class AmpliconAnalysisSequenceReader(object):
         """
         while True:
             if self.filename.endswith('.fa') or self.filename.endswith('.fasta'):
-                parts = splitFileContents(self.file, ">")
-                assert "" == next(parts)
-                for part in parts:
-                    yield AmpliconAnalysisSequenceRecord.fasta_from_string(">" + part)
+                for part in self.file.read().split(">"):
+                    if part.strip():
+                        yield AmpliconAnalysisSequenceRecord.fasta_from_string(">" + part)
+                break
             elif self.filename.endswith('.fq') or self.filename.endswith('.fastq'):
                 lines = [next(self.file) for i in xrange(4)]
                 yield AmpliconAnalysisSequenceRecord(lines[0][1:],

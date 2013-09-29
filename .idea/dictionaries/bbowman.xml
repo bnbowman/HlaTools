@@ -2,6 +2,11 @@
   <dictionary name="bbowman">
     <words>
       <w>amplicon</w>
+      <w>delim</w>
+      <w>fasta</w>
+      <w>fastq</w>
+      <w>filelike</w>
+      <w>iter</w>
       <w>pbcore</w>
       <w>pbdagcon</w>
       <w>pbtools</w>

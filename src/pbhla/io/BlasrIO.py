@@ -2,9 +2,14 @@ from collections import namedtuple
 
 from pbcore.io.base import ReaderBase, WriterBase, getFileHandle
 
-BlasrM1 = namedtuple('BlasrM1', 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells')
-BlasrM4 = namedtuple('BlasrM4', 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength mapqv ncells clusterScore probscore numSigClusters')
-BlasrM5 = namedtuple('BlasrM5', 'qname qlength qstart qend qstrand tname tlength tstart tend tstrand score nmat nmis nins ndel mapqv qstring astring tstring')
+blasr_m1_spec = 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells'
+blasr_m4_spec = 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength' + \
+                'mapqv ncells clusterScore probscore numSigClusters'
+blasr_m5_spec = 'qname qlength qstart qend qstrand tname tlength tstart tend tstrand score nmat nmis nins ndel' + \
+                'mapqv qstring astring tstring'
+BlasrM1 = namedtuple('BlasrM1', blasr_m1_spec)
+BlasrM4 = namedtuple('BlasrM4', blasr_m4_spec)
+BlasrM5 = namedtuple('BlasrM5', blasr_m5_spec)
 
 class BlasrReader( ReaderBase ):
 
