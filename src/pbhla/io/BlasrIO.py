@@ -3,9 +3,9 @@ from collections import namedtuple
 from pbcore.io.base import ReaderBase, WriterBase, getFileHandle
 
 blasr_m1_spec = 'qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells'
-blasr_m4_spec = 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength' + \
+blasr_m4_spec = 'qname tname score pctsimilarity qstrand qstart qend qseqlength tstrand tstart tend tseqlength ' + \
                 'mapqv ncells clusterScore probscore numSigClusters'
-blasr_m5_spec = 'qname qlength qstart qend qstrand tname tlength tstart tend tstrand score nmat nmis nins ndel' + \
+blasr_m5_spec = 'qname qlength qstart qend qstrand tname tlength tstart tend tstrand score nmat nmis nins ndel ' + \
                 'mapqv qstring astring tstring'
 BlasrM1 = namedtuple('BlasrM1', blasr_m1_spec)
 BlasrM4 = namedtuple('BlasrM4', blasr_m4_spec)
@@ -14,25 +14,25 @@ BlasrM5 = namedtuple('BlasrM5', blasr_m5_spec)
 class BlasrReader( ReaderBase ):
 
     def __init__(self, f, filetype=None):
-        self.file = getFileHandle(f, 'r')
+        self._file = getFileHandle(f, 'r')
 
         filetype = filetype or f.split('.')[-1]
         if filetype.lower() == 'm1':
-            self.filetype = 'm1'
-            self.datatype = BlasrM1
+            self._filetype = 'm1'
+            self._datatype = BlasrM1
         elif filetype.lower() == 'm4':
-            self.filetype = 'm4'
-            self.datatype = BlasrM4
+            self._filetype = 'm4'
+            self._datatype = BlasrM4
         elif filetype.lower() == 'm5':
-            self.filetype = 'm5'
-            self.datatype = BlasrM5
+            self._filetype = 'm5'
+            self._datatype = BlasrM5
         else:
             raise TypeError("Invalid type to BlasrReader")
 
     def __iter__(self):
         try:
-            for line in self.file:
-                entry = self.datatype._make( line.strip().split() )
+            for line in self._file:
+                entry = self._datatype._make(line.strip().split())
                 if entry.qname == 'qname':
                     continue
                 yield entry
