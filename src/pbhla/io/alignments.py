@@ -2,6 +2,8 @@
 
 __author__ = 'bbowman@pacificbiosciences.com'
 
+import re
+
 from pbcore.io.FastaIO import FastaReader
 from pbhla.io.BlasrIO import BlasrM5
 
@@ -18,7 +20,12 @@ class FastaAlignment(object):
             self._records = list(FastaReader(filename))
             self._names = [r.name for r in self._records]
             self._sequences = [r.sequence for r in self._records]
-            assert all([len(s) == len(self._sequences[0]) for s in self._sequences])
+            assert all([len(s) == len(self._sequences[0])
+                        for s in self._sequences])
+            self._start = max([len(re.search('^-*', s).group(0))
+                               for s in self._sequences])
+            self._end = min([self.size-len(re.search('-*$', s).group(0))-1
+                             for s in self._sequences])
             self._differences = self._find_differences()
         except:
             raise ValueError("Invalid Fasta alignment data")
@@ -38,6 +45,18 @@ class FastaAlignment(object):
     def differences(self):
         return self._differences
 
+    @property
+    def start(self):
+        return self._start
+
+    @property
+    def end(self):
+        return self._end
+
+    @property
+    def size(self):
+        return len(self._sequences[0])
+
     def __len__(self):
         return len(self.sequences)
 
@@ -48,7 +67,7 @@ class FastaAlignment(object):
             return self.sequences[item]
         if isinstance(item, str):
             if item not in self.names:
-                raise KeyError("")
+                raise KeyError("The sequence (%s) is not in the alignment" % item)
             return self.sequences[self.names.index(item)]
         elif isinstance(item, slice):
             start, stop, step = item.indices(len(self))
@@ -62,9 +81,11 @@ class FastaAlignment(object):
 
     def __str__(self):
         retval = ''
-        for i in range(0, len(self), self.COLUMNS):
+        name_length = max([len(n) for n in self.names])
+        for i in range(0, self.size, self.COLUMNS):
             for n, s in zip(self.names, self.sequences):
-                retval += '%s %s\n' % (n, s[i:i+self.COLUMNS])
+                retval += '%s %s\n' % (n.ljust(name_length),
+                                       s[i:i+self.COLUMNS])
             retval += '\n'
         return retval
 
@@ -137,3 +158,8 @@ if __name__ == '__main__':
     import sys
 
     a = FastaAlignment(sys.argv[1])
+    print a
+    print a.start
+    print a.end
+    print a.differences
+    print a.size
