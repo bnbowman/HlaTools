@@ -11,7 +11,7 @@ def rename_fofn( input_fofn, output_fofn, name_key ):
     """
     Rename a FOFN of subread files
     """
-    with open( output_fofn, 'r' ) as writer:
+    with open( output_fofn, 'w' ) as writer:
         with open( input_fofn, 'r' ) as handle:
             for line in handle:
                 filename = line.strip()

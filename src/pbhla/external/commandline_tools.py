@@ -18,7 +18,7 @@ def run_muscle( args ):
     execute_command( command_args )
 
 def create_muscle_command( args ):
-    log.info("Converting supplied arguments into a Blasr commandline")
+    log.debug("Converting supplied arguments into a Blasr commandline")
     command_args = ['muscle']
     for arg, value in args.iteritems():
         arg = '-' + str(arg)
@@ -29,7 +29,7 @@ def create_muscle_command( args ):
     return command_args
 
 def create_blasr_command(query, reference, args):
-    log.info("Converting supplied arguments into a Blasr commandline")
+    log.debug("Converting supplied arguments into a Blasr commandline")
     command_args = ['blasr', query, reference]
     for arg, value in args.iteritems():
         arg = '-' + str(arg)
@@ -42,12 +42,12 @@ def create_blasr_command(query, reference, args):
 def log_command( args ):
     args = list( args )
     command = args.pop(0).capitalize()
-    log.info('Executing "%s" with the following options:' % command)
+    log.debug('Executing "%s" with the following options:' % command)
 
     # Log any positional arguments
     while not args[0].startswith('-'):
         arg = args.pop(0)
-        log.info('\tArgument: %s' % arg)
+        log.debug('\tArgument: %s' % arg)
 
     # Log any remaining options
     while True:
@@ -57,13 +57,13 @@ def log_command( args ):
         while len(args) and not args[0].startswith('-'):
             part = args.pop(0)
             option_parts.append( part )
-        log.info('\tOption: "%s"' % ' '.join(option_parts))
+        log.debug('\tOption: "%s"' % ' '.join(option_parts))
 
 def execute_command( command_args ):
     command = command_args[0].capitalize()
-    log.info('Executing "%s" command as subprocess' % command)
+    log.debug('Executing "%s" command as subprocess' % command)
     with open('/dev/null', 'w') as handle:
         subprocess.check_call( command_args, 
                                stdout=handle, 
                                stderr=subprocess.STDOUT )
-    log.info("Subprocess finished successfully")
+    log.debug("Subprocess finished successfully")

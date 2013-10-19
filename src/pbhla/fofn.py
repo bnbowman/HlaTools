@@ -4,6 +4,18 @@ from pbhla.utils import write_list_file
 
 log = logging.getLogger()
 
+def write_sequence_fofn( file_list, fofn_file ):
+    """
+    Write the locations of a series of sequence files to a FOFN, excluding those unmapped
+    """
+    with open( fofn_file, 'w' ) as handle:
+        print file_list
+        for filename in file_list:
+            if filename.endswith('Unmapped.fasta'):
+                continue
+            handle.write( filename + '\n' )
+    return fofn_file
+
 def create_baxh5_fofn( input_file, output_file ):
     if input_file.endswith('.fofn'):
         baxh5_files = _parse_fofn( input_file )

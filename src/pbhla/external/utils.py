@@ -3,7 +3,7 @@ import logging
 from pbhla.arguments import args, NUM_PROC
 from pbhla.external.commandline_tools import run_blasr, run_muscle
 from pbhla.fasta.utils import fasta_size
-from pbhla.utils import check_output_file, remove_file
+from pbhla.utils import check_output_file, remove_file, valid_file
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,6 @@ def _get_output_file(query, output, suffix):
     remove_file(output)
     return output
 
-
 def get_alignment_file(query, reference, alignment):
     """
     Stuff
@@ -34,7 +33,6 @@ def get_alignment_file(query, reference, alignment):
     msg = 'Must specify either a Reference or Alignment file'
     log.error(msg)
     raise ValueError(msg)
-
 
 def align_best_reference(query, reference, output=None):
     """
@@ -48,11 +46,13 @@ def align_best_reference(query, reference, output=None):
                   'bestn': 1,
                   'nCandidates': ref_count,
                   'noSplitSubreads': True}
+    if reference_has_index( reference ):
+        blasr_args['sa'] = reference + '.sa'
     run_blasr(query, reference, blasr_args)
     # Check the output file
-    check_output_file(output)
-    return output
-
+    if valid_file( output ):
+        return output
+    return None
 
 def full_align_best_reference(query, reference, output=None):
     """
@@ -68,11 +68,18 @@ def full_align_best_reference(query, reference, output=None):
                   'bestn': 1,
                   'nCandidates': ref_count,
                   'noSplitSubreads': True}
+    if reference_has_index( reference ):
+        blasr_args['sa'] = reference + '.sa'
     run_blasr(query, reference, blasr_args)
     # Check the output file
     check_output_file(output)
     return output
 
+def reference_has_index( reference ):
+    index_file = reference + '.sa'
+    if valid_file( index_file ):
+        return index_file
+    return False
 
 def multi_sequence_alignment(input_file, output=None):
     """

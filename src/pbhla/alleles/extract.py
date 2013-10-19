@@ -11,10 +11,10 @@ from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utils import get_file_type, check_output_file
 
 NPROC = 6
-
+LOCI = ['A', 'B', 'C']
 log = logging.getLogger()
 
-def extract_alleles( input_file, output_file=None, reference_file=None, alignment_file=None ):
+def extract_alleles( input_file, output_file=None, reference_file=None, alignment_file=None, loci=LOCI ):
     """
     Pick the top N Amplicon Analysis consensus seqs from a Fasta by Nreads
     """
@@ -24,7 +24,7 @@ def extract_alleles( input_file, output_file=None, reference_file=None, alignmen
     output_type = get_file_type( output_file )
     # Parse the alignment data and extract the target sequences
     alignments = list( BlasrReader( alignment_file ))
-    groups = _group_by_locus( alignments )
+    groups = _group_by_locus( alignments, loci )
     ordered = _sort_groups( groups )
     selected = list( _select_sequences( ordered ))
     sequences = _parse_input_records( input_file )
@@ -32,19 +32,21 @@ def extract_alleles( input_file, output_file=None, reference_file=None, alignmen
     _write_output( subset, output_file, output_type )
     return output_file
 
-def _group_by_locus( alignments ):
+def _group_by_locus( alignments, loci ):
     """
     Group reads by the locus of their best alignment
     """
-    loci = {}
+    groups = {}
     for record in alignments:
         reference = record.tname.split('*')[0]
         locus = reference.split('_')[-1]
+        if locus not in loci:
+            continue
         try:
-            loci[locus].append( record )
+            groups[locus].append( record )
         except:
-            loci[locus] = [record]
-    return loci
+            groups[locus] = [record]
+    return groups
 
 def _sort_groups( groups ):
     """
@@ -62,6 +64,7 @@ def _sort_group( group ):
     # Internal function for simplicity
     def record_size( record ):
         return int( record.qname.split('NumReads')[-1] )
+
     # Count, sort and return
     counts = {record: record_size(record) for record in group}
     tuples = sorted( counts.iteritems(), key=itemgetter(1), reverse=True )

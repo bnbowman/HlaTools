@@ -5,25 +5,23 @@ import os, sys, random, logging
 from pbcore.io.BasH5Reader import BasH5Reader
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
 
-MIN_LENGTH = 3000
-MIN_SCORE = 0.8
-MAX_COUNT = None
-
 random.seed(42)
 log = logging.getLogger(__name__)
 
 def extract_subreads(input_file, 
                      output_file,
-                     min_length=MIN_LENGTH, 
-                     min_score=MIN_SCORE, 
-                     white_list=None, 
-                     max_count=MAX_COUNT):
+                     min_length,
+                     min_score,
+                     min_snr,
+                     max_count,
+                     white_list=None):
     """
     Extract, filter and subset subreads from Bas/Bax/Fofn Files
     """
     log.info('Extracting subreads from %s' % os.path.basename(input_file))
     log.debug('\tMinimum Length:\t%s' % min_length)
     log.debug('\tMinimum Score:\t%s' % min_score)
+    log.debug('\tMinimum SNR:\t%s' % min_snr)
     log.debug('\tMax Count:\t%s' % max_count)
     log.debug('\tWhitelisted ZMWs:\t%s' % white_list)
 
@@ -33,7 +31,7 @@ def extract_subreads(input_file,
     subreads = []
     for i, filename in enumerate(_iterate_input_files( input_file )):
         if filename.endswith('.bas.h5') or filename.endswith('bax.h5'):
-            subreads += _extract_from_bash5( filename, min_length, min_score, white_list )
+            subreads += _extract_from_bash5( filename, min_length, min_score, min_snr, white_list )
         elif filename.endswith('.fa') or filename.endswith('.fasta'):
             subreads += _extract_from_fasta( filename, min_length )
     log.info("Extracted %s subreads from %s files" % (len(subreads), i+1))
@@ -46,6 +44,7 @@ def extract_subreads(input_file,
             writer.writeRecord( record )
 
     log.info("Finished extracting subreads")
+    return output_file
 
 def _parse_white_list( white_list ):
     if white_list.endswith('.fasta') or white_list.endswith('.fa'):
@@ -79,7 +78,7 @@ def _iterate_input_files( input_file ):
         log.info( msg )
         raise TypeError( msg )
 
-def _extract_from_bash5( bash5_file, min_length, min_score, white_list ):
+def _extract_from_bash5( bash5_file, min_length, min_score, min_snr, white_list ):
     """
     Extract filtered subreads from a BasH5 or BaxH5 file
     """
@@ -92,6 +91,8 @@ def _extract_from_bash5( bash5_file, min_length, min_score, white_list ):
         if white_list and zmwName not in white_list:
             continue
         if zmw.readScore < min_score:
+            continue
+        if min(zmw.zmwMetric('HQRegionSNR')) < min_snr:
             continue
         for subread in zmw.subreads:
             if len(subread) < min_length:

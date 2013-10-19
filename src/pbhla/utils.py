@@ -1,8 +1,16 @@
-import os, logging
+import os
+import shutil
+import logging
 
 from pbhla.io.BlasrIO import BlasrReader
 
 log = logging.getLogger()
+
+def get_file_source( filename ):
+    base_name = os.path.basename( filename )
+    root_name = base_name.split('.')[0]
+    parts = root_name.split('_')
+    return parts[1]
 
 def is_fasta( filename ):
     if filename.endswith('.fasta') or filename.endswith('.fa'):
@@ -113,6 +121,10 @@ def check_output_file( filepath ):
         msg = 'Expected output file not found! "{0}"'.format(filepath)
         log.error( msg )
         raise IOError( msg )
+
+def copy_file( source, destination ):
+    shutil.copy( source, destination )
+    check_output_file( destination )
 
 def remove_file( filepath ):
     if os.path.isfile( filepath ):

@@ -1,7 +1,6 @@
 import os, re, logging
 
 from pbcore.io.FastaIO import FastaReader
-from pbhla.fasta.utils import write_fasta
 
 log = logging.getLogger()
 
@@ -13,6 +12,23 @@ def parse_reference_fofn( fofn_file ):
     loci = _parse_reference_loci( fofn_file )
     log.info('Finished parsing the reference FOFN')
     return sequences, metadata, loci
+
+def parse_reference_dict( fofn_file ):
+    """
+    Parse a reference fofn of locus-specific fasta files into a dictionary
+    """
+    reference_dict = {}
+    with open( fofn_file, 'r') as handle:
+        for line in handle:
+            if line.startswith('#'):
+                continue
+            fasta_file, locus = line.strip().split()
+            if locus in reference_dict:
+                msg = 'Duplicate locus references found (Locus %s)' % locus
+                log.error( msg )
+                raise KeyError( msg )
+            reference_dict[locus] = fasta_file
+    return reference_dict
 
 def _parse_reference_sequences( fofn_file ):
     log.info('Parsing reference sequence data...')
