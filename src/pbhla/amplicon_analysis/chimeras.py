@@ -26,17 +26,17 @@ class ChimeraDetector(object):
     """
     A tool for detecting chimeric Amplicon Analysis consensus sequences
     """
-    def __init__(self, query, prefix=None,
-                              mode="denovo",
-                              chunks=CHUNKS,
-                              threshold=THRESHOLD,
-                              beta=BETA,
-                              pseudocount=PSEUDOCOUNT,
-                              min_count=MIN_COUNT):
+    def __init__(self, debug=False,
+                       prefix=None,
+                       mode="denovo",
+                       chunks=CHUNKS,
+                       threshold=THRESHOLD,
+                       beta=BETA,
+                       pseudocount=PSEUDOCOUNT,
+                       min_count=MIN_COUNT):
         log.info("Initializing ChimeraDetector v{0}".format(__version__))
-        self._query = query
-        self._prefix = prefix or '.'.join(self.query.split('.')[:-1])
-        self._sequences = self._parse_query_sequences()
+        self._debug = debug
+
         self._mode = mode
         self._chunks = chunks
         self._threshold = threshold
@@ -45,10 +45,6 @@ class ChimeraDetector(object):
         self._min_count = min_count
         self._database = {}
         self._chimeras = []
-
-    @property
-    def query(self):
-        return self._query
 
     @property
     def beta(self):
@@ -62,13 +58,6 @@ class ChimeraDetector(object):
     def pseudocount(self):
         return self._pseudocount
 
-    def _parse_query_sequences(self):
-        """
-        Parse and sort the query sequences by NumReads
-        """
-        sequences = list(AmpliconAnalysisSequenceReader(self._query))
-        return sorted(sequences, key=lambda s: s.num_reads, reverse=True)
-
     def _add_record(self, record):
         """
         Add a new sequence record to the
@@ -80,13 +69,13 @@ class ChimeraDetector(object):
         log.info('Adding "%s" to the reference database\n' % record.name)
         self._database[record.name] = record
 
-    def run(self):
+    def run(self, query, prefix=None):
         """
         Search the input sequences for chimeric consensus reads
         """
         if self._mode in ["d", "denovo"]:
             log.info("Running de novo Chimera detection tool")
-            self._run_denovo_detection()
+            self._run_denovo_detection( query )
         elif self._mode in ["r", "reference"]:
             log.info('Running reference-based Chimera detection tool')
             pass
@@ -96,10 +85,10 @@ class ChimeraDetector(object):
             raise ValueError( msg )
         print [n for n in self._database]
         print [r.name for r in self._chimeras]
-        self.write_output()
+        self.write_output( query, prefix )
 
-    def _run_denovo_detection(self):
-        for record in self._sequences:
+    def _run_denovo_detection(self, seq_file ):
+        for record in sorted_sequences( seq_file ):
             log.info('Analyzing "%s"' % record.name)
             # Cannot test for Chimeras without at least two references
             if len(self._database) < 2:
@@ -123,7 +112,8 @@ class ChimeraDetector(object):
             os.unlink( db_file )
             os.unlink( chunk_file )
             if hits is None:
-                log.info("No hits found, probable off-target hit\n")
+                log.info("No hits found, probable new locus\n")
+                self._add_record( record )
                 continue
 
             # Identify chimeric hits, adding non-chimeras to the database
@@ -132,13 +122,14 @@ class ChimeraDetector(object):
                 log.info('"%s" passed initial Chimera filter' % record.name)
                 self._add_record( record )
                 continue
-            elif len(reference_hits) == 2:
+            log.info('"%s" flagged as a possible Chimera with %s hits' % (record.name,
+                                                                          len(reference_hits)))
+            if len(reference_hits) == 2:
                 references = [self._database[name] for name in reference_hits]
             elif len(reference_hits) > 2:
                 best_hits = select_best_references(hits, 2)
                 references = [self._database[name] for name in best_hits]
 
-            log.info('"%s" flagged as a possible Chimera' % record.name)
             if self.sequence_is_chimeric( record, references ):
                 self._chimeras.append( record )
             else:
@@ -152,7 +143,11 @@ class ChimeraDetector(object):
         sequences = references + [query]
         alignment_file = _align_multiple_sequences(sequences)
         alignment = FastaAlignment( alignment_file )
-        os.unlink( alignment_file )
+        if self._debug:
+            log.debug('Multi-sequence alignment for "%s" at %s' % (query.name,
+                                                                   alignment_file))
+        else:
+            os.unlink( alignment_file )
 
         # Find which diffs align to which references
         votes = score_alignment_differences(query, references, alignment)
@@ -169,16 +164,12 @@ class ChimeraDetector(object):
         """
         Score chimeras at all possible break points
         """
-        #print votes
-        #print alignment
         max_score = 0.0
         for breakpoint in sorted(votes):
-            #print breakpoint
             for left_ref, right_ref in [('A', 'B'), ('B', 'A')]:
                 left = self.score_segment(votes, alignment.start, breakpoint, left_ref)
                 right = self.score_segment(votes, breakpoint+1, alignment.end, right_ref)
                 score = left*right
-                #print "%s\t%s\t%s\t%s\t%s" % (left_ref, left, right, score, max_score)
                 max_score = max(score, max_score)
         return max_score
 
@@ -195,19 +186,16 @@ class ChimeraDetector(object):
                 yes += 1
             else:
                 no += 1
-        log.debug("Found the following in the range [%s..%s]:" % (start, end))
-        log.debug("\tYES:     %s" % yes)
-        log.debug("\tNO:      %s" % no)
-        log.debug("\tABSTAIN: %s" % abstain)
         return yes/((self.beta*(no+self.pseudocount))+abstain)
 
-    def write_output(self):
+    def write_output(self, query, prefix):
         """
         Write the Chimeric and Non-Chimeric sequences out to separate files
         """
-        suffix = self._query.split('.')[-1]
-        bad_output = self._prefix + '.bad.' + suffix
-        good_output = self._prefix + '.good.' + suffix
+        prefix = prefix or '.'.join( query.split('.')[:-1] )
+        suffix = query.split('.')[-1]
+        bad_output = prefix + '.bad.' + suffix
+        good_output = prefix + '.good.' + suffix
 
         log.info("Writing chimeric reads to {0}".format(bad_output))
         with AmpliconAnalysisSequenceWriter( bad_output ) as writer:
@@ -294,12 +282,21 @@ def _align_multiple_sequences(sequences, output=None):
     return temp_out.name
 
 
+def sorted_sequences( sequence_file ):
+    """
+    Yield successive reads in descending order of NumReads
+    """
+    seqs = list(AmpliconAnalysisSequenceReader( sequence_file ))
+    for seq in sorted(seqs, key=lambda s: s.num_reads, reverse=True):
+        yield seq
+
 if __name__ == "__main__":
     import sys
     from pbhla.log import initialize_logger
 
     query_file = sys.argv[1]
-    debug = sys.argv[2] if len(sys.argv) > 2 else None
+    debug_flag = bool(sys.argv[2]) if len(sys.argv) > 2 else None
 
-    initialize_logger()
-    ChimeraDetector(query_file, debug).run()
+    initialize_logger( log_level='INFO' )
+    cd = ChimeraDetector(debug=debug_flag)
+    cd.run( query_file )

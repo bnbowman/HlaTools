@@ -27,7 +27,7 @@ def combine_clusense_output(input_dir, output_dir):
     write_list_file( read_files, read_output )
     return cns_output, read_output
 
-def find_clusense_dirs( input_dir ):
+def find_clusense_dirs( input_dir, output_dir ):
     log.info('Identifying individual Clusense output folders in "{0}"'.format(input_dir))
     clusense_dirs = []
     for entry in os.listdir( input_dir ):
@@ -103,12 +103,11 @@ def cluster_exists( dir_name, cluster ):
         return ( cns_path, read_path )
     return False
 
-def summarize_amp_assem_output( input_dir, output_dir ):
+def summarize_amp_analysis( input_dir, output_dir ):
     create_directory( output_dir )
-    log.info('Combining AmpliconAssembly output from "{0}" in "{1}"'.format(input_dir, output_dir))
+    log.info('Combining AmpliconAnalysis output from "{0}" to "{1}"'.format(input_dir, output_dir))
     results = list( find_amp_assem_results(input_dir) )
     output_files = list( output_amp_assem_results(results, output_dir) )
-
     result_output = os.path.join( output_dir, "AmpliconAssembly_Results.fofn" )
     write_list_file( output_files, result_output )
     return result_output

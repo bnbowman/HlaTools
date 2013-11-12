@@ -1,9 +1,11 @@
 #! /usr/bin/env python
 
 import os, logging
+from operator import itemgetter
 
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.typing.HlaTypes import HlaType
+from pbhla.utils import check_output_file
 
 log = logging.getLogger()
 
@@ -18,6 +20,8 @@ def summarize_typing( gDNA_align, cDNA_align, output=None ):
     cDNA_data = _parse_alignment( cDNA_align )
     summaries = _summarize_hits( gDNA_data, cDNA_data )
     _write_type_summary( summaries, output )
+    check_output_file( output )
+    return output
 
 def _parse_alignment( alignment ):
     """
@@ -51,15 +55,16 @@ def _add_gDNA_summary( summary, gDNA_hits ):
     if len( gDNA_hits ) == 1:
         hit = gDNA_hits[0]
         summary['gDNA_Type'] = HlaType.from_string( hit.tname )
+        summary['gLen'] = hit.qlength
         if hasattr( hit, 'pctsimilarity' ):
-            summary['gDNA_PctId'] = float( hit.pctsimilarity )
+            summary['gDNA_PctId'] = round(float( hit.pctsimilarity ), 2)
             summary['gDNA_Mismatch'] = 'N/A'
             summary['gDNA_Indel'] = 'N/A'
         elif hasattr( hit , 'nmat' ):
             similarity = float(hit.nmat) / (int(hit.nmat) + int(hit.nmis) + int(hit.nins) + int(hit.ndel))
             summary['gDNA_PctId'] = round(100*similarity, 2)
-            summary['gDNA_Mismatch'] = int(hit.nmis)
-            summary['gDNA_Indel'] = int(hit.nins) + int(hit.ndel)
+            summary['gDNA_Mismatch'] = str(hit.nmis)
+            summary['gDNA_Indel'] = str(int(hit.nins) + int(hit.ndel))
         else:
             msg = 'Invalid alignment type!'
             log.error( msg )
@@ -74,12 +79,13 @@ def _add_cDNA_summary( summary, cDNA_hits ):
     """
     Summarize the cDNA hits for a consensus sequence
     """
+    summary['cLen'] = cDNA_hits[0].qlength
     if len( cDNA_hits ) == 1:
         summary['cDNA_Type'] = HlaType.from_string( cDNA_hits[0].tname )
-        summary['cDNA_PctId'] = float(cDNA_hits[0].pctsimilarity)
+        summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
     elif len( cDNA_hits ) >= 2:
         summary['cDNA_Type'] = _combine_cDNA_hits( cDNA_hits )
-        summary['cDNA_PctId'] = float(cDNA_hits[0].pctsimilarity)
+        summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
     else:
         summary['cDNA_Type'] = 'N/A'
         summary['cDNA_PctId'] = 'N/A'
@@ -125,22 +131,39 @@ def _combine_cDNA_hits( cDNA_hits ):
         return HlaType( gene=genes[0], field1=field1s[0] )
     return 'N/A'
 
+def _write_header( handle ):
+    handle.write('Sequence'.ljust(41))
+    handle.write('gLen'.ljust(6))
+    handle.write('gType'.ljust(21))
+    handle.write('gPctId'.ljust(7))
+    handle.write('nMis'.ljust(5))
+    handle.write('Indel'.ljust(6))
+    handle.write('cLen'.ljust(5))
+    handle.write('cType'.ljust(18))
+    handle.write('cPctId'.ljust(7))
+    handle.write('Type')
+    handle.write('\n')
+
+def _write_summary_line( handle, summary ):
+    handle.write(summary['Sequence'].ljust(41))
+    handle.write(summary['gLen'].ljust(6))
+    handle.write(str(summary['gDNA_Type']).ljust(21))
+    handle.write(str(summary['gDNA_PctId']).ljust(7))
+    handle.write(summary['gDNA_Mismatch'].ljust(5))
+    handle.write(summary['gDNA_Indel'].ljust(6))
+    handle.write(summary['cLen'].ljust(5))
+    handle.write(str(summary['cDNA_Type']).ljust(18))
+    handle.write(str(summary['cDNA_PctId']).ljust(7))
+    handle.write(str(summary['Type']))
+    handle.write('\n')
+
 def _write_type_summary( summaries, output ):
     with open( output, 'w' ) as handle:
-        handle.write('Sequence\tgDNA_Type\tgDNA_PctId\tgDNA_Mismatch\tgDNA_Indel\tcDNA_Type\tcDNA_PctId\tType\tNotes\n')
-        for query, summary in summaries.iteritems():
-            summary['Notes'] = ';'.join( summary['Notes'] )
-            if summary['Notes']:
-                summary['Notes'] = '"%s"' % summary['Notes']
-            handle.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (summary['Sequence'],
-                                                                   str(summary['gDNA_Type']).ljust(17),
-                                                                   summary['gDNA_PctId'],
-                                                                   summary['gDNA_Mismatch'],
-                                                                   summary['gDNA_Indel'],
-                                                                   str(summary['cDNA_Type']).ljust(14),
-                                                                   summary['cDNA_PctId'],
-                                                                   summary['Type'],
-                                                                   summary['Notes']))
+        _write_header( handle )
+        keys = {k: str(v['gDNA_Type']) for k, v in summaries.iteritems()}
+        for key, g_type in sorted(keys.iteritems(), key=itemgetter(1)):
+            summary = summaries[key]
+            _write_summary_line( handle, summary )
 
 if __name__ == '__main__':
     import sys

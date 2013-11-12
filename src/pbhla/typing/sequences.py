@@ -19,10 +19,11 @@ def type_sequences( input_file, exon_fofn, genomic_reference, cDNA_reference, lo
     """
     reoriented = orient_sequences( input_file, genomic_reference )
     raw_alignment = full_align_best_reference( reoriented, genomic_reference )
-    cDNA_file = extract_cDNA( reoriented, exon_fofn, alignment_file=raw_alignment )
-    selected = extract_alleles( reoriented, alignment_file=raw_alignment )
+    selected = extract_alleles( reoriented, alignment_file=raw_alignment, loci=loci )
+    selected_alignment = full_align_best_reference( selected, genomic_reference )
+    cDNA_file = extract_cDNA( selected, exon_fofn, alignment_file=selected_alignment )
     cDNA_alignment = align_by_identity( cDNA_file, cDNA_reference )
-    summarize_typing( raw_alignment, cDNA_alignment )
+    return summarize_typing( selected_alignment, cDNA_alignment )
 
 if __name__ == '__main__':
     import sys

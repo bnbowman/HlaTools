@@ -61,7 +61,8 @@ class BlasrWriter( WriterBase ):
         self.file.write( record_to_string( record ))
         self.file.write("\n")
 
-
+def m5_pctsimilarity( record ):
+    return round(100*(int(record.nmis) + int(record.nins) + int(record.ndel))/float(record.nmat), 2)
 
 def add_header_to_m5( m5_file ):
     with open( m5_file ) as handle:

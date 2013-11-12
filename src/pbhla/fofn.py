@@ -9,7 +9,6 @@ def write_sequence_fofn( file_list, fofn_file ):
     Write the locations of a series of sequence files to a FOFN, excluding those unmapped
     """
     with open( fofn_file, 'w' ) as handle:
-        print file_list
         for filename in file_list:
             if filename.endswith('Unmapped.fasta'):
                 continue

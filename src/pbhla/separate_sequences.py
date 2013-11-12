@@ -53,4 +53,4 @@ def closed_file_handles( file_handles ):
     Does what is says on the tin
     """
     [file_handles[f].close() for f in file_handles]
-    return [f for f in file_handles]
+    return sorted([f for f in file_handles])

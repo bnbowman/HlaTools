@@ -125,6 +125,7 @@ def check_output_file( filepath ):
 def copy_file( source, destination ):
     shutil.copy( source, destination )
     check_output_file( destination )
+    return destination
 
 def remove_file( filepath ):
     if os.path.isfile( filepath ):

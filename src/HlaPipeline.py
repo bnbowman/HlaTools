@@ -4,45 +4,32 @@ import logging
 import ConfigParser
 
 from pbcore.io.FastaIO import FastaReader
-from pbphase.clusense import Clusense
 from pbphase.AmpliconAnalyzer import AmpliconAnalyzer
 
 from pbhla.log import initialize_logger
-from pbhla.fasta.update_orientation import update_orientation
-from pbhla.amplicons.separate import separate_amplicons
 from pbhla.arguments import args, parse_args
-from pbhla.fofn import (create_baxh5_fofn,
-                        write_sequence_fofn)
-from pbhla.separate_sequences import (separate_sequences,
-                                      separate_listed_sequences,
-                                      separate_aligned_sequences)
+from pbhla.fofn import ( create_baxh5_fofn,
+                         write_sequence_fofn )
+from pbhla.separate_sequences import ( separate_sequences,
+                                       separate_listed_sequences,
+                                       separate_aligned_sequences )
 from pbhla.fasta.utils import ( write_fasta,
-                                fasta_size,
-                                combine_fasta )
-from pbhla.fasta.subset_sequences import subset_sequences
+                                fasta_size )
 from pbhla.fasta.rename import rename_fofn
 from pbhla.io.extract_subreads import extract_subreads
-from pbhla.io.BlasrIO import add_header_to_m5
 from pbhla.io.FofnIO import FofnReader
-from pbhla.dictionary import ( create_m1_reference,
-                               create_m5_reference,
-                               create_amp_assem_reference,
-                               create_sam_reference,
-                               create_phased_reference,
-                               filter_m5_file )
+from pbhla.amplicon_analysis.chimeras import ChimeraDetector
+from pbhla.dictionary import create_m1_reference
 from pbhla.references.fofn import parse_reference_fofn
-from pbhla.phasing.summarize import ( combine_clusense_output,
-                                      summarize_amp_assem_output )
-from pbhla.resequencing.identify import identify_resequencing_data
-from pbhla.resequencing.SummarizeResequencing import combine_resequencing_output
-from pbhla.annotation.summarize import ( summarize_contigs,
-                                         summarize_resequenced,
-                                         summarize_typing )
-from pbhla.annotation.meta_summarize import meta_summarize_contigs
+from pbhla.phasing.combine import ( combine_amp_analysis,
+                                    combine_resequencing,
+                                    combine_fastq )
 from pbhla.external.HbarTools import HbarRunner
-from pbhla.external.commandline_tools import run_blasr
-from pbhla.external.ClusterResequencer import ClusterResequencer
+from pbhla.external.Resequencer import Resequencer
 from pbhla.external.utils import align_best_reference
+from pbhla.utilities.rename_fastq import rename_resequencing
+from pbhla.utilities.filter_fastq import filter_fastq
+from pbhla.typing.sequences import type_sequences
 from pbhla.utils import *
 
 log = logging.getLogger()
@@ -55,7 +42,6 @@ class HlaPipeline( object ):
         self._config = ConfigParser.SafeConfigParser()
         self._config.read( args.config_file )
 
-
         # Initialize output folder and sub-folders
         self.subfolders = _initialize_folders( args.output )
 
@@ -64,7 +50,7 @@ class HlaPipeline( object ):
         initialize_logger( log_file )
 
     def __getattr__(self, item):
-        if item in ['min_read_length', 'max_count']:
+        if item in ['min_read_length', 'min_num_reads', 'min_consensus_length', 'max_count']:
             return self._config.getint('DEFAULT', item)
         elif item in ['min_read_score', 'min_snr']:
             return self._config.getfloat('DEFAULT', item)
@@ -74,27 +60,42 @@ class HlaPipeline( object ):
             return self._config.get('Global', item)
 
     def config(self, domain, item):
-        hla_domain = 'HLA-%s' % domain
-        print domain
-        if domain in self._config.sections():
-            print self._config.get( domain, item )
-            return self._config.get( domain, item )
-        elif hla_domain in self._config.sections():
-            print self._config.get( hla_domain, item )
-            return self._config.get( hla_domain, item )
-        else:
-            msg = 'Unrecognized configuration domain (%s)' % domain
-            log.error( msg )
-            raise KeyError( msg )
+        domain = self._check_domain( domain )
+        print domain, item
+        return self._config.get( domain, item )
 
-    def has_config(self, domain):
+    def _check_domain(self, domain):
         hla_domain = 'HLA-%s' % domain
         if domain in self._config.sections():
-            return True
+            return domain
         elif hla_domain in self._config.sections():
-            return True
+            return hla_domain
         else:
-            return False
+            return None
+
+    def to_be_phased(self, domain):
+        domain = self._check_domain( domain )
+        if domain:
+            if self._config.getboolean( domain, 'use_amp_analysis' ):
+                log.info("AmpliconAnalysis enabled for %s" % domain)
+                return True
+            else:
+                log.info("AmpliconAnalysis disabled for %s" % domain)
+                return False
+        log.info("No configuration detected for %s" % domain)
+        return False
+
+    def to_be_resequenced(self, domain):
+        domain = self._check_domain( domain )
+        if domain:
+            if self._config.getboolean( domain, 'use_resequencing' ):
+                log.info("Resequencing enabled for %s" % domain)
+                return True
+            else:
+                log.info("resequencing disabled for %s" % domain)
+                return False
+        log.info("No configuration detected for %s" % domain)
+        return False
 
     def get_filepath(self, folder, filename):
         return os.path.join( self.subfolders[folder], filename )
@@ -125,22 +126,26 @@ class HlaPipeline( object ):
         # ... and the different loci and contigs from each other
         contig_subread_fofn = self.separate_subreads_by_contig( hla_subreads, subread_contig_dict )
         locus_subread_fofn = self.separate_subreads_by_locus( hla_subreads, subread_locus_dict )
+        locus_contig_fofn = self.separate_contigs_by_locus( hla_contigs, contig_locus_dict )
 
-        # Rename and Phase each Locus
+        # Rename the subreads for each locus
         renamed_subread_fofn = self.rename_subread_files( locus_subread_fofn, renaming_key )
-        self.run_amp_analysis( renamed_subread_fofn )
 
-        #self.rename_contig_subread_files()
-        #self.phase_contigs_with_amp_assem()
-        #self.summarize_amp_assem()
-        #self.output_amp_assem_contigs()
-        #self.align_amp_assem_to_reference()
-        #self.align_subreads_to_amp_assem()
-        #self.separate_subreads_by_allele()
-        #self.summarize_amp_assem_results()
-        #self.extract_final_amp_assem_contigs()
-        #self.update_amp_assem_orientation()
-        #self.align_final_amp_assem_to_reference()
+        # Use the renamed subreads to Phase with AA and remove AA-chimeras
+        self.run_amp_analysis( renamed_subread_fofn )
+        phasing_results = self.combine_phasing_results()
+        #good_results = self.remove_chimeras( phasing_results )
+
+        # Use the renamed subreads to resequence any other loci/HBAR contigs
+        self.run_resequencing( baxh5, renamed_subread_fofn, locus_contig_fofn )
+        reseq_results = self.combine_resequencing_results()
+        renamed_results = self.rename_resequencing_results( reseq_results )
+
+        # Combine the results from AA and resequencing and type the results
+        combined_results = self.combine_phasing_and_reseq( phasing_results, renamed_results )
+        filtered_results = self.filter_combined_results( combined_results )
+        typing_sequences = self.copy_sequences_for_typing( filtered_results )
+        self.type_hla_sequences( typing_sequences )
 
     def extract_subread_data( self ):
         """
@@ -369,7 +374,7 @@ class HlaPipeline( object ):
 
     def separate_subreads_by_locus( self, hla_subreads, subread_loci ):
         """
-        Separate the on-target subreads by the HBAR contig to which they align
+        Separate the on-target subreads by the locus to which their HBAR contig aligns
         """
         log.info("Looking for locus-specific subread files")
         locus_subread_fofn = self.get_filepath( "subreads", "Locus_Subread_Files.fofn" )
@@ -382,6 +387,22 @@ class HlaPipeline( object ):
         write_sequence_fofn( locus_files, locus_subread_fofn )
         log.info('Finished separating subreads by locus\n')
         return locus_subread_fofn
+
+    def separate_contigs_by_locus( self, hla_contigs, contig_loci ):
+        """
+        Separate the on-target contigs by the locus to which they align
+        """
+        log.info("Looking for locus-specific contig files")
+        locus_contig_fofn = self.get_filepath( "references", "Locus_Contig_Files.fofn" )
+        if valid_file( locus_contig_fofn ):
+            log.info("Using existing locus contig files and FOFN\n")
+            return locus_contig_fofn
+        log.info("No locus subread files found, creating...")
+        file_prefix = self.get_filepath( "references", "Locus" )
+        locus_files = separate_sequences( hla_contigs, contig_loci, file_prefix )
+        write_sequence_fofn( locus_files, locus_contig_fofn )
+        log.info('Finished separating subreads by locus\n')
+        return locus_contig_fofn
 
     def rename_subread_files( self, subread_fofn, renaming_key ):
         log.info("Looking for FOFN of renamed subread files")
@@ -401,15 +422,13 @@ class HlaPipeline( object ):
 
             # Check if the source of the current file has a configuration
             source = get_file_source( subread_file )
-            output_folder = self.get_filepath( 'phasing', source )
-            if self.has_config( source ):
-                log.info('Found an AmpliconAnalysis configuration for "%s"' % source)
-            else:
-                log.info('No AmpliconAnalysis configuration found for "%s"' % source)
+            if not self.to_be_phased( source ):
                 continue
 
             # For sources with a configuration, run AA if output DNE
-            if os.path.exists( output_folder ):
+            output_folder = self.get_filepath( 'phasing', source )
+            output_file = os.path.join( output_folder, 'amplicon_analysis.fastq' )
+            if os.path.exists( output_file ):
                 log.info('AmpliconAnalyzer output detected for "%s", skipping...' % source)
             else:
                 log.info('Phasing subreads from "%s"' % source)
@@ -418,455 +437,133 @@ class HlaPipeline( object ):
                                  'minLength': self.config(source, 'min_read_length'),
                                  'minReadScore': self.config(source, 'min_read_score'),
                                  'minSnr': self.config(source, 'min_snr'),
+                                 #'maxPhasingReads': self.config(source, 'max_phasing_reads'),
                                  'noClustering': self.config(source, 'disable_clustering')}
-                print analyzer_args
                 analyzer.run( args.input_file, output_folder, analyzer_args )
         log.info('Finished phasing subreads with Amplicon Analysis\n')
 
-    def summarize_amp_assem( self ):
-        log.info("Summarizing the output from Amplicon Assembly")
-        output_folder = os.path.join(self.phasing_results, 'AmpliconAnalyzer')
-        self.amp_assem_results = summarize_amp_assem_output( self.amp_assem, 
-                                                             output_folder )
-        log.info('Finished Phasing subreads with Amplicon Assembly')
+    def combine_phasing_results( self ):
+        log.info("Looking for the combined output from Amplicon Assembly")
+        combined_file = self.get_filepath( 'references', 'amp_analysis_consensus.fastq')
+        if valid_file( combined_file ):
+            log.info("Using existing combined consensus file\n")
+            return combined_file
+        log.info("No combined consensus file found, creating...")
+        combine_amp_analysis( self.subfolders['phasing'], combined_file )
+        log.info('Finished combining AmpliconAnalysis results\n')
+        return combined_file
 
-    def output_amp_assem_contigs( self ):
-        log.info("Combining the output from Amplicon Assembly")
-        self.amp_assem_contigs = os.path.join( self.references, 'amp_assem_contigs.fasta')
-        result_files = read_list_file( self.amp_assem_results )
-        combine_fasta( result_files, self.amp_assem_contigs )
-        log.info("Finished combining the output from Amplicon Assembly")
+    def run_resequencing( self, baxh5_fofn, renamed_fofn, reference_fofn ):
+        log.info("Looking for phased AmpliconAnalysis results")
+        resequencer = Resequencer( baxh5_fofn, self.smrt_path, args.nproc )
+        subread_handle = FofnReader( renamed_fofn )
+        reference_handle = FofnReader( reference_fofn )
+        for subreads, reference in zip(subread_handle, reference_handle):
 
-    def align_amp_assem_to_reference(self):
-        log.info('Aligning all phased HLA contigs to the Reference sequences')
-        self.amp_assem_to_reference = os.path.join(self.alignments, 'amp_assem_to_reference.m1')   
-        contig_count = fasta_size( self.amp_assem_contigs )
-        reference_count = fasta_size( self.reference_seqs )
-        log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
-        # Run BLASR
-        blasr_args = {'nproc': args.nproc,
-                      'noSplitSubreads': True,
-                      'out': self.amp_assem_to_reference,
-                      'm': 1,
-                      'bestn': 1,
-                      'nCandidates': reference_count}
-        run_blasr( self.amp_assem_contigs, 
-                   self.reference_seqs, 
-                   blasr_args )
-        check_output_file( self.amp_assem_to_reference )
-        # Check and save the output
-        self.amp_assem_reference_dict = create_m1_reference( self.amp_assem_to_reference )
-        self.amp_assem_locus_dict = create_amp_assem_reference( self.amp_assem_to_reference )
-        #self.subread_locus_dict = cross_ref_dict( self.phased_read_dict, self.phased_locus_dict )
-        log.info("Finished aligning resequenced contigs to the HLA reference set\n")
+            # Check if the source of the current file has a configuration
+            source = get_file_source( subreads )
+            if not self.to_be_resequenced( source ):
+                continue
 
-    def align_subreads_to_amp_assem(self):
-        log.info("Re-aligning HLA subreads to selected references")
-        self.hla_to_amp_assem = os.path.join( self.alignments, "hla_subreads_to_amp_assem.sam" )
-        if valid_file( self.hla_to_amp_assem ):
-            log.info('Found existing SAM file "%s"' % self.hla_to_amp_assem)
-            log.info("Skipping realignment step...\n")
-        else:
-            query_count = fasta_size( self.hla_subreads )
-            ref_count = fasta_size( self.amp_assem_contigs )
-            log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-            blasr_args = {'nproc': args.nproc,
-                          'noSplitSubreads': True,
-                          'out': self.hla_to_amp_assem,
-                          'sam': True,
-                          'bestn': 1,
-                          'nCandidates': ref_count}
-            run_blasr( self.hla_subreads, 
-                       self.amp_assem_contigs, 
-                       blasr_args )
-            check_output_file( self.hla_to_amp_assem )
-        self.subread_allele_dict = create_sam_reference( self.hla_to_amp_assem )
-        self.subread_locus_dict = cross_ref_dict( self.subread_allele_dict, 
-                                                  self.amp_assem_locus_dict )
-        log.info("Finished realigning HLA subreads to HLA contigs\n")
-
-    def separate_subreads_by_allele(self):
-        log.info("Separating subreads by their best matching allele")
-        self.allele_subread_fofn = os.path.join( self.subreads, "Alleles_Subread_Files.fofn" )
-        if valid_file( self.allele_subread_fofn ):
-            log.info('Found existing Allele File List "%s"' % self.allele_subread_fofn)
-            log.info("Skipping subread separation step...\n")
-            self.allele_files = read_list_file( self.allele_subread_fofn )
-            return
-        separated_seqs = separate_sequences( self.hla_subreads, 
-                                             self.subread_allele_dict )
-        allele_prefix = os.path.join(self.subreads, 'Allele')
-        self.allele_files = write_all_groups( separated_seqs, allele_prefix )
-        self.allele_files = [fn for fn in self.allele_files if not fn.endswith('Unmapped.fasta')]
-        write_list_file( self.allele_files, self.allele_subread_fofn )
-        log.info('Finished separating subreads by Allele')
-
-    def summarize_amp_assem_results(self):
-        log.info("Picking the best contigs from the phasing results")
-        self.amp_assem_results = os.path.join( self.results, 'AmpliconAssembly' )
-        create_directory( self.amp_assem_results )
-        log.info("Summarizing individual loci")
-        summaries = summarize_contigs( self.amp_assem_contigs, 
-                                       self.allele_subread_fofn, 
-                                       self.amp_assem_locus_dict, 
-                                       self.amp_assem_to_reference,
-                                       self.amp_assem_results )
-        log.info("Combining the summaries of the various HLA loci")
-        self.meta_summary = os.path.join( self.amp_assem_results, 'Locus_Calls.txt')
-        meta_summarize_contigs( summaries, 
-                                self.reference_metadata,
-                                self.meta_summary,
-                                excluded=args.exclude)
-        log.info("Finished selected best contigs")
-
-    def extract_final_amp_assem_contigs(self):
-        log.info('Extracting the best contigs to their own file')
-        self.final_contigs = os.path.join(self.references, 'final_contigs.fasta')
-        subset_sequences( self.amp_assem_contigs,
-                          self.meta_summary,
-                          self.final_contigs )
-        log.info('Finished extracting the best resequenced contigs\n')
-
-    def update_amp_assem_orientation(self):
-        log.info('Converting all resequenced contigs to the forward orientation')
-        self.reoriented = os.path.join(self.references, 'reoriented_final_contigs.fasta')
-        self.final_output = os.path.join(self.amp_assem_results, 'Final_Sequences.fasta')
-        update_orientation( self.final_contigs, 
-                            self.amp_assem_to_reference,
-                            self.reoriented )
-        shutil.copy( self.reoriented, self.final_output )
-        log.info('Finished updating the orientation of the resequenced contigs')
-
-    def align_final_amp_assem_to_reference(self):
-        log.info('Aligning all final phased HLA contigs to the reference sequences')
-        self.final_to_reference = os.path.join(self.amp_assem_results, 'Final_to_Reference.m5')   
-        contig_count = fasta_size( self.amp_assem_contigs )
-        reference_count = fasta_size( self.reference_seqs )
-        log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
-        # Run BLASR
-        blasr_args = {'nproc': args.nproc,
-                      'noSplitSubreads': True,
-                      'out': self.final_to_reference,
-                      'm': 5,
-                      'bestn': 1,
-                      'nCandidates': reference_count}
-        run_blasr( self.final_output, 
-                   self.reference_seqs, 
-                   blasr_args )
-        check_output_file( self.final_to_reference )
-        add_header_to_m5( self.final_to_reference )
-        check_output_file( self.final_to_reference )
-        log.info("Finished aligning resequenced contigs to the HLA reference set\n")
-
-    def separate_contigs(self):
-        log.info("Separating remaining contigs into individual files")
-        contig_fofn = os.path.join( self.references, "Contig_Files.txt" )
-        if valid_file( contig_fofn ):
-            log.info('Found existing Contig File List "{0}"'.format(contig_fofn))
-            log.info("Skipping contig separation step...\n")
-            self.contig_files = read_list_file( contig_fofn )
-            return
-        separated_seqs = separate_sequences( self.selected_contigs )
-        contig_prefix = os.path.join(self.references, 'Contig')
-        self.contig_files = write_all_groups( separated_seqs, contig_prefix )
-        write_list_file( self.contig_files, contig_fofn)
-        log.info('Finished separating contigs\n')
-
-    def phase_reads_with_clusense(self):
-        log.info("Phasing subreads with Clusense")
-        self.clusense = os.path.join( self.phasing, 'Clusense' )
-        create_directory( self.clusense )
-        for subread_fn, contig_fn in zip(self.subread_files, self.contig_files):
-            folder_name = os.path.basename(contig_fn).split('.')[0]
-            output_folder = os.path.join(self.clusense, folder_name)
+            # For sources with a configuration, run AA if output DNE
+            output_folder = self.get_filepath( 'resequencing', source )
             if os.path.exists( output_folder ):
-                log.info('"Clusense output detected for "{0}", skipping...'.format(folder_name))
+                log.info('Resequencing output detected for "%s", skipping...' % source)
             else:
-                log.info("Phasing subreads for {0}".format(folder_name))
-                Clusense(subread_fn, contig_fn, output_folder, threshold=0.1)
-            cleanup_directory( output_folder )
-        log.info('Finished Phasing subreads with Clusense')
+                log.info('Resequencing HBAR contigs from "%s"' % source)
+                resequencer( subreads, reference, output=output_folder )
+        log.info('Finished phasing subreads with Amplicon Analysis\n')
 
-    def summarize_clusense(self):
-        log.info("Summarizing the output from Clusense")
-        output_folder = os.path.join(self.phasing_results, 'Clusense')
-        self.clusense_cns_fofn, self.clusense_read_fofn = combine_clusense_output(self.clusense, output_folder)
-        self.phased_read_dict = create_phased_reference( self.clusense_read_fofn )
-        log.info('Finished Phasing subreads with Clusense')
+    def combine_resequencing_results( self ):
+        log.info("Looking for the combined output from Amplicon Assembly")
+        combined_file = self.get_filepath( 'references', 'resequencing_consensus.fastq')
+        if valid_file( combined_file ):
+            log.info("Using existing combined consensus file\n")
+            return combined_file
+        log.info("No combined consensus file found, creating...")
+        combine_resequencing( self.subfolders['resequencing'], combined_file )
+        log.info('Finished combining AmpliconAnalysis results\n')
+        return combined_file
 
-    def output_phased_contigs(self):
-        log.info("Creating a combined reference of non-HLA and phased-HLA contigs")
-        self.phased_contigs = os.path.join(self.references, 'phased_contigs.fasta')
-        clusense_cns_files = read_list_file( self.clusense_cns_fofn )
-        fasta_files = list(clusense_cns_files) + [self.non_hla_contigs]
-        combine_fasta(fasta_files, self.phased_contigs)
-        self.phased_hla = os.path.join(self.references, 'phased_hla.fasta')
-        combine_fasta(clusense_cns_files, self.phased_hla)
-        log.info('Finished creating combined reference')
+    def remove_chimeras( self, sequence_file ):
+        log.info("Looking for Chimera-filtered AmpliconAnalysis results")
+        non_chimera_file = '.'.join( sequence_file.split('.')[:-1] ) + '.good.fastq'
+        if valid_file( non_chimera_file ):
+            log.info("Using existing Chimera-filtered file\n")
+            return non_chimera_file
+        log.info("No Chimera-filtered file found, creating...")
+        cd = ChimeraDetector()
+        cd.run( sequence_file )
+        check_output_file( non_chimera_file )
+        log.info("Finished removing chimeric sequences\n")
+        return non_chimera_file
 
-    def align_phased_to_reference(self):
-        log.info('Aligning all phased HLA contigs to the Reference sequences')
-        raw_phased_to_reference = os.path.join(self.alignments, 'raw_phased_to_reference.m5')   
-        self.phased_to_reference = os.path.join(self.alignments, 'phased_to_reference.m5')   
-        if valid_file( self.phased_to_reference ):
-            log.info('Found existing alignment file "{0}"'.format(self.phased_to_reference))
-            log.info("Skipping alignment step...\n")
+    def rename_resequencing_results( self, input_file ):
+        log.info("Looking for renamed Resequencing consensus file")
+        renamed_file = self.get_filepath( 'references', 'resequencing_consensus.renamed.fastq')
+        if valid_file( renamed_file ):
+            log.info("Using existing renamed consensus file\n")
+            return renamed_file
+        if not valid_file( input_file ):
+            log.info("No valid resequencing output detected, skipping...")
+            return input_file
+        log.info("No renamed consensus file found, creating...")
+        rename_resequencing( input_file, renamed_file )
+        check_output_file( renamed_file )
+        log.info('Finished combining AmpliconAnalysis results\n')
+        return renamed_file
+
+    def combine_phasing_and_reseq( self, good_results, reseq_results ):
+        log.info("Looking for combined Phasing and Resequencing results")
+        combined_results = self.get_filepath("references", "combined_consensus.fastq")
+        if valid_file( combined_results ):
+            log.info("Using existing combined consensus file\n")
+            return combined_results
+        if valid_file( reseq_results ):
+            log.info("No combined consensus file found, creating...")
+            combine_fastq( [good_results, reseq_results], combined_results )
+            check_output_file( combined_results )
         else:
-            contig_count = fasta_size( self.phased_hla )
-            reference_count = fasta_size( self.reference_seqs )
-            # Run BLASR
-            log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
-            blasr_args = {'nproc': args.nproc,
-                          'noSplitSubreads': True,
-                          'out': raw_phased_to_reference,
-                          'm': 5,
-                          'bestn': 5,
-                          'nCandidates': reference_count}
-            run_blasr( self.phased_hla, 
-                       self.reference_seqs, 
-                       blasr_args )
-            filter_m5_file( raw_phased_to_reference, self.phased_to_reference )
-            # Check and save the output
-            check_output_file( self.phased_to_reference )
-        self.phased_reference_dict = create_m5_reference( self.phased_to_reference )
-        self.phased_locus_dict = cross_ref_dict( self.phased_reference_dict, self.reference_locus_dict )
-        self.subread_locus_dict = cross_ref_dict( self.phased_read_dict, self.phased_locus_dict )
-        log.info("Finished aligning resequenced contigs to the HLA reference set\n")
+            log.info("No resequencing output to combine, using only Phasing results...")
+            copy_file( good_results, combined_results )
+        log.info("Finished combining Phasing and Resequencing results\n")
+        return combined_results
 
-    def combine_subreads_by_locus(self):
-        log.info("Separating subreads by the locus of their assigned contig")
-        locus_fofn = os.path.join( self.subreads, "Locus_Files.txt" )
-        if valid_file( locus_fofn ):
-            log.info('Found existing Locus File List "{0}"'.format(locus_fofn))
-            log.info("Skipping subread separation step...\n")
-            self.locus_files = read_list_file( locus_fofn )
-            return
-        separated_seqs = separate_sequences( self.hla_subreads, 
-                                             self.subread_locus_dict )
-        locus_prefix = os.path.join(self.subreads, 'Locus')
-        self.locus_files = write_all_groups( separated_seqs, locus_prefix )
-        self.locus_files = [fn for fn in self.locus_files if not fn.endswith('Unmapped.fasta')]
-        write_list_file( self.locus_files, locus_fofn )
-        log.info('Finished separating subreads by Locus')
+    def filter_combined_results( self, combined_results ):
+        log.info("Looking for filtered consensus results")
+        filtered_results = self.get_filepath("references", "filtered_consensus.fastq")
+        if valid_file( filtered_results ):
+            log.info("Using existing filtered consensus file\n")
+            return filtered_results
+        log.info("No filtered consensus file found, creating...")
+        filter_fastq( combined_results, filtered_results,
+                                        min_length=self.min_consensus_length,
+                                        min_num_reads=self.min_num_reads)
+        check_output_file( filtered_results )
+        log.info("Finished filtering combined consensus results\n")
+        return filtered_results
 
-    def summarize_phased_by_locus(self):
-        log.info("Picking the best contigs from the phasing results")
-        self.clusense_results = os.path.join( self.results, 'Clusense' )
-        create_directory( self.clusense_results )
-        log.info("Summarizing individual loci")
-        summaries = summarize_contigs( self.phased_hla, 
-                                       self.clusense_read_fofn, 
-                                       self.phased_locus_dict, 
-                                       self.phased_to_reference,
-                                       self.clusense_results )
-        log.info("Combining the summaries of the various HLA loci")
-        self.meta_summary = os.path.join( self.clusense_results, 'Locus_Calls.txt')
-        meta_summarize_contigs( summaries, 
-                                self.meta_summary,
-                                excluded=args.exclude)
-        log.info("Finished selected best contigs")
+    def copy_sequences_for_typing(self, sequence_file):
+        log.info("Looking for a sequence file to use in HLA-typing")
+        typing_sequences = self.get_filepath('typing', 'consensus_sequences.fastq')
+        if valid_file( typing_sequences ):
+            log.info("Using existing typing sequences file")
+            return typing_sequences
+        log.info("No sequence file for typing found, creating...")
+        copy_file( sequence_file, typing_sequences )
+        log.info("Finished copying sequences for HLA-typing\n")
+        return typing_sequences
 
-    def extract_best_contigs(self):
-        log.info('Extracting the best contigs to their own file')
-        self.raw_output = os.path.join(self.clusense_results, 'Final_Raw.fasta')
-        if valid_file( self.raw_output ):
-            log.info('Found existing Resequencing Output')
-            log.info('Skipping...\n')
-            return
-        subset_sequences( self.phased_hla,
-                          self.meta_summary,
-                          self.raw_output )
-        log.info('Finished extracting the best resequenced contigs\n')
-
-    def identify_resequencing_files(self):
-        log.info("Identifying files for resequencing based on selected contigs")
-        self.resequencing_pairs = identify_resequencing_data( self.meta_summary,
-                                                              self.clusense_cns_fofn, 
-                                                              self.clusense_read_fofn )
-        log.info('Finished the idenifying the requisite files')
-
-    def resequence_contigs(self):
-        log.info('Resequencing selected contigs')
-        self.resequencing_dir = os.path.join( self.resequencing, 'Clusense' )
-        create_directory( self.resequencing_dir )
-        for cluster_name, cns_file, read_file in self.resequencing_pairs:
-            output_folder = os.path.join( self.resequencing_dir, cluster_name )
-            if os.path.exists( output_folder ):
-                log.info('Resequencing output detected for "{0}", skipping...'.format(cluster_name))
-            else:
-                log.info('Resequencing cluster "{0}"'.format(cluster_name))
-                resequencer = ClusterResequencer(read_file,
-                                                 cns_file,
-                                                 self.baxh5_fofn,
-                                                 setup=args.smrt_path,
-                                                 names=self.renaming_key,
-                                                 output=output_folder,
-                                                 nproc=args.nproc)
-                resequencer()
-        log.info('Finished resequencing selected contigs')
-
-    def summarize_resequencing(self):
-        log.info("Summarizing the output from Resequencing")
-        output_folder = os.path.join(self.resequencing_results, 'Clusense')
-        self.resequencing_fasta_fofn, self.resequencing_fastq_fofn = combine_resequencing_output(self.resequencing_dir, output_folder)
-        log.info('Finished summarizing the resequencing results')
-
-    def output_resequenced_contigs(self):
-        log.info("Creating a combined reference of the selected and resequenced HLA contigs")
-        self.resequenced_hla_contigs = os.path.join(self.references, 'resequenced_hla_contigs.fasta')
-        fasta_files = read_list_file( self.resequencing_fasta_fofn )
-        combine_fasta(fasta_files, self.resequenced_hla_contigs)
-        log.info('Finished creating combined reference')
-
-    def align_resequenced_to_reference(self):
-        log.info('"Aligning all resequenced HLA contigs to the Reference sequences')
-        self.resequenced_to_reference = os.path.join(self.alignments, 'resequenced_to_reference.m1')   
-        if valid_file( self.resequenced_to_reference ):
-            log.info('Found existing alignment file "{0}"'.format(self.resequenced_to_reference))
-            log.info("Skipping alignment step...\n")
-        else:
-            contig_count = fasta_size( self.resequenced_hla_contigs )
-            reference_count = fasta_size( self.reference_seqs )
-            # Run BLASR
-            log.info("Aligning {0} contigs to {1} reference sequences".format(contig_count, reference_count))
-            blasr_args = {'nproc': args.nproc,
-                          'noSplitSubreads': True,
-                          'out': self.resequenced_to_reference,
-                          'bestn': 1,
-                          'nCandidates': reference_count}
-            run_blasr( self.resequenced_hla_contigs, 
-                       self.reference_seqs, 
-                       blasr_args )
-            # Check and save the output
-            check_output_file( self.resequenced_to_reference )
-        log.info("Finished aligning resequenced contigs to the HLA reference set\n")
-
-    def add_resequencing_summary(self):
-        log.info('Summarizing the the resequenced contigs')
-        self.resequenced_summary = os.path.join(self.clusense_results, 'Resequenced_Calls.txt')
-        if valid_file( self.resequenced_summary ):
-            log.info('Found existing resequenced summary file "%s"' % self.resequenced_summary )
-            log.info('Skipping...\n')
-            return
-        summarize_resequenced( self.meta_summary, 
-                               self.resequenced_to_reference, 
-                               self.resequenced_summary )
-        log.info('Finished summarizing the resequenced contigs\n')
-
-    def extract_best_resequenced_contigs(self):
-        log.info('Extracting the best resequenced contigs to their own file')
-        self.resequenced_output = os.path.join(self.clusense_results, 'Final_Resequenced.fasta')
-        if valid_file( self.resequenced_output ):
-            log.info('Found existing Resequencing Output')
-            log.info('Skipping...\n')
-            return
-        subset_sequences( self.resequenced_hla_contigs,
-                          self.resequenced_summary,
-                          self.resequenced_output )
-        log.info('Finished extracting the best resequenced contigs\n')
-
-    def align_subreads_to_raw(self):
-        log.info("Re-aligning HLA subreads to selected references")
-        self.hla_to_raw = os.path.join( self.alignments, "hla_subreads_to_raw.sam" )
-        if valid_file( self.hla_to_raw ):
-            log.info('Found existing SAM file "%s"' % self.hla_to_raw)
-            log.info("Skipping realignment step...\n")
-        else:
-            query_count = fasta_size( self.hla_subreads )
-            ref_count = fasta_size( self.raw_output )
-            log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-            blasr_args = {'nproc': args.nproc,
-                          'noSplitSubreads': True,
-                          'out': self.hla_to_raw,
-                          'sam': True,
-                          'bestn': 1,
-                          'nCandidates': ref_count}
-            run_blasr( self.hla_subreads, 
-                       self.raw_output, 
-                       blasr_args )
-            check_output_file( self.hla_to_raw )
-        self.subread_allele_dict = create_sam_reference( self.hla_to_raw )
-        self.subread_locus_dict = cross_ref_dict( self.subread_allele_dict, self.phased_locus_dict )
-        log.info("Finished realigning HLA subreads to HLA contigs\n")
-
-    def align_subreads_to_resequenced(self):
-        log.info("Re-aligning HLA subreads to selected references")
-        self.hla_to_resequenced = os.path.join( self.alignments, "hla_subreads_to_resequenced.sam" )
-        if valid_file( self.hla_to_resequenced ):
-            log.info('Found existing SAM file "%s"' % self.hla_to_resequenced)
-            log.info("Skipping realignment step...\n")
-        else:
-            query_count = fasta_size( self.hla_subreads )
-            ref_count = fasta_size( self.resequenced_output )
-            log.info("Aligning {0} subreads to {1} reference sequences".format(query_count, ref_count))
-            blasr_args = {'nproc': args.nproc,
-                          'noSplitSubreads': True,
-                          'out': self.hla_to_resequenced,
-                          'sam': True,
-                          'bestn': 1,
-                          'nCandidates': ref_count}
-            run_blasr( self.hla_subreads, 
-                       self.resequenced_output, 
-                       blasr_args)
-            check_output_file( self.hla_to_resequenced )
-        self.subread_allele_dict = create_sam_reference( self.hla_to_resequenced )
-        self.subread_locus_dict = cross_ref_dict( self.subread_allele_dict, self.phased_locus_dict )
-        log.info("Finished realigning HLA subreads to HLA contigs\n")
-
-    def combine_subreads_by_allele(self):
-        log.info("Separating subreads by their best matching allele")
-        allele_fofn = os.path.join( self.subreads, "Alleles_Files.txt" )
-        if valid_file( allele_fofn ):
-            log.info('Found existing Allele File List "%s"' % allele_fofn)
-            log.info("Skipping subread separation step...\n")
-            self.allele_files = read_list_file( allele_fofn )
-            return
-        separated_seqs = separate_sequences( self.hla_subreads, 
-                                             self.subread_allele_dict )
-        allele_prefix = os.path.join(self.subreads, 'Allele')
-        self.allele_files = write_all_groups( separated_seqs, allele_prefix )
-        self.allele_files = [fn for fn in self.allele_files if not fn.endswith('Unmapped.fasta')]
-        write_list_file( self.allele_files, allele_fofn )
-        log.info('Finished separating subreads by Allele')
-
-    def combine_subreads_by_locus(self):
-        log.info("Separating subreads by the locus of their assigned contig")
-        locus_fofn = os.path.join( self.subreads, "Locus_Files.txt" )
-        if valid_file( locus_fofn ):
-            log.info('Found existing Locus File List "{0}"'.format(locus_fofn))
-            log.info("Skipping subread separation step...\n")
-            self.locus_files = read_list_file( locus_fofn )
-            return
-        separated_seqs = separate_sequences( self.hla_subreads, 
-                                             self.subread_locus_dict )
-        locus_prefix = os.path.join(self.subreads, 'Locus')
-        self.locus_files = write_all_groups( separated_seqs, locus_prefix )
-        self.locus_files = [fn for fn in self.locus_files if not fn.endswith('Unmapped.fasta')]
-        write_list_file( self.locus_files, locus_fofn )
-        log.info('Finished separating subreads by Locus')
-
-    def type_hla_sequences(self):
+    def type_hla_sequences(self, sequence_file ):
         log.info('Typing the selected HLA consensus sequences')
-        if args.msa is None:
-            log.info("No HLA MSA information supplied, can't perform HLA typing")
-            return 
-        self.gdna_types = os.path.join( self.annotation, 'gDNA_allele_calls.txt' )
-        self.cdna_types = os.path.join( self.annotation, 'cDNA_allele_calls.txt' )
-        type_hla( args.msa, 
-                  self.reoriented, 
-                  self.phased_locus_dict,
-                  self.annotation )
+        typing = type_sequences( sequence_file,
+                                 self.exon_reference,
+                                 self.locus_reference,
+                                 self.cDNA_reference,
+                                 ['A', 'B', 'C', 'DQB1', 'DRB1'])
+        check_output_file( typing )
         log.info('Finished typing the selected HLA sequences\n')
-
-    def summarize_hla_typings(self):
-        log.info('Typing the selected HLA consensus sequences')
-        self.typing_summary = os.path.join(self.clusense_results, 'Final_Summary.txt')
-        summarize_typing( self.resequenced_summary,
-                          self.gdna_types,
-                          self.cdna_types,
-                          self.typing_summary )
-        log.info('Finished typing the selected HLA sequences\n')
-
+        return typing
 
 def _initialize_folders( output ):
     """
@@ -880,7 +577,7 @@ def _initialize_folders( output ):
     # Create sub-directories
     subfolders = {}
     for dir_name in ['HBAR', 'references', 'subreads', 'results',
-                     'alignments', 'phasing', 'phasing_results']:
+                     'alignments', 'phasing', 'typing', 'resequencing']:
         sub_dir = os.path.join( output, dir_name )
         create_directory( sub_dir )
         subfolders[dir_name] = sub_dir

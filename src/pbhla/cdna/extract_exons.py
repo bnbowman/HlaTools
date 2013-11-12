@@ -51,6 +51,7 @@ def _extract_exons( record, exon_fofn, output_type, directory ):
     """
     Extract Fasta Records of each Exon from a Fasta Record
     """
+    log.info('Extracting exons from "%s"' % record.name)
     temp_fasta = _write_temp_fasta( record )
     output_file = os.path.join( directory, 'all_exons.%s' % output_type )
     output_handle = _open_output_handle( output_file, output_type )
@@ -58,7 +59,6 @@ def _extract_exons( record, exon_fofn, output_type, directory ):
         exon_num = exon_fasta[-7]
         start, end = _find_exon_position( temp_fasta, exon_fasta, directory )
         if start is None or end is None:
-            log.info('No Exon #%s to extract from "%s"' % (exon_num, record.name))
             continue
         exon_record = _extract_exon_record( record, exon_num, start, end )
         output_handle.writeRecord( exon_record )
@@ -111,7 +111,6 @@ def _align_exons( query, exon_fasta, directory ):
     exon_num = exon_fasta[-7]
     alignment_file = 'exon%s.m1' % exon_num
     alignment_path = os.path.join( directory, alignment_file )
-    log.info('Attempting')
     blasr_args = {'nproc': NPROC,
                   'out': alignment_path,
                   'bestn': 1,
