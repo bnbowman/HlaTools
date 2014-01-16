@@ -75,6 +75,18 @@ def full_align_best_reference(query, reference, output=None):
     check_output_file(output)
     return output
 
+def get_alignment_file( query_file, reference_file, alignment_file ):
+    """
+    Get an Blasr-alignment file for a given query file
+    """
+    if alignment_file:
+        return alignment_file
+    elif reference_file and alignment_file is None:
+        return align_best_reference( query_file, reference_file )
+    msg = "Alignment or Reference file required!"
+    log.error( msg )
+    raise ValueError( msg )
+
 def reference_has_index( reference ):
     index_file = reference + '.sa'
     if valid_file( index_file ):

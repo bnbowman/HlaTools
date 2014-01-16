@@ -43,7 +43,7 @@ def _summarize_hits( gDNA_data, cDNA_data ):
         summary = { 'Sequence': query,
                     'Notes': []}
         summary = _add_gDNA_summary( summary, gDNA_data[query] )
-        summary = _add_cDNA_summary( summary, cDNA_data[query] )
+        summary = _add_cDNA_summary( summary, cDNA_data, query )
         summary = _add_consensus_type( summary )
         summaries[query] = summary
     return summaries
@@ -75,18 +75,24 @@ def _add_gDNA_summary( summary, gDNA_hits ):
         summary['gDNA_PctId'] = 'N/A'
     return summary
 
-def _add_cDNA_summary( summary, cDNA_hits ):
+def _add_cDNA_summary( summary, cDNA_data, query ):
     """
     Summarize the cDNA hits for a consensus sequence
     """
-    summary['cLen'] = cDNA_hits[0].qlength
-    if len( cDNA_hits ) == 1:
-        summary['cDNA_Type'] = HlaType.from_string( cDNA_hits[0].tname )
-        summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
-    elif len( cDNA_hits ) >= 2:
-        summary['cDNA_Type'] = _combine_cDNA_hits( cDNA_hits )
-        summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
+    if query in cDNA_data:
+        cDNA_hits = cDNA_data[query]
+        summary['cLen'] = cDNA_hits[0].qlength
+        if len( cDNA_hits ) == 1:
+            summary['cDNA_Type'] = HlaType.from_string( cDNA_hits[0].tname )
+            summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
+        elif len( cDNA_hits ) >= 2:
+            summary['cDNA_Type'] = _combine_cDNA_hits( cDNA_hits )
+            summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
+        else:
+            summary['cDNA_Type'] = 'N/A'
+            summary['cDNA_PctId'] = 'N/A'
     else:
+        summary['cLen'] = 'N/A'
         summary['cDNA_Type'] = 'N/A'
         summary['cDNA_PctId'] = 'N/A'
     return summary
@@ -132,7 +138,7 @@ def _combine_cDNA_hits( cDNA_hits ):
     return 'N/A'
 
 def _write_header( handle ):
-    handle.write('Sequence'.ljust(41))
+    handle.write('Sequence'.ljust(44))
     handle.write('gLen'.ljust(6))
     handle.write('gType'.ljust(21))
     handle.write('gPctId'.ljust(7))
@@ -145,7 +151,7 @@ def _write_header( handle ):
     handle.write('\n')
 
 def _write_summary_line( handle, summary ):
-    handle.write(summary['Sequence'].ljust(41))
+    handle.write(summary['Sequence'].ljust(44))
     handle.write(summary['gLen'].ljust(6))
     handle.write(str(summary['gDNA_Type']).ljust(21))
     handle.write(str(summary['gDNA_PctId']).ljust(7))

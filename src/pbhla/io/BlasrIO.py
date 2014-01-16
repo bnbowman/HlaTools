@@ -14,7 +14,7 @@ BlasrM5 = namedtuple('BlasrM5', blasr_m5_spec)
 class BlasrReader( ReaderBase ):
 
     def __init__(self, f, filetype=None):
-        self._file = getFileHandle(f, 'r')
+        self.file = getFileHandle(f, 'r')
 
         filetype = filetype or f.split('.')[-1]
         if filetype.lower() == 'm1':
@@ -29,9 +29,13 @@ class BlasrReader( ReaderBase ):
         else:
             raise TypeError("Invalid type to BlasrReader")
 
+    @property
+    def filetype(self):
+        return self._filetype
+
     def __iter__(self):
         try:
-            for line in self._file:
+            for line in self.file:
                 entry = self._datatype._make(line.strip().split())
                 if entry.qname == 'qname':
                     continue
@@ -46,23 +50,30 @@ class BlasrWriter( WriterBase ):
     A Class for writing out Blasr records
     """
 
-    def writeHeader( self ):
-        """
-        Write a Blasr header out to the file handle 
-        """
-        self.file.write("qname tname qstrand tstrand score pctsimilarity tstart tend tlength qstart qend qlength ncells")
+    def write_header( self, filetype ):
+        if filetype == 'm1':
+            self.file.write( blasr_m1_spec )
+        elif filetype == 'm5':
+            self.file.write( blasr_m5_spec )
+        else:
+            raise ValueError("Filetype must be M1 or M5!")
         self.file.write("\n")
 
     def write( self, record ):
         """
         Write a Blasr record out to the file handle
         """
-        assert isinstance( record, BlasrM1 ) or isinstance( BlasrM5 )
+        assert isinstance( record, BlasrM1 ) or isinstance( record, BlasrM5 )
         self.file.write( record_to_string( record ))
         self.file.write("\n")
 
-def m5_pctsimilarity( record ):
-    return round(100*(int(record.nmis) + int(record.nins) + int(record.ndel))/float(record.nmat), 2)
+def pctsimilarity( record ):
+    if isinstance( record, BlasrM1):
+        return float( record.pctsimilarity )
+    elif isinstance( record, BlasrM5 ):
+        return round(100*float(record.nmat)/(int(record.nmis) + int(record.nins) + int(record.ndel) + int(record.nmat)), 2)
+    else:
+        raise TypeError("Record must be a valid BlasrRecord")
 
 def add_header_to_m5( m5_file ):
     with open( m5_file ) as handle:

@@ -120,7 +120,8 @@ def _extract_cDNA( records, loci, fofn, directory ):
             log.warn( 'No exonic reference for %s' % locus )
         # Extract the exons and make the cDNA
         exon_file = extract_exons( record, exon_fofn, record_directory )
-        cDNA_file = exons_to_cDNA( exon_file )
+        if exon_file:
+            cDNA_file = exons_to_cDNA( exon_file )
 
 def _collect_cDNA( folder, output_file ):
     """

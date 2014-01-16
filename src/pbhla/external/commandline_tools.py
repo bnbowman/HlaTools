@@ -17,6 +17,13 @@ def run_muscle( args ):
     log_command( command_args )
     execute_command( command_args )
 
+def run_hmmsearch(query, reference, args):
+    command_args = create_hmmsearch_command(query, reference, args)
+    log_command( command_args )
+    execute_command( command_args )
+    if 'domtblout' in command_args:
+        check_output_file( command_args['domtblout'] )
+
 def create_muscle_command( args ):
     log.debug("Converting supplied arguments into a Blasr commandline")
     command_args = ['muscle']
@@ -37,6 +44,18 @@ def create_blasr_command(query, reference, args):
             command_args += [arg]
         else:
             command_args += [arg, str(value)]
+    return command_args
+
+def create_hmmsearch_command(query, reference, args):
+    log.debug("Converting supplied arguments into an Hmmsearch commandline")
+    command_args = ['hmmsearch']
+    for arg, value in args.iteritems():
+        arg = '--' + str(arg)
+        if value is True:
+            command_args += [arg]
+        else:
+            command_args += [arg, str(value)]
+    command_args += [query, reference]
     return command_args
 
 def log_command( args ):
@@ -63,7 +82,7 @@ def execute_command( command_args ):
     command = command_args[0].capitalize()
     log.debug('Executing "%s" command as subprocess' % command)
     with open('/dev/null', 'w') as handle:
-        subprocess.check_call( command_args, 
-                               stdout=handle, 
+        subprocess.check_call( command_args,
+                               stdout=handle,
                                stderr=subprocess.STDOUT )
     log.debug("Subprocess finished successfully")

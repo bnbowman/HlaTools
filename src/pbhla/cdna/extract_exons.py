@@ -55,15 +55,25 @@ def _extract_exons( record, exon_fofn, output_type, directory ):
     temp_fasta = _write_temp_fasta( record )
     output_file = os.path.join( directory, 'all_exons.%s' % output_type )
     output_handle = _open_output_handle( output_file, output_type )
+
+    # Iterate over the individual Exon Fasta files looking for alignments
+    exon_count = 0
     for exon_fasta in read_list_file( exon_fofn ):
         exon_num = exon_fasta[-7]
         start, end = _find_exon_position( temp_fasta, exon_fasta, directory )
         if start is None or end is None:
             continue
+        exon_count += 1
         exon_record = _extract_exon_record( record, exon_num, start, end )
         output_handle.writeRecord( exon_record )
     os.unlink( temp_fasta )
     output_handle.close()
+
+    if exon_count:
+        log.info("Extracted %s exons from %s" % (exon_count, record.name))
+    else:
+        log.warn("No valid exons found for %s!" % record.name)
+        return None
     check_output_file( output_file )
     return output_file
 
@@ -113,6 +123,9 @@ def _align_exons( query, exon_fasta, directory ):
     alignment_path = os.path.join( directory, alignment_file )
     blasr_args = {'nproc': NPROC,
                   'out': alignment_path,
+                  'minSubreadLength': 30,
+                  'minReadLength': 30,
+                  'maxScore': 0,
                   'bestn': 1,
                   'noSplitSubreads': True}
     run_blasr( exon_fasta,

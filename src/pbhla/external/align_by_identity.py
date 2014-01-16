@@ -2,11 +2,10 @@
 
 import sys, os, logging, tempfile
 
-from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbhla.fasta.utils import fasta_size, write_temp_fasta
 from pbhla.sequences.utils import read_sequences
 from pbhla.external.commandline_tools import run_blasr
-from pbhla.io.BlasrIO import BlasrReader, BlasrWriter, BlasrM1, BlasrM5, m5_pctsimilarity
+from pbhla.io.BlasrIO import BlasrReader, BlasrWriter, BlasrM1, BlasrM5, pctsimilarity
 from pbhla.utils import check_output_file
 
 NPROC = 4
@@ -24,7 +23,7 @@ def align_by_identity( query, reference_fasta, output=None, format='1' ):
         output = '%s.m%s' % (basename, format)
     # Iterate over each Fasta, aligning individually.
     with BlasrWriter( output ) as handle:
-        handle.writeHeader()
+        handle.write_header( 'm1' )
         for record in read_sequences( query ):
             temp = write_temp_fasta( record )
             alignments = _align_fasta( temp.name, reference_fasta, format )
@@ -33,8 +32,10 @@ def align_by_identity( query, reference_fasta, output=None, format='1' ):
                 continue
             alignments = _sort_alignments( alignments )
             alignments = _filter_alignments( alignments )
-            for alignment in alignments:
-                handle.write( alignment )
+            #for alignment in alignments:
+            #    print alignment
+            #    print pctsimilarity( alignment )
+            handle.write( alignments[0] )
             os.unlink( temp.name )
     check_output_file( output )
     return output
@@ -62,27 +63,16 @@ def _sort_alignments( alignments ):
     """
     Sort alignments by Percent-Identity first, and Score second
     """
-    alignments = sorted( alignments, key=lambda x: int(x.score))
-    if isinstance(alignments[0], BlasrM1):
-        alignments = sorted( alignments, key=lambda x: float(x.pctsimilarity),
-                                                       reverse=True)
-    elif isinstance(alignments[0], BlasrM5):
-        alignments = sorted( alignments, key=lambda x: m5_pctsimilarity(x),
-                                                       reverse=True)
+    alignments = sorted( alignments, key=lambda x: pctsimilarity(x), reverse=True )
     return alignments
 
 def _filter_alignments( alignments ):
     """
     Filter out all but the best matches
     """
-    if isinstance(alignments[0], BlasrM1):
-        max_pctid = float(alignments[0].pctsimilarity)
-        alignments = filter( lambda x: float(x.pctsimilarity) >= max_pctid,
-                             alignments )
-    elif isinstance(alignments[0], BlasrM5):
-        max_pctid = m5_pctsimilarity( alignments[0] )
-        alignments = filter( lambda x: m5_pctsimilarity(x) >= max_pctid,
-                             alignments )
+    max_pctid = pctsimilarity(alignments[0])
+    alignments = filter( lambda x: pctsimilarity(x) >= max_pctid,
+                         alignments )
     return alignments
 
 if __name__ == '__main__':
