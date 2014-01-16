@@ -123,8 +123,8 @@ def _align_exons( query, exon_fasta, directory ):
     alignment_path = os.path.join( directory, alignment_file )
     blasr_args = {'nproc': NPROC,
                   'out': alignment_path,
-                  'minSubreadLength': 30,
-                  'minReadLength': 30,
+                  'minSubreadLength': 20,
+                  'minReadLength': 20,
                   'maxScore': 0,
                   'bestn': 1,
                   'noSplitSubreads': True}

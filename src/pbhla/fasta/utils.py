@@ -60,7 +60,7 @@ def fasta_size(fasta):
             count+=1
         return count
     except:
-	return None
+    	return None
 
 def fasta_length( fasta ):
     """

@@ -25,6 +25,17 @@ def write_sequences( records, output_file ):
     check_output_file( output_file )
     return output_file
 
+def read_names( sequence_file ):
+    # Open the sequence file with the appropriate reader
+    if is_fasta( sequence_file ):
+        reader = FastaReader( sequence_file )
+    elif is_fastq( sequence_file ):
+        reader = FastqReader( sequence_file )
+    else:
+        raise ValueError
+
+    # Extract and return the sequence names
+    return [r.name.strip().split()[0] for r in reader]
 
 def write_fasta( records, output_file ):
     """

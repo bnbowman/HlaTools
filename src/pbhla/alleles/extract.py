@@ -3,28 +3,41 @@
 import os, logging
 from operator import itemgetter
 
-from pbcore.io.FastaIO import FastaReader, FastaWriter
+from pbcore.io.FastaIO import FastaReader
 from pbcore.io.FastqIO import FastqReader, FastqWriter
-from pbhla.fasta.utils import fasta_size, write_fasta
+from pbhla.fasta.utils import write_fasta
+from pbhla.sequences.utils import read_names
 from pbhla.external.utils import get_alignment_file
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utils import get_file_type, check_output_file
 
 NPROC = 6
-LOCI = ['A', 'B', 'C']
+LOCI = ['A', 'B', 'C', 'DRB1', 'DQB1']
+METHOD = 'locus'
+
 log = logging.getLogger()
 
-def extract_alleles( input_file, output_file=None, reference_file=None, alignment_file=None, loci=LOCI ):
-    """
-    Pick the top N Amplicon Analysis consensus seqs from a Fasta by Nreads
-    """
-    alignment_file = get_alignment_file( input_file, reference_file, alignment_file )
+def extract_alleles( input_file, output_file=None, reference_file=None,
+                                                   alignment_file=None,
+                                                   method=METHOD,
+                                                   loci=LOCI ):
+    """Pick the top 2 Amplicon Analysis consensus seqs per group from a Fasta"""
+
     # Set the output file if not specified
     output_file = output_file or _get_output_file( input_file )
     output_type = get_file_type( output_file )
-    # Parse the alignment data and extract the target sequences
+
+    # If align to reference for breaking ties
+    alignment_file = get_alignment_file( input_file, reference_file, alignment_file )
     alignments = list( BlasrReader( alignment_file ))
-    groups = _group_by_locus( alignments, loci )
+
+    if method == 'locus':
+        groups = _group_by_locus( alignments, loci )
+    elif method == 'barcode':
+        groups = _group_by_barcode( alignments )
+    else:
+        raise ValueError
+
     ordered = _sort_groups( groups )
     selected = list( _select_sequences( ordered ))
     sequences = _parse_input_records( input_file )
@@ -33,9 +46,7 @@ def extract_alleles( input_file, output_file=None, reference_file=None, alignmen
     return output_file
 
 def _group_by_locus( alignments, loci ):
-    """
-    Group reads by the locus of their best alignment
-    """
+    """Group reads by the locus of their best alignment"""
     groups = {}
     for record in alignments:
         reference = record.tname.split('*')[0]
@@ -48,19 +59,31 @@ def _group_by_locus( alignments, loci ):
             groups[locus] = [record]
     return groups
 
+def _group_by_barcode( alignments ):
+    """Group reads by their barcode"""
+    groups = {}
+    for alignment in alignments:
+        name = alignment.qname
+        if name.startswith('Barcode'):
+            name = name[7:]
+        if name.startswith('_'):
+            name = name[1:]
+        barcode = name.split('_')[0]
+        try:
+            groups[barcode].append( alignment )
+        except KeyError:
+            groups[barcode] = [ alignment ]
+    return groups
+
 def _sort_groups( groups ):
-    """
-    Order each group of records individually
-    """
+    """Order each group of records individually"""
     ordered = {}
     for locus, group in groups.iteritems():
         ordered[locus] = _sort_group( group )
     return ordered
 
 def _sort_group( group ):
-    """
-    Order records in a group by their number of reads
-    """
+    """Order records in a group by their number of reads"""
     # Internal function for simplicity
     def record_size( record ):
         return int( record.qname.split('NumReads')[-1] )
@@ -71,9 +94,7 @@ def _sort_group( group ):
     return [t[0] for t in tuples]
 
 def _select_sequences( groups ):
-    """
-    Select the top 1-2 sequences for each Locus
-    """
+    """Select the top 1-2 sequences for each Locus"""
     for group in groups.itervalues():
         first, the_rest = group[0], group[1:]
         # Yeild the first sequence from each group
@@ -89,9 +110,7 @@ def _select_sequences( groups ):
                     break
 
 def _parse_input_records( input_file ):
-    """
-    Parse the input sequence records with the appropriate pbcore Reader
-    """
+    """Parse the input sequence records with the appropriate pbcore Reader"""
     input_type = get_file_type( input_file )
     if input_type == 'fasta':
         return list( FastaReader( input_file ))
@@ -103,18 +122,14 @@ def _parse_input_records( input_file ):
         raise TypeError( msg )
 
 def _subset_sequences( sequences, selected ):
-    """
-    Subset only the sequences that match 
-    """
+    """Subset only the sequences that match"""
     for record in sequences:
         name = record.name.split()[0]
         if name in selected:
             yield record
 
 def _write_output( records, output_file, output_type ):
-    """
-    Write the records out to file
-    """
+    """Write the records out to file"""
     if output_type == 'fasta':
         write_fasta( records, output_file )
     else:
