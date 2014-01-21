@@ -267,9 +267,9 @@ if __name__ == '__main__':
 
     add = parser.add_argument
     add('read_file', metavar='READS', 
-        help="Fasta or Fastq file of CCS sequences")
+        help="Fasta file of Cluster-specific reads")
     add('ref_file',  metavar='REF',  
-        help="Mothur list file of cluster data")
+        help="Fasta file of sequences to polish with Quiver")
     add('fofn_file', metavar='FOFN', 
         help="BasH5 or FOFN of sequence data")
     add('--setup', metavar='SETUP_FILE',
