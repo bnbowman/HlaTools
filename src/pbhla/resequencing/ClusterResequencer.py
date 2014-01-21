@@ -39,7 +39,7 @@ from pbhla.fasta.utils import invalid_fasta_names
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
 NOISE_DATA = '-77.27,0.08654,0.00121'
-COVERAGE = 1000
+COVERAGE = 200
 CHEMISTRY = 'P4-C2.AllQVsMergingByChannelModel'
 
 log = logging.getLogger()
@@ -55,10 +55,10 @@ class ClusterResequencer(object):
                        setup=None,
                        output='Resequencing', 
                        nproc=1):
-        self.read_file = read_file
-        self.reference_file = ref_file
-        self.fofn_file = fofn_file
-        self._setup = setup
+        self._read_file = read_file
+        self._reference_file = ref_file
+        self._fofn_file = fofn_file
+        self._setup = os.path.abspath( setup ) if setup is not None else None
         self._output = output
         self._logs = os.path.join( self._output, 'logs' )
         self._scripts = os.path.join( self._output, 'scripts' )
@@ -67,19 +67,19 @@ class ClusterResequencer(object):
         self.validate_settings()
 
     def validate_settings(self):
-        # If the names are provided as a filename, parse it
-        if self._setup is not None:
-            self._setup = os.path.abspath( self._setup )
         # Check that the fasta names can be mapped to PBI wells
         if invalid_fasta_names( self.read_file ):
             msg = 'Resequencer requires valid PacBio read-names'
-            raise Exception( msg )
+            log.error( msg )
+            raise ValueError( msg )
+
         # Check for the availability of the various SMRT Analysis tools
         self.filter_plsh5 = which('filterPlsH5.py')
         self.compare_sequences = which('compareSequences.py')
         self.cmph5_tools = which('cmph5tools.py')
         self.load_pulses = which('loadPulses')
         self.variant_caller = which('variantCaller.py')
+
         # Check that either the tools or SMRT Analysis setup is available
         if all([ self.filter_plsh5,
                  self.compare_sequences,
@@ -102,9 +102,22 @@ class ClusterResequencer(object):
                   'the SMRT Analysis tools in the local path OR the ' + \
                   'path to a local SMRT Analysis setup script'
             raise Exception( msg )
+
         create_directory( self._output )
         create_directory( self._scripts )
         create_directory( self._logs )
+
+    @property
+    def read_file(self):
+        return self._read_file
+
+    @property
+    def reference_file(self):
+        return self._reference_file
+
+    @property
+    def fofn_file(self):
+        return self._fofn_file
 
     def __call__(self):
         # Second we create a Rng.H5 file to mask other reads from Blasr
