@@ -43,25 +43,3 @@ def resequence( smrt_analysis, raw_data_file, reference_file, output_dir ):
         log.info('Finished Quiver resequencing')
 
     return consensus_fasta
-    
-"""
-    ### separate out resequenced HLA sequences from the nonspecific ones, by sequence name, store in two different files
-    ### TODO: read fastq output, parse consnesus QV, store somewhere the annotator can get at it
-    target_seq_names=[]
-    for record in FastaReader(self.hap_con_fasta):
-        target_seq_names.append( record.name )
-    with FastaWriter(self.args.proj+"/reseq/resequenced_hap_con.fasta") as on_target: 
-        with FastaWriter(self.args.proj+"/reseq/resequenced_nonspecific.fasta") as off_target:
-            for record in FastaReader(reseq_output+".fasta"):
-                if record.name.split("|")[0] in target_seq_names:
-                    on_target.writeRecord( record )
-                else:
-                    off_target.writeRecord( record )
-    with FastqWriter(self.args.proj+"/reseq/resequenced_hap_con.fastq") as on_target:
-        with FastqWriter(self.args.proj+"/reseq/resequenced_nonspecific.fastq") as off_target:
-            for record in FastqReader(reseq_output+".fastq"):
-                if record.name.split("|")[0] in target_seq_names:
-                    on_target.writeRecord( record )
-                else:   
-                    off_target.writeRecord( record )
-"""

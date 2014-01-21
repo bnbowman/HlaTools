@@ -1,4 +1,6 @@
-import logging, tempfile
+import re
+import logging
+import tempfile
 from string import maketrans
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
@@ -6,7 +8,15 @@ from pbcore.io.FastqIO import FastqRecord
 from pbhla.utils import check_output_file
 
 COMPLEMENT = maketrans('ACGT', 'TGCA')
+PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
 log = logging.getLogger(__name__)
+
+def invalid_fasta_names( fasta_file ):
+    for record in FastaReader( fasta_file ):
+        name = record.name.split()[0]
+        if not re.match(PB_REGEX, name):
+            return True
+    return False
 
 def write_temp_fasta( record ):
     """

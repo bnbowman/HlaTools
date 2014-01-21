@@ -28,18 +28,17 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #################################################################################$$
 
-import os, re, sys
+import os
 import logging
 import subprocess
-import shlex
 
 from pbcore.io.FastaIO import FastaReader
+from pbhla.utils import which, create_directory
+from pbhla.fasta.utils import invalid_fasta_names
 
-#from utils import which, create_directory
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
 NOISE_DATA = '-77.27,0.08654,0.00121'
-PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
 COVERAGE = 1000
 CHEMISTRY = 'P4-C2.AllQVsMergingByChannelModel'
 
@@ -54,14 +53,12 @@ class ClusterResequencer(object):
                        ref_file, 
                        fofn_file, 
                        setup=None,
-                       names=None,
                        output='Resequencing', 
                        nproc=1):
         self.read_file = read_file
         self.reference_file = ref_file
         self.fofn_file = fofn_file
         self._setup = setup
-        self._names = names
         self._output = output
         self._logs = os.path.join( self._output, 'logs' )
         self._scripts = os.path.join( self._output, 'scripts' )
@@ -71,15 +68,11 @@ class ClusterResequencer(object):
 
     def validate_settings(self):
         # If the names are provided as a filename, parse it
-        if isinstance(self._names, str):
-            self._names = read_dict_file( self._names )
         if self._setup is not None:
             self._setup = os.path.abspath( self._setup )
         # Check that the fasta names can be mapped to PBI wells
-        if (invalid_fasta_names( self.read_file ) and 
-            invalid_dict_names( self._names )):
-            msg = 'Cluster resequencing requires EITHER valid PacBio ' + \
-                  'read-names OR a dictionary to convert them'
+        if invalid_fasta_names( self.read_file ):
+            msg = 'Resequencer requires valid PacBio read-names'
             raise Exception( msg )
         # Check for the availability of the various SMRT Analysis tools
         self.filter_plsh5 = which('filterPlsH5.py')
@@ -158,8 +151,6 @@ class ClusterResequencer(object):
         zmws = []
         for record in FastaReader( self.read_file ):
             name = record.name.split()[0]
-            if self._names:
-                name = self._names[name]
             zmw = '/'.join( name.split('/')[:2] )
             zmws.append( zmw )
         # Write the ZMWs to file
@@ -255,65 +246,7 @@ class ClusterResequencer(object):
         log.info('Finished creating the Quiver consensus')
         return consensus_fastq, consensus_fasta
 
-def invalid_fasta_names( fasta_file ):
-    log.info('Checking read file for valid well names')
-    for record in FastaReader( fasta_file ):
-        name = record.name.split()[0]
-        if not re.match(PB_REGEX, name):
-            return True
-    return False
 
-def invalid_dict_names( name_dict ):
-    if name_dict is None:
-        return True
-    log.info('Checking name dictionary for valid well names')
-    for key, value in name_dict.iteritems():
-        if not re.match(PB_REGEX, value):
-            return True
-    return False
-
-def is_exe( file_path ):
-    if file_path is None:
-        return False
-    return os.path.isfile(file_path) and os.access(file_path, os.X_OK)
-
-def which(program):
-    """
-    Find and return path to local executables  
-    """
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-    return None
-
-def create_directory( directory ):
-    # Skip if the directory exists
-    if os.path.isdir( directory ):
-        return
-    try: # Otherwise attempt to create it
-        os.mkdir( directory )
-    except: 
-        msg = 'Could not create directory "{0}"'.format(directory)
-        log.info( msg )
-        raise IOError( msg )
-
-def read_dict_file( dict_file ):
-    dict_contents = {}
-    with open(dict_file, 'r') as handle:
-        for line in handle:
-            try:
-                key, value = line.strip().split()
-                dict_contents[key] = value
-            except:
-                pass
-    return dict_contents
 
 if __name__ == '__main__':
     import argparse
@@ -328,8 +261,6 @@ if __name__ == '__main__':
         help="BasH5 or FOFN of sequence data")
     add('--setup', metavar='SETUP_FILE',
         help='Path to the SMRT Analysis setup script')
-    add('--names', metavar='DICT_FILE',
-        help='Path to a dictionary file of sequence names')
     add('--output', default='reseq', metavar='DIR',
         help="Specify a directory for intermediate files")
     add('--nproc', type=int, default=1, metavar='INT',
@@ -345,7 +276,6 @@ if __name__ == '__main__':
                                       args.ref_file, 
                                       args.fofn_file, 
                                       setup=args.setup,
-                                      names=args.names,
                                       output=args.output, 
                                       nproc=args.nproc )
     resequencer()
