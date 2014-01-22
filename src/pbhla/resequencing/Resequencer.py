@@ -35,7 +35,7 @@ import subprocess
 from pbcore.io.FastaIO import FastaReader
 from pbhla import __LOG__
 from pbhla.fasta.utils import is_pacbio_record
-from pbhla.utils import which, create_directory
+from pbhla.utils import which, create_directory, validate_file
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
 COVERAGE = 200
@@ -95,16 +95,6 @@ class Resequencer(object):
                    'path to a local SMRT Analysis setup script']
             log.error( msg )
             raise Exception( msg )
-
-
-    @staticmethod
-    def validate_input_file( filename ):
-        if os.path.isfile( filename ):
-            return os.path.abspath( filename )
-        else:
-            msg = 'Input file "%s" not found!'
-            log.error( msg )
-            raise ValueError( msg )
 
 
     def initialize_output(self, output ):
@@ -239,11 +229,10 @@ class Resequencer(object):
 
     def __call__(self, data_file, read_file, reference_file, output='Resequencing'):
         # Validate and set-up run-specific values
-        self._counter = 0
-        data_file      = self.validate_input_file( data_file )
-        read_file      = self.validate_input_file( read_file )
-        reference_file = self.validate_input_file( reference_file )
-        self.validate_read_file( read_file )
+        self._counter  = 0
+        data_file      = self.validate_file( data_file )
+        read_file      = self.validate_file( read_file )
+        reference_file = self.validate_file( reference_file )
         self.initialize_output( output )
 
         # Next we run the 4-step Quiver Process

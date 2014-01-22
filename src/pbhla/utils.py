@@ -109,6 +109,12 @@ def cross_ref_dict( query_dict, ref_dict ):
         new_dict[key] = new_value
     return new_dict
 
+def validate_file( filename ):
+    if os.path.isfile( filename ) and (os.path.getsize( filename ) > 0):
+        return os.path.abspath( filename )
+    return False
+
+# TODO: Replace all instances of this function with the above "validate_file"
 def valid_file( filepath ):
     if os.path.isfile( filepath ) and (os.path.getsize( filepath ) > 0):
         return True
