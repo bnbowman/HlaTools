@@ -29,19 +29,20 @@
 #################################################################################$$
 
 import os
-import logging
+import logging, logging.config
 import subprocess
 
 from pbcore.io.FastaIO import FastaReader
-from pbhla.utils import which, create_directory
+from pbhla import __LOG__
 from pbhla.fasta.utils import invalid_fasta_names
-
+from pbhla.utils import which, create_directory
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
 NOISE_DATA = '-77.27,0.08654,0.00121'
 COVERAGE = 200
 CHEMISTRY = 'P4-C2.AllQVsMergingByChannelModel'
 
+logging.config.fileConfig( __LOG__ )
 log = logging.getLogger()
 
 class ClusterResequencer(object):
@@ -58,6 +59,7 @@ class ClusterResequencer(object):
         self._read_file = read_file
         self._reference_file = ref_file
         self._fofn_file = fofn_file
+        self._counter = 0
         self._setup = os.path.abspath( setup ) if setup is not None else None
         self._output = output
         self._logs = os.path.join( self._output, 'logs' )
@@ -76,6 +78,7 @@ class ClusterResequencer(object):
         # Check for the availability of the various SMRT Analysis tools
         self.filter_plsh5 = which('filterPlsH5.py')
         self.compare_sequences = which('compareSequences.py')
+        self.pbalign = which('pbalign.py')
         self.cmph5_tools = which('cmph5tools.py')
         self.load_pulses = which('loadPulses')
         self.variant_caller = which('variantCaller.py')
@@ -94,6 +97,7 @@ class ClusterResequencer(object):
             self._setup = os.path.abspath( self._setup )
             self.filter_plsh5 = 'filterPlsH5.py'
             self.compare_sequences = 'compareSequences.py'
+            self.pbalign = 'pbalign.py'
             self.cmph5_tools = 'cmph5tools.py'
             self.load_pulses = 'loadPulses'
             self.variant_caller = 'variantCaller.py'
@@ -101,6 +105,7 @@ class ClusterResequencer(object):
             msg = 'Cluster resequencing requires EITHER valid copies of ' + \
                   'the SMRT Analysis tools in the local path OR the ' + \
                   'path to a local SMRT Analysis setup script'
+            log.error( msg )
             raise Exception( msg )
 
         create_directory( self._output )
@@ -123,18 +128,20 @@ class ClusterResequencer(object):
         # Second we create a Rng.H5 file to mask other reads from Blasr
         whitelist_file = self.create_whitelist()
         rgnh5_fofn = self.create_rgnh5( whitelist_file )
-        cmph5_file = self.create_cmph5( rgnh5_fofn )
+        cmph5_file = self.run_compare_sequences( rgnh5_fofn )
         sorted_cmph5 = self.sort_cmph5( cmph5_file )
         self.run_load_pulses( cmph5_file, sorted_cmph5 )
         consensus_file = self.run_quiver( sorted_cmph5 )
+        #cmph5_file = self.run_pbalign( rgnh5_fofn )
+        #consensus_file = self.run_quiver( cmph5_file )
         return consensus_file
 
     def run_process(self, process_args, name):
         log.info("Executing child '%s' process" % name)
         if self._use_setup:
             log.info('Executing subprocess indirectly via Shell Script')
-            script = self.write_script( process_args, name)
-            log_path = os.path.join( self._logs, name + '.log' )
+            script = self.write_script( process_args, name )
+            log_path = self.get_log_path( name )
             with open( log_path, 'w' ) as log_handle:
                 p = subprocess.Popen( ['source', script], 
                                        executable='/bin/bash',
@@ -148,11 +155,20 @@ class ClusterResequencer(object):
         log.info('Child process finished successfully')
 
     def write_script( self, process_args, name ):
-        script_path = os.path.join( self._scripts, name + '_script.sh' )
+        script_path = self.get_script_path( name )
         with open( script_path, 'w') as handle:
             handle.write('source %s\n' % self._setup)
             handle.write( ' '.join(process_args) + '\n' )
         return script_path
+
+    def get_script_path( self, name ):
+        self._counter += 1
+        script_name = '%s_%s_script.sh' % (self._counter, name )
+        return os.path.join( self._scripts, script_name )
+
+    def get_log_path( self, name ):
+        log_name = '%s_%s.log' % (self._counter, name)
+        return os.path.join( self._logs, log_name )
 
     def create_whitelist( self ):
         log.info('Creating cluster-specific whitelist file')
@@ -184,21 +200,22 @@ class ClusterResequencer(object):
                         self.fofn_file,
                         '--outputDir=%s' % output_dir,
                         '--outputFofn=%s' % output_fofn,
-                        '--filter=ReadWhitelist=%s' % whitelist_file]
+                        '--filter="ReadWhitelist=%s,MinSRL=1500,MinReadScore=0.8,MaxSRL=3700"' % whitelist_file]
         self.run_process( process_args, 'FilterPlsH5')
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
 
-    def create_cmph5(self, rgnh5_fofn ):
+    def run_compare_sequences(self, rgnh5_fofn ):
         log.info('Creating cluster-specific CmpH5')
         cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
         if os.path.exists( cmph5_file ):
             log.info('Existing CmpH5 detected, skipping...')
             return cmph5_file
-        process_args = [self.compare_sequences, 
+        process_args = [self.compare_sequences,
                         '--useQuality',
                         '--h5pbi',
                         '--info',
+                        '--multiple=random',
                         '-x', '-bestn', '1',
                         '--nproc=%s' % self._nproc,
                         '--regionTable=%s' % rgnh5_fofn,
@@ -207,6 +224,24 @@ class ClusterResequencer(object):
                         '--h5fn=%s' % cmph5_file,
                         self.fofn_file,
                         self.reference_file]
+        self.run_process( process_args, 'CompareSequences')
+        log.info('Finished writing the cluster-specific CmpH5')
+        return cmph5_file
+
+    def run_pbalign(self, rgnh5_fofn ):
+        log.info('Creating cluster-specific CmpH5')
+        cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
+        if os.path.exists( cmph5_file ):
+            log.info('Existing CmpH5 detected, skipping...')
+            return cmph5_file
+        process_args = [self.pbalign,
+                        self.fofn_file,
+                        self.reference_file,
+                        cmph5_file,
+                        '--regionTable=%s' % rgnh5_fofn,
+                        '--forQuiver',
+                        '--hitPolicy=randombest',
+                        '--nproc=%s' % self._nproc]
         self.run_process( process_args, 'CompareSequences')
         log.info('Finished writing the cluster-specific CmpH5')
         return cmph5_file
@@ -274,15 +309,11 @@ if __name__ == '__main__':
         help="BasH5 or FOFN of sequence data")
     add('--setup', metavar='SETUP_FILE',
         help='Path to the SMRT Analysis setup script')
-    add('--output', default='reseq', metavar='DIR',
+    add('--output', default='resequencing', metavar='DIR',
         help="Specify a directory for intermediate files")
     add('--nproc', type=int, default=1, metavar='INT',
         help="Number of processors to use")
-
     args = parser.parse_args()
-    
-    # If the args were valid, initialize a logger before running
-    logging.basicConfig( level=logging.INFO )
 
     # Run the specified resequencing process
     resequencer = ClusterResequencer( args.read_file, 
