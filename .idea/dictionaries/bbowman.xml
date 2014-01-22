@@ -2,15 +2,31 @@
   <dictionary name="bbowman">
     <words>
       <w>amplicon</w>
+      <w>asctime</w>
+      <w>cmph</w>
+      <w>datefmt</w>
       <w>delim</w>
       <w>fasta</w>
       <w>fastq</w>
       <w>filelike</w>
+      <w>fofn</w>
+      <w>formatters</w>
       <w>iter</w>
+      <w>levelname</w>
+      <w>nproc</w>
+      <w>pacbio</w>
+      <w>pbalign</w>
       <w>pbcore</w>
       <w>pbdagcon</w>
       <w>pbtools</w>
+      <w>plsh</w>
       <w>pypeflow</w>
+      <w>resequencer</w>
+      <w>resequencing</w>
+      <w>rgnh</w>
+      <w>smrt</w>
+      <w>whitelist</w>
+      <w>zmws</w>
     </words>
   </dictionary>
 </component>
