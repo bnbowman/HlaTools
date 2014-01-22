@@ -77,17 +77,12 @@ class ClusterResequencer(object):
 
         # Check for the availability of the various SMRT Analysis tools
         self.filter_plsh5 = which('filterPlsH5.py')
-        self.compare_sequences = which('compareSequences.py')
         self.pbalign = which('pbalign.py')
-        self.cmph5_tools = which('cmph5tools.py')
-        self.load_pulses = which('loadPulses')
         self.variant_caller = which('variantCaller.py')
 
         # Check that either the tools or SMRT Analysis setup is available
         if all([ self.filter_plsh5,
-                 self.compare_sequences,
-                 self.cmph5_tools,
-                 self.load_pulses,
+                 self.pbalign,
                  self.variant_caller ]):
             log.info('All required SMRT Analysis tools detected')
             self._use_setup = False
@@ -96,10 +91,7 @@ class ClusterResequencer(object):
             self._use_setup = True
             self._setup = os.path.abspath( self._setup )
             self.filter_plsh5 = 'filterPlsH5.py'
-            self.compare_sequences = 'compareSequences.py'
             self.pbalign = 'pbalign.py'
-            self.cmph5_tools = 'cmph5tools.py'
-            self.load_pulses = 'loadPulses'
             self.variant_caller = 'variantCaller.py'
         else:
             msg = 'Cluster resequencing requires EITHER valid copies of ' + \
@@ -128,12 +120,8 @@ class ClusterResequencer(object):
         # Second we create a Rng.H5 file to mask other reads from Blasr
         whitelist_file = self.create_whitelist()
         rgnh5_fofn = self.create_rgnh5( whitelist_file )
-        cmph5_file = self.run_compare_sequences( rgnh5_fofn )
-        sorted_cmph5 = self.sort_cmph5( cmph5_file )
-        self.run_load_pulses( cmph5_file, sorted_cmph5 )
-        consensus_file = self.run_quiver( sorted_cmph5 )
-        #cmph5_file = self.run_pbalign( rgnh5_fofn )
-        #consensus_file = self.run_quiver( cmph5_file )
+        cmph5_file = self.run_pbalign( rgnh5_fofn )
+        consensus_file = self.run_quiver( cmph5_file )
         return consensus_file
 
     def run_process(self, process_args, name):
@@ -205,29 +193,6 @@ class ClusterResequencer(object):
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
 
-    def run_compare_sequences(self, rgnh5_fofn ):
-        log.info('Creating cluster-specific CmpH5')
-        cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
-        if os.path.exists( cmph5_file ):
-            log.info('Existing CmpH5 detected, skipping...')
-            return cmph5_file
-        process_args = [self.compare_sequences,
-                        '--useQuality',
-                        '--h5pbi',
-                        '--info',
-                        '--multiple=random',
-                        '-x', '-bestn', '1',
-                        '--nproc=%s' % self._nproc,
-                        '--regionTable=%s' % rgnh5_fofn,
-                        '--algorithm=blasr',
-                        '--noiseData=%s' % NOISE_DATA,
-                        '--h5fn=%s' % cmph5_file,
-                        self.fofn_file,
-                        self.reference_file]
-        self.run_process( process_args, 'CompareSequences')
-        log.info('Finished writing the cluster-specific CmpH5')
-        return cmph5_file
-
     def run_pbalign(self, rgnh5_fofn ):
         log.info('Creating cluster-specific CmpH5')
         cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
@@ -245,32 +210,6 @@ class ClusterResequencer(object):
         self.run_process( process_args, 'CompareSequences')
         log.info('Finished writing the cluster-specific CmpH5')
         return cmph5_file
-
-    def sort_cmph5(self, cmph5_file ):
-        log.info('Finished writing the cluster-specific CmpH5')
-        sorted_cmph5 = os.path.join( self._output, 'cluster.sorted.cmp.h5')
-        if os.path.exists( sorted_cmph5 ):
-            log.info('Existing sorted CmpH5 detected, skipping...')
-            return sorted_cmph5
-        process_args = [self.cmph5_tools,
-                        'sort',
-                        '--outFile=%s' % sorted_cmph5,
-                        cmph5_file]
-        self.run_process( process_args, 'CmpH5Tools')
-        log.info('Finished sorting the cluster-specific CmpH5')
-        return sorted_cmph5
-
-    def run_load_pulses(self, cmph5_file, sorted_cmph5):
-        log.info('Loading rich QV data into the CmpH5')
-        if os.path.getsize( sorted_cmph5 ) > 5*os.path.getsize( cmph5_file ):
-            log.info('Existing CmpH5 appears to have QV data, skipping...')
-            return
-        process_args = [self.load_pulses,
-                        self.fofn_file,
-                        sorted_cmph5,
-                        '-metrics', PULSE_METRICS]
-        self.run_process( process_args, 'LoadPulses')
-        log.info('Finished loading QV data into the CmpH5')
 
     def run_quiver(self, sorted_cmph5):
         log.info('Running Quiver to generate HQ consensus')
