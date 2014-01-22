@@ -38,7 +38,6 @@ from pbhla.fasta.utils import invalid_fasta_names
 from pbhla.utils import which, create_directory
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
-NOISE_DATA = '-77.27,0.08654,0.00121'
 COVERAGE = 200
 CHEMISTRY = 'P4-C2.AllQVsMergingByChannelModel'
 
@@ -47,82 +46,84 @@ log = logging.getLogger()
 
 class ClusterResequencer(object):
     """
-    A tool for resequencing clusters of rDNA sequences    
+    A tool for automatic the resequencing small subsets of a PacBio dataset
     """
 
-    def __init__(self, read_file, 
-                       ref_file, 
-                       fofn_file, 
-                       setup=None,
-                       output='Resequencing', 
-                       nproc=1):
-        self._read_file = read_file
-        self._reference_file = ref_file
-        self._fofn_file = fofn_file
-        self._counter = 0
+    def __init__(self, setup=None, nproc=1):
+        """Initialize cross-cluster and object-specific settings"""
         self._setup = os.path.abspath( setup ) if setup is not None else None
-        self._output = output
-        self._logs = os.path.join( self._output, 'logs' )
-        self._scripts = os.path.join( self._output, 'scripts' )
         self._nproc = nproc
-        self._use_setup = None
-        self.validate_settings()
 
-    def validate_settings(self):
-        # Check that the fasta names can be mapped to PBI wells
-        if invalid_fasta_names( self.read_file ):
+        # Find the various required scripts and determine if
+        self.filter_plsh5   = which('filterPlsH5.py') or 'filterPlsH5.py'
+        self.pbalign        = which('pbalign.py') or 'pbalign.py'
+        self.variant_caller = which('variantCaller.py') or 'variantCaller.py'
+        self._use_setup     = self.validate_setup()
+
+        # Initialize properties to be used for each call
+        self._counter = 0
+        self._output = None
+        self._logs = None
+        self._scripts = None
+
+
+    def validate_setup(self):
+        """Determine whether we need a setup script, and which environment to use"""
+        if all([self.filter_plsh5, self.pbalign, self.variant_caller]):
+            need_setup = False
+        else:
+            need_setup = True
+
+        # Determine whether we can proceed or not
+        if self._setup and need_setup:
+            # TODO: Add validation that the setup script works
+            log.info(['SMRT Analysis tools not detected, using supplied '
+                      'SMRT Analysis environment'])
+            return True
+        elif self._setup and not need_setup:
+            log.info(['SMRT Analysis tools were detected, but using supplied '
+                      'SMRT Analysis environment instead.  Do not pass a ',
+                      '"setup" argument to use local environment'])
+            return True
+        elif self._setup is None and not need_setup:
+            log.info(['SMRT Analysis tools detected, using local '
+                      'SMRT Analysis environment'])
+            return False
+        else:
+            msg = ['Cluster resequencing requires EITHER valid copies of ',
+                   'SMRT Analysis tools in the local path OR the ',
+                   'path to a local SMRT Analysis setup script']
+            log.error( msg )
+            raise Exception( msg )
+
+
+    @staticmethod
+    def validate_input_file( filename ):
+        if os.path.isfile( filename ):
+            return os.path.abspath( filename )
+        else:
+            msg = 'Input file "%s" not found!'
+            log.error( msg )
+            raise ValueError( msg )
+
+
+    @staticmethod
+    def validate_read_file( read_file ):
+        if invalid_fasta_names( read_file ):
             msg = 'Resequencer requires valid PacBio read-names'
             log.error( msg )
             raise ValueError( msg )
 
-        # Check for the availability of the various SMRT Analysis tools
-        self.filter_plsh5 = which('filterPlsH5.py')
-        self.pbalign = which('pbalign.py')
-        self.variant_caller = which('variantCaller.py')
 
-        # Check that either the tools or SMRT Analysis setup is available
-        if all([ self.filter_plsh5,
-                 self.pbalign,
-                 self.variant_caller ]):
-            log.info('All required SMRT Analysis tools detected')
-            self._use_setup = False
-        elif self._setup and os.path.isfile( self._setup ):
-            log.info('SMRT Analysis tools not detected, using Setup script')
-            self._use_setup = True
-            self._setup = os.path.abspath( self._setup )
-            self.filter_plsh5 = 'filterPlsH5.py'
-            self.pbalign = 'pbalign.py'
-            self.variant_caller = 'variantCaller.py'
-        else:
-            msg = 'Cluster resequencing requires EITHER valid copies of ' + \
-                  'the SMRT Analysis tools in the local path OR the ' + \
-                  'path to a local SMRT Analysis setup script'
-            log.error( msg )
-            raise Exception( msg )
-
+    def initialize_output(self, output ):
+        """Initialize the cluster-specific output folders"""
+        self._output = os.path.abspath( output )
         create_directory( self._output )
+        self._scripts = os.path.join( self._output, 'scripts' )
         create_directory( self._scripts )
+        self._logs = os.path.join( self._output, 'logs' )
         create_directory( self._logs )
 
-    @property
-    def read_file(self):
-        return self._read_file
-
-    @property
-    def reference_file(self):
-        return self._reference_file
-
-    @property
-    def fofn_file(self):
-        return self._fofn_file
-
-    def __call__(self):
-        # Second we create a Rng.H5 file to mask other reads from Blasr
-        whitelist_file = self.create_whitelist()
-        rgnh5_fofn = self.create_rgnh5( whitelist_file )
-        cmph5_file = self.run_pbalign( rgnh5_fofn )
-        consensus_file = self.run_quiver( cmph5_file )
-        return consensus_file
 
     def run_process(self, process_args, name):
         log.info("Executing child '%s' process" % name)
@@ -142,6 +143,7 @@ class ClusterResequencer(object):
             p.wait()
         log.info('Child process finished successfully')
 
+
     def write_script( self, process_args, name ):
         script_path = self.get_script_path( name )
         with open( script_path, 'w') as handle:
@@ -149,35 +151,41 @@ class ClusterResequencer(object):
             handle.write( ' '.join(process_args) + '\n' )
         return script_path
 
+
     def get_script_path( self, name ):
         self._counter += 1
         script_name = '%s_%s_script.sh' % (self._counter, name )
         return os.path.join( self._scripts, script_name )
 
+
     def get_log_path( self, name ):
         log_name = '%s_%s.log' % (self._counter, name)
         return os.path.join( self._logs, log_name )
 
-    def create_whitelist( self ):
+
+    def create_whitelist( self, read_file ):
         log.info('Creating cluster-specific whitelist file')
         whitelist_file = os.path.join(self._output, 'whitelist.txt')
         if os.path.exists( whitelist_file ):
-            log.info('Existing whitelist file found, skipping...')
+            log.info('Existing whitelist file found, skipping...\n')
             return whitelist_file
+
         # Parse the individual ZMWs of interest
-        zmws = []
-        for record in FastaReader( self.read_file ):
+        zmws = set()
+        for record in FastaReader( read_file ):
             name = record.name.split()[0]
             zmw = '/'.join( name.split('/')[:2] )
-            zmws.append( zmw )
+            zmws.add( zmw )
+
         # Write the ZMWs to file
         with open( whitelist_file, 'w' ) as handle:
-            for zmw in sorted(set( zmws )):
+            for zmw in sorted( zmws ):
                 handle.write(zmw + '\n')
-        log.info('Finished writing the whitelist file')
+        log.info('Finished writing the whitelist file\n')
         return os.path.abspath( whitelist_file )
 
-    def create_rgnh5(self, whitelist_file):
+
+    def create_rgnh5( self, data_file, whitelist_file ):
         log.info('Creating cluster-specific RngH5 from Whitelist')
         output_dir = os.path.join(self._output, 'region_tables')
         output_fofn = os.path.join(self._output, 'region_tables.fofn')
@@ -185,54 +193,72 @@ class ClusterResequencer(object):
             log.info('Existing RngH5 detected, skipping...')
             return output_fofn
         process_args = [self.filter_plsh5, 
-                        self.fofn_file,
+                        data_file,
                         '--outputDir=%s' % output_dir,
                         '--outputFofn=%s' % output_fofn,
                         '--filter="ReadWhitelist=%s,MinSRL=1500,MinReadScore=0.8,MaxSRL=3700"' % whitelist_file]
-        self.run_process( process_args, 'FilterPlsH5')
+        self.run_process( process_args, 'FilterPlsH5' )
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
 
-    def run_pbalign(self, rgnh5_fofn ):
+
+    def run_pbalign( self, data_file, reference_file, rgnh5_file ):
         log.info('Creating cluster-specific CmpH5')
         cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
         if os.path.exists( cmph5_file ):
-            log.info('Existing CmpH5 detected, skipping...')
+            log.info('Existing CmpH5 detected, skipping...\n')
             return cmph5_file
         process_args = [self.pbalign,
-                        self.fofn_file,
-                        self.reference_file,
+                        data_file,
+                        reference_file,
                         cmph5_file,
-                        '--regionTable=%s' % rgnh5_fofn,
+                        '--regionTable=%s' % rgnh5_file,
                         '--forQuiver',
                         '--hitPolicy=randombest',
                         '--nproc=%s' % self._nproc]
         self.run_process( process_args, 'CompareSequences')
-        log.info('Finished writing the cluster-specific CmpH5')
+        log.info('Finished writing the cluster-specific CmpH5\n')
         return cmph5_file
 
-    def run_quiver(self, sorted_cmph5):
+
+    def run_quiver( self, cmph5_file, reference_file ):
         log.info('Running Quiver to generate HQ consensus')
         consensus_fastq = os.path.join( self._output, 'consensus.fastq')
         consensus_fasta = os.path.join( self._output, 'consensus.fasta')
         if ( os.path.exists( consensus_fastq ) and
              os.path.isfile( consensus_fasta )):
-            log.info('Existing consensus found, skipping...')
+            log.info('Existing consensus found, skipping...\n')
             return consensus_fastq, consensus_fasta
         process_args = [self.variant_caller,
                         '--algorithm=quiver',
                         '--verbose',
                         '--parameterSet=%s' % CHEMISTRY,
                         '--numWorkers=%s' % self._nproc,
-                        '--reference=%s' % self.reference_file,
+                        '--reference=%s' % reference_file,
                         '--coverage=%s' % COVERAGE,
                         '--outputFile=%s' % consensus_fastq,
                         '--outputFile=%s' % consensus_fasta,
-                        sorted_cmph5]
+                        cmph5_file]
         self.run_process( process_args, 'Quiver' )
-        log.info('Finished creating the Quiver consensus')
+        log.info('Finished creating the Quiver consensus\n')
         return consensus_fastq, consensus_fasta
 
+
+    def __call__(self, data_file, read_file, reference_file, output='Resequencing'):
+        # Validate and set-up run-specific values
+        self._counter = 0
+        data_file      = self.validate_input_file( data_file )
+        read_file      = self.validate_input_file( read_file )
+        reference_file = self.validate_input_file( reference_file )
+        self.validate_read_file( read_file )
+        self.initialize_output( output )
+
+        # Next we run the 4-step Quiver Process
+        whitelist_file = self.create_whitelist( read_file )
+        rgnh5_file = self.create_rgnh5( data_file, whitelist_file )
+        cmph5_file = self.run_pbalign( data_file, reference_file, rgnh5_file )
+        consensus_file = self.run_quiver( cmph5_file, reference_file )
+        return consensus_file
 
 
 if __name__ == '__main__':
@@ -255,10 +281,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Run the specified resequencing process
-    resequencer = ClusterResequencer( args.read_file, 
-                                      args.ref_file, 
-                                      args.fofn_file, 
-                                      setup=args.setup,
-                                      output=args.output, 
+    resequencer = ClusterResequencer( setup=args.setup,
                                       nproc=args.nproc )
-    resequencer()
+    resequencer( args.fofn_file,
+                 args.read_file,
+                 args.ref_file,
+                 output=args.output )
