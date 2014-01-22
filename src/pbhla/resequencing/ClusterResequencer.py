@@ -34,7 +34,7 @@ import subprocess
 
 from pbcore.io.FastaIO import FastaReader
 from pbhla import __LOG__
-from pbhla.fasta.utils import invalid_fasta_names
+from pbhla.fasta.utils import is_pacbio_record
 from pbhla.utils import which, create_directory
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
@@ -107,14 +107,6 @@ class ClusterResequencer(object):
             raise ValueError( msg )
 
 
-    @staticmethod
-    def validate_read_file( read_file ):
-        if invalid_fasta_names( read_file ):
-            msg = 'Resequencer requires valid PacBio read-names'
-            log.error( msg )
-            raise ValueError( msg )
-
-
     def initialize_output(self, output ):
         """Initialize the cluster-specific output folders"""
         self._output = os.path.abspath( output )
@@ -173,6 +165,7 @@ class ClusterResequencer(object):
         # Parse the individual ZMWs of interest
         zmws = set()
         for record in FastaReader( read_file ):
+            assert is_pacbio_record( record )
             name = record.name.split()[0]
             zmw = '/'.join( name.split('/')[:2] )
             zmws.add( zmw )
