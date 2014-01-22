@@ -99,6 +99,7 @@ class Resequencer(object):
 
     def initialize_output(self, output ):
         """Initialize the cluster-specific output folders"""
+        # TODO: Check for existing directories and do something
         self._output = os.path.abspath( output )
         create_directory( self._output )
         self._scripts = os.path.join( self._output, 'scripts' )
