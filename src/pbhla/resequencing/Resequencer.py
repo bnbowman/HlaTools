@@ -230,9 +230,9 @@ class Resequencer(object):
     def __call__(self, data_file, read_file, reference_file, output='Resequencing'):
         # Validate and set-up run-specific values
         self._counter  = 0
-        data_file      = self.validate_file( data_file )
-        read_file      = self.validate_file( read_file )
-        reference_file = self.validate_file( reference_file )
+        data_file      = validate_file( data_file )
+        read_file      = validate_file( read_file )
+        reference_file = validate_file( reference_file )
         self.initialize_output( output )
 
         # Next we run the 4-step Quiver Process
