@@ -3,12 +3,15 @@
     <words>
       <w>amplicon</w>
       <w>asctime</w>
+      <w>barcoded</w>
+      <w>barcodes</w>
       <w>cmph</w>
       <w>datefmt</w>
       <w>delim</w>
       <w>fasta</w>
       <w>fastq</w>
       <w>filelike</w>
+      <w>filepath</w>
       <w>fofn</w>
       <w>formatters</w>
       <w>iter</w>
@@ -24,6 +27,7 @@
       <w>resequencer</w>
       <w>resequencing</w>
       <w>rgnh</w>
+      <w>rootname</w>
       <w>smrt</w>
       <w>whitelist</w>
       <w>zmws</w>

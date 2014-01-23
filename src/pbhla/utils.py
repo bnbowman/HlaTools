@@ -22,6 +22,9 @@ def is_fastq( filename ):
         return True
     return False
 
+def get_file_root( filename ):
+    return '.'.join( filename.split('.')[:-1] )
+
 def count_hits( filename ):
     return len( list( BlasrReader( filename )))
 
