@@ -5,7 +5,7 @@ import sys, os, logging, tempfile
 from pbhla.fasta.utils import fasta_size, write_temp_fasta
 from pbhla.sequences.utils import read_sequences
 from pbhla.external.commandline_tools import run_blasr
-from pbhla.io.BlasrIO import BlasrReader, BlasrWriter, BlasrM1, BlasrM5, pctsimilarity
+from pbhla.io.BlasrIO import BlasrReader, BlasrWriter, pctsimilarity
 from pbhla.utils import check_output_file
 
 NPROC = 4
@@ -25,6 +25,7 @@ def align_by_identity( query, reference_fasta, output=None, format='1' ):
     with BlasrWriter( output ) as handle:
         handle.write_header( 'm1' )
         for record in read_sequences( query ):
+            log.info('Aligning %s by identity to reference set' % record.name)
             temp = write_temp_fasta( record )
             alignments = _align_fasta( temp.name, reference_fasta, format )
             if not alignments:

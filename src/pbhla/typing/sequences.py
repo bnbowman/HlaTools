@@ -1,16 +1,18 @@
 #! /usr/bin/env python
 
 import os
-import logging
+import logging, logging.config
 
+from pbhla import __LOG__
 from pbhla.external.utils import full_align_best_reference
 from pbhla.external.align_by_identity import align_by_identity
 from pbhla.sequences.orientation import orient_sequences
-from pbhla.alleles.extract import extract_alleles
 from pbhla.cdna.extract_cDNA import extract_cDNA
 from pbhla.typing.summarize import summarize_typing
 
 LOCI = ['A', 'B', 'C']
+
+logging.config.fileConfig( __LOG__ )
 log = logging.getLogger()
 
 def type_sequences( input_file, exon_fofn, genomic_reference, cDNA_reference, loci=LOCI ):
