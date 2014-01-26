@@ -14,15 +14,15 @@ log = logging.getLogger(__name__)
 
 class ExternalTool( object ):
     """An abstract class for running external command-line tools"""
+    counter = 0
 
     def __init__(self, setup=None):
         self._setup = setup
         self._use_setup = self.test_setup()
-        self._args
 
     def test_setup(self):
         """Determine whether we need a setup script, and which environment to use"""
-        if self._setup and which(self.exe):
+        if self.setup and which(self.exe):
             # TODO: Add validation that the setup script works
             log.info('"%s" not detected, using supplied environment' % self.name)
             return True
@@ -30,7 +30,7 @@ class ExternalTool( object ):
             log.info('%s detected, but using supplied environment instead.' % self.name + \
                      'Do not pass a "setup" argument to use local environment')
             return True
-        elif self.setup is None and which(self.exe) is None:
+        elif self.setup is None and which(self.exe):
             log.info('"%s" detected, using local environment' % self.name)
             return False
         else:
