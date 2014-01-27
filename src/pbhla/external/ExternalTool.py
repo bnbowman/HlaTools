@@ -5,6 +5,8 @@ __email__ = 'bbowman@pacificbiosciences.com'
 
 import logging, logging.config
 import subprocess
+import tempfile
+import shlex
 
 from pbhla import __LOG__
 from pbhla.utils import which
@@ -55,6 +57,26 @@ class ExternalTool( object ):
     def use_setup(self):
         return self._use_setup
 
+    @property
+    def commandline(self):
+        raise NotImplementedError("Subclasses should implement this!")
+
+    @property
+    def commandline_args(self):
+        return shlex.split( self.commandline )
+
+    def set_arguments(self, **kwargs):
+        raise NotImplementedError("Subclasses should implement this!")
+
+    def set_defaults(self):
+        raise NotImplementedError("Subclasses should implement this!")
+
+    def check_arguments(self):
+        raise NotImplementedError("Subclasses should implement this!")
+
+    def check_output(self):
+        raise NotImplementedError("Subclasses should implement this!")
+
     def run_process(self, process_args, name):
         log.info("Executing child '%s' process" % name)
         if self._use_setup:
@@ -73,19 +95,40 @@ class ExternalTool( object ):
             p.wait()
         log.info('Child process finished successfully')
 
-    def write_script( self, process_args, name ):
-        script_path = self.get_script_path( name )
-        with open( script_path, 'w') as handle:
-            handle.write('source %s\n' % self._setup)
-            handle.write( ' '.join(process_args) + '\n' )
-        return script_path
-
-    def get_script_path( self, name ):
-        self._counter += 1
-        script_name = '%s_%s_script.sh' % (self._counter, name )
-        return os.path.join( self._scripts, script_name )
-
+    def write_shell_script( self ):
+        script_file = tempfile.NamedTemporaryFile(suffix='.sh', delete=False)
+        with open( script_file, 'w') as handle:
+            handle.write('source %s\n' % self.setup)
+            handle.write( '%s\n' % self.commandline )
+        return script_file
 
     def get_log_path( self, name ):
         log_name = '%s_%s.log' % (self._counter, name)
         return os.path.join( self._logs, log_name )
+
+    def run( self ):
+        log.info('Running %s' % self.name)
+        if self.use_setup:
+            log.info('Executing %s indirectly via Shell Script' % self.name)
+        else:
+            log.info('Executing %s directly via Subprocess' % self.name)
+            print self.commandline
+            output = self.run_subprocess()
+            print output
+        log.info('Finished Executing %s' % self.name)
+
+    def run_subprocess_script(self):
+        shell_script = self.write_shell_script()
+
+    def run_subprocess(self):
+        """Run a process directly via Subprocess and validate the output"""
+        output = subprocess.check_output( self.commandline_args )
+        return output
+
+    def __call__(self, output_dir=None, **kwargs):
+        self.counter += 1
+        self.set_arguments( **kwargs )  # 1. Initialize
+        self.set_defaults()             # 2. Set unspecified values to default
+        self.check_arguments()          # 3. Sanity Check
+        self.run()                      # 4. Run
+        return self.check_output()      # 5. Validate
