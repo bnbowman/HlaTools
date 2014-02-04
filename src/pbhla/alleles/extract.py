@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 
-import os, logging
+import logging
 from operator import itemgetter
 
 from pbcore.io.FastaIO import FastaReader
 from pbcore.io.FastqIO import FastqReader, FastqWriter
-from pbhla.fasta.utils import write_fasta
-from pbhla.sequences.utils import read_names
+from pbhla.fasta.utils import write_fasta, get_num_reads
 from pbhla.external.utils import get_alignment_file
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utils import get_file_type, check_output_file
@@ -14,6 +13,7 @@ from pbhla.utils import get_file_type, check_output_file
 NPROC = 6
 LOCI = ['A', 'B', 'C', 'DRB1', 'DQB1']
 METHOD = 'locus'
+MIN_FRAC = 0.15
 
 log = logging.getLogger()
 
@@ -37,10 +37,12 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         groups = _group_by_barcode( alignments )
     elif method == 'both':
         groups = _group_by_both( alignments, loci )
-        for name, aln in groups.iteritems():
-            print name, len(aln), aln
+    elif method == 'all':
+        groups = {a.qname: [a] for a in alignments}
     else:
-        raise ValueError
+        msg = "Invalid Selection Metric: %s" % method
+        log.error( msg )
+        raise ValueError( msg )
 
     ordered = _sort_groups( groups )
     selected = list( _select_sequences( ordered ))
@@ -111,17 +113,17 @@ def _select_sequences( groups ):
     """Select the top 1-2 sequences for each Locus"""
     for group in groups.itervalues():
         first, the_rest = group[0], group[1:]
-        # Yeild the first sequence from each group
+        # Yield the first sequence from each group
         yield first.qname
-        # If there are only two, yield the second as well
-        if len(the_rest) == 1:
-            yield the_rest[0].qname
-        # If there are more than two, yield the next sequence with a different reference
-        else:
-            for record in the_rest:
-                if record.tname != first.tname:
-                    yield record.qname
-                    break
+        first_reads = get_num_reads( first.qname )
+        # Yield the next sequence with a different reference
+        for record in the_rest:
+            num_reads = get_num_reads( record.qname )
+            if record.tname == first.tname:
+                first_reads += get_num_reads( record.qname )
+            elif num_reads > (first_reads * MIN_FRAC):
+                yield record.qname
+                break
 
 def _parse_input_records( input_file ):
     """Parse the input sequence records with the appropriate pbcore Reader"""

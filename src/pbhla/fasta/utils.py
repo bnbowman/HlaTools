@@ -11,6 +11,10 @@ COMPLEMENT = maketrans('ACGT', 'TGCA')
 PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
 log = logging.getLogger(__name__)
 
+def get_num_reads( record_name ):
+    assert 'NumReads' in record_name, record_name
+    return int(record_name.split('NumReads')[1])
+
 def read_fasta_dict( fasta_file ):
     records = {}
     for rec in FastaReader( fasta_file ):
