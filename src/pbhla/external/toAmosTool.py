@@ -6,6 +6,8 @@ __email__ = 'bbowman@pacificbiosciences.com'
 from pbhla.external.ExternalTool import ExternalTool
 from pbhla.utils import validate_file
 
+#Test
+
 class ToAmosTool( ExternalTool ):
     """A simply wrapper for the toAmos data conversion tool"""
 
