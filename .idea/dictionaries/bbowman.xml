@@ -9,6 +9,7 @@
       <w>cmph</w>
       <w>datefmt</w>
       <w>delim</w>
+      <w>exon</w>
       <w>fasta</w>
       <w>fastq</w>
       <w>filelike</w>
