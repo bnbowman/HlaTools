@@ -2,13 +2,13 @@
 
 import os, logging
 
-from pbcore.io.FastaIO import FastaReader, FastaRecord
-from pbcore.io.FastqIO import FastqReader, FastqRecord
+from pbcore.io import FastaReader, FastqReader
+
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.cdna.extract_exons import extract_exons
 from pbhla.cdna.exons_to_cDNA import exons_to_cDNA
 from pbhla.sequences.utils import combine_sequences, write_sequences
-from pbhla.utils import check_output_file, create_directory, get_file_type
+from pbhla.utils import check_output_file, create_directory, get_file_type, remove_directory
 
 log = logging.getLogger()
 
@@ -26,19 +26,25 @@ def extract_cDNA( input_file, exon_fofn, output=None,
         msg = "extract_alleles requires either an Alignment or a Reference!"
         log.error( msg )
         raise IOError( msg )
+
     # Set the output and directory if it hasn't been specified
     if directory is None:
         dirname = os.path.dirname( input_file )
         directory = os.path.join( dirname, 'cDNA' )
+        remove_directory( directory )
+
     create_directory( directory )
     output = output or _get_output_file( input_file )
-    output_type = get_file_type( output )
+
     # Prepare the Fasta by orienting and subsetting it
     records = _parse_input_records( input_file )
     fofn = _parse_exon_fofn( exon_fofn )
     loci = _parse_loci( alignment_file )
     _extract_cDNA( records, loci, fofn, directory )
     _collect_cDNA( directory, output )
+
+    # Clean up the directory and return the combined cDNA file
+    remove_directory( directory )
     return output
 
 def _get_output_file( input_file ):

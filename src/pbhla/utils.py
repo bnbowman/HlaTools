@@ -177,3 +177,9 @@ def create_directory( directory ):
         msg = 'Could not create directory "{0}"'.format(directory)
         log.info( msg )
         raise IOError( msg )
+
+def remove_directory( directory ):
+    try:
+        shutil.rmtree( directory )
+    except OSError:
+        log.warn("No directory named '%s' detected for deletion" % directory)

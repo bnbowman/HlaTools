@@ -2,6 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
+      <change type="DELETED" beforePath="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\external\ToAmosTool2.py" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py" afterPath="$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/typing/sequences.py" afterPath="$PROJECT_DIR$/src/pbhla/typing/sequences.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/utils.py" afterPath="$PROJECT_DIR$/src/pbhla/utils.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -36,10 +40,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="amplicon_analysis.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="amplicon_analysis.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/typing/amplicon_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="27" column="24" selection-start="1145" selection-end="1145" vertical-scroll-proportion="0.27391744" vertical-offset="0" max-vertical-offset="993">
+            <state line="27" column="24" selection-start="1145" selection-end="1145" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="918">
               <folding />
             </state>
           </provider>
@@ -48,10 +52,8 @@
       <file leaf-file-name="sequences.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="27" column="22" selection-start="1139" selection-end="1139" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="867">
-              <folding>
-                <element signature="e#24#54#0" expanded="true" />
-              </folding>
+            <state line="10" column="29" selection-start="399" selection-end="399" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="816">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -62,7 +64,48 @@
             <state line="12" column="0" selection-start="356" selection-end="356" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2550">
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
+                <marker date="1391538518782" expanded="true" signature="390:489" placeholder="..." />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="utils.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="1" max-vertical-offset="3162">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="extract_cDNA.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="39" column="48" selection-start="1531" selection-end="1531" vertical-scroll-proportion="0.0" vertical-offset="255" max-vertical-offset="2771">
+              <folding>
+                <element signature="e#24#42#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="setup.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/setup.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="29" column="1" selection-start="828" selection-end="828" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="612">
+              <folding>
+                <element signature="e#0#54#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ToAmosTool.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/external/ToAmosTool.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="16" column="30" selection-start="497" selection-end="497" vertical-scroll-proportion="0.25679758" vertical-offset="0" max-vertical-offset="1088">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -85,15 +128,11 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/src/pbhla/resequencing/ClusterResequencer.py" />
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py" />
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/HlaResequencer.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/AmpliconResequencer.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/typing/sequences.py" />
         <option value="$PROJECT_DIR$/src/pbhla/external/align_by_identity.py" />
         <option value="$PROJECT_DIR$/src/pbhla/external/toAmosTool.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/external/ToAmosTool.py" />
         <option value="$PROJECT_DIR$/src/pbhla/external/ExternalTool.py" />
         <option value="$PROJECT_DIR$/src/pbhla/external/Minimus2Tool.py" />
         <option value="$PROJECT_DIR$/src/pbhla/external/commandline_tools.py" />
@@ -101,6 +140,10 @@
         <option value="$PROJECT_DIR$/src/pbhla/fasta/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
         <option value="$PROJECT_DIR$/src/pbhla/typing/sequences2.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/typing/sequences.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/utils.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/external/ToAmosTool.py" />
       </list>
     </option>
   </component>
@@ -293,6 +336,28 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="cdna" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="HlaTools" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="HlaTools" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="pbhla" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="alleles" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -302,13 +367,29 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="292" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="292" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
     <property name="options.splitter.main.proportions" value="0.3" />
-    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="293" />
     <property name="options.lastSelected" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
     <property name="last_opened_file_path" value="$USER_HOME$/environments/HlaTools/bin/python" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="293" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="967" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="967" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="293" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="291" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
+    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
     <property name="FullScreen" value="false" />
-    <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
   </component>
   <component name="PublishConfig">
     <servers>
@@ -623,7 +704,15 @@
       <created>1391540407681</created>
       <updated>1391540407681</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Refactor &amp; Combination of Typing/Sequences variants">
+      <created>1391540423234</created>
+      <updated>1391540423234</updated>
+    </task>
+    <task id="LOCAL-00029" summary="Fixing pathspec issue for ToAmosTool">
+      <created>1391542681808</created>
+      <updated>1391542681808</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -659,7 +748,7 @@
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24533857" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1670224" sideWeight="0.3326791" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32973504" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875368" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32908913" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24964234" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
@@ -703,9 +792,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="Added Select-by-Barcode functionality to HLA Typing" />
-    <MESSAGE value="Removed defunct NewSubreadPipeline" />
-    <MESSAGE value="First commit of Resequencing Refactor for ANRI" />
     <MESSAGE value="First commit of refactoring to use pbalign" />
     <MESSAGE value="Refactored to use data-files as instance variables and allow more object re-use." />
     <MESSAGE value="New module-wide logging config file" />
@@ -728,33 +814,15 @@
     <MESSAGE value="First commit of FromAssembly HLA Extraction Tool" />
     <MESSAGE value="Bringing Repo up to date" />
     <MESSAGE value="Refactor &amp; Combination of Typing/Sequences variants" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor &amp; Combination of Typing/Sequences variants" />
+    <MESSAGE value="Attempting to fix wierd ToAmos commit error" />
+    <MESSAGE value="Update to add cDNA cleanup to cDNA/Typing tools" />
+    <MESSAGE value="Fixing pathspec issue for ToAmosTool" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixing pathspec issue for ToAmosTool" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="96" column="34" selection-start="4431" selection-end="4431" vertical-scroll-proportion="0.46223566" vertical-offset="1173" max-vertical-offset="4726" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="21" column="6" selection-start="1257" selection-end="1257" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="731">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="298" column="35" selection-start="13692" selection-end="13692" vertical-scroll-proportion="-202.56" vertical-offset="2" max-vertical-offset="10353">
-          <folding>
-            <element signature="e#23#32#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/commandline_tools.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="5" column="7" selection-start="108" selection-end="108" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1564">
@@ -766,7 +834,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="63" column="31" selection-start="2124" selection-end="2124" vertical-scroll-proportion="0.70896274" vertical-offset="367" max-vertical-offset="1513">
           <folding>
-            <element signature="e#98#131#0" expanded="true" />
+            <element signature="e#98#131#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -806,18 +874,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="92" column="16" selection-start="2597" selection-end="2597" vertical-scroll-proportion="-0.06847936" vertical-offset="1564" max-vertical-offset="3077">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/fasta/utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="12" column="0" selection-start="356" selection-end="356" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2550">
           <folding>
             <element signature="e#0#9#0" expanded="true" />
+            <marker date="1391538518782" expanded="true" signature="390:489" placeholder="..." />
           </folding>
         </state>
       </provider>
@@ -831,18 +893,48 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/amplicon_analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="27" column="24" selection-start="1145" selection-end="1145" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="918">
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="27" column="22" selection-start="1139" selection-end="1139" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="867">
+        <state line="10" column="29" selection-start="399" selection-end="399" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="816">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="1" max-vertical-offset="3162">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="39" column="48" selection-start="1531" selection-end="1531" vertical-scroll-proportion="0.0" vertical-offset="255" max-vertical-offset="2771">
           <folding>
-            <element signature="e#24#54#0" expanded="true" />
+            <element signature="e#24#42#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/amplicon_analysis.py">
+    <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="27" column="24" selection-start="1145" selection-end="1145" vertical-scroll-proportion="0.27391744" vertical-offset="0" max-vertical-offset="993">
+        <state line="29" column="1" selection-start="828" selection-end="828" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="612">
+          <folding>
+            <element signature="e#0#54#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/external/ToAmosTool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="16" column="30" selection-start="497" selection-end="497" vertical-scroll-proportion="0.25679758" vertical-offset="0" max-vertical-offset="1088">
           <folding />
         </state>
       </provider>

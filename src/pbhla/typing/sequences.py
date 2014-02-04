@@ -21,7 +21,6 @@ def type_sequences( sequence_file, exon_fofn, genomic_reference, cDNA_reference,
     """
     Pick the top N Amplicon Analysis consensus seqs from a Fasta by Nreads
     """
-    # First we align the sequences to the reference and annotate typing
     raw_alignment = align_best_reference( sequence_file, genomic_reference )
     reoriented = orient_sequences( sequence_file, alignment_file=raw_alignment )
     selected = extract_alleles( reoriented, alignment_file=raw_alignment, method=grouping )
@@ -39,7 +38,5 @@ if __name__ == '__main__':
     genomic_reference = sys.argv[3]
     cDNA_reference = sys.argv[4]
     grouping = sys.argv[5] if len(sys.argv) > 5 else GROUPING
-
-    assert grouping in GROUPINGS
 
     type_sequences( input_file, exon_fofn, genomic_reference, cDNA_reference, grouping )
