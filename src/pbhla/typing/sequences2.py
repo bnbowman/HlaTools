@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import logging
+import logging, logging.config
 
 from pbhla.external.utils import (align_best_reference, 
                                   full_align_best_reference)
@@ -12,6 +12,7 @@ from pbhla.typing.summarize import summarize_typing
 
 GROUPING = 'locus'
 
+logging.config.fileConfig( __LOG__ )
 log = logging.getLogger()
 
 def type_sequences( sequence_file, exon_fofn, genomic_reference, cDNA_reference, grouping='locus' ):

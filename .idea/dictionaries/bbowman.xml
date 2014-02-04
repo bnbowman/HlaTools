@@ -5,6 +5,7 @@
       <w>asctime</w>
       <w>barcoded</w>
       <w>barcodes</w>
+      <w>blasr</w>
       <w>cmph</w>
       <w>datefmt</w>
       <w>delim</w>
@@ -23,6 +24,7 @@
       <w>pbcore</w>
       <w>pbdagcon</w>
       <w>pbtools</w>
+      <w>ploidy</w>
       <w>plsh</w>
       <w>pypeflow</w>
       <w>resequencer</w>

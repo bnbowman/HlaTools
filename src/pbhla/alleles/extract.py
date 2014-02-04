@@ -35,6 +35,10 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         groups = _group_by_locus( alignments, loci )
     elif method == 'barcode':
         groups = _group_by_barcode( alignments )
+    elif method == 'both':
+        groups = _group_by_both( alignments, loci )
+        for name, aln in groups.iteritems():
+            print name, len(aln), aln
     else:
         raise ValueError
 
@@ -55,7 +59,7 @@ def _group_by_locus( alignments, loci ):
             continue
         try:
             groups[locus].append( record )
-        except:
+        except KeyError:
             groups[locus] = [record]
     return groups
 
@@ -73,6 +77,16 @@ def _group_by_barcode( alignments ):
             groups[barcode].append( alignment )
         except KeyError:
             groups[barcode] = [ alignment ]
+    return groups
+
+def _group_by_both( alignments, loci ):
+    groups = {}
+    barcode_groups = _group_by_barcode( alignments )
+    for barcode, bc_alignments in barcode_groups.iteritems():
+        locus_groups = _group_by_locus( bc_alignments, loci )
+        for locus, locus_alignments in locus_groups.iteritems():
+            group = '%s_%s' % (barcode, locus)
+            groups[group] = locus_alignments
     return groups
 
 def _sort_groups( groups ):
