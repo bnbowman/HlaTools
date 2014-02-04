@@ -3,9 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
       <change type="DELETED" beforePath="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\external\ToAmosTool2.py" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py" afterPath="$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/typing/sequences.py" afterPath="$PROJECT_DIR$/src/pbhla/typing/sequences.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/utils.py" afterPath="$PROJECT_DIR$/src/pbhla/utils.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -104,7 +101,7 @@
       <file leaf-file-name="ToAmosTool.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/pbhla/external/ToAmosTool.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="16" column="30" selection-start="497" selection-end="497" vertical-scroll-proportion="0.25679758" vertical-offset="0" max-vertical-offset="1088">
+            <state line="32" column="0" selection-start="875" selection-end="875" vertical-scroll-proportion="0.80091184" vertical-offset="0" max-vertical-offset="1088">
               <folding />
             </state>
           </provider>
@@ -712,7 +709,15 @@
       <created>1391542681808</created>
       <updated>1391542681808</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Fixing pathspec issue for ToAmosTool">
+      <created>1391542751100</created>
+      <updated>1391542751100</updated>
+    </task>
+    <task id="LOCAL-00031" summary="Attempting to fix ToAmos issues">
+      <created>1391543059200</created>
+      <updated>1391543059200</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -737,7 +742,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1176" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="File Transfer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24533857" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -746,13 +751,13 @@
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24533857" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1670224" sideWeight="0.3326791" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875368" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1670224" sideWeight="0.22276741" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32973504" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875368" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32875368" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32908913" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24964234" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1670224" sideWeight="0.6673209" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1670224" sideWeight="0.44749755" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -792,7 +797,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="First commit of refactoring to use pbalign" />
     <MESSAGE value="Refactored to use data-files as instance variables and allow more object re-use." />
     <MESSAGE value="New module-wide logging config file" />
     <MESSAGE value="Forgot __init__ update required for new logging config" />
@@ -817,7 +821,8 @@
     <MESSAGE value="Attempting to fix wierd ToAmos commit error" />
     <MESSAGE value="Update to add cDNA cleanup to cDNA/Typing tools" />
     <MESSAGE value="Fixing pathspec issue for ToAmosTool" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixing pathspec issue for ToAmosTool" />
+    <MESSAGE value="Attempting to fix ToAmos issues" />
+    <option name="LAST_COMMIT_MESSAGE" value="Attempting to fix ToAmos issues" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
@@ -934,7 +939,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/ToAmosTool.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="16" column="30" selection-start="497" selection-end="497" vertical-scroll-proportion="0.25679758" vertical-offset="0" max-vertical-offset="1088">
+        <state line="32" column="0" selection-start="875" selection-end="875" vertical-scroll-proportion="0.80091184" vertical-offset="0" max-vertical-offset="1088">
           <folding />
         </state>
       </provider>
