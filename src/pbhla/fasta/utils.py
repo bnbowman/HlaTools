@@ -11,6 +11,13 @@ COMPLEMENT = maketrans('ACGT', 'TGCA')
 PB_REGEX = 'm\d{6}_\d{6}_[a-zA-Z0-9]{4,6}_c\d{33}_s\d_p\d'
 log = logging.getLogger(__name__)
 
+def read_fasta_dict( fasta_file ):
+    records = {}
+    for rec in FastaReader( fasta_file ):
+        name = rec.name.strip().split()[0]
+        records[name] = rec
+    return records
+
 def is_pacbio_fasta( fasta_file ):
     for record in FastaReader( fasta_file ):
         if not is_pacbio_record( record ):
