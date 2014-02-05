@@ -32,6 +32,7 @@
 
 import os
 
-__VERSION__ = "0.3.1"
+__VERSION__ = "0.4.0"
 __ROOT__ = os.path.dirname( __file__ )
 __LOG__ = os.path.join( __ROOT__, 'logger.cfg' )
+__DATA__ = os.path.join( __ROOT__, 'data/' )
