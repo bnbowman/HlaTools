@@ -59,7 +59,7 @@ def _parse_exon_fofn( exon_fofn ):
     fofn = {}
     with open( exon_fofn, 'r' ) as handle:
         for line in handle:
-            filename, locus = line.strip().split()
+            locus, filename = line.strip().split()
             if locus in fofn:
                 msg = 'Duplicate locus fofn "%s"!' % locus
                 log.error( msg )
