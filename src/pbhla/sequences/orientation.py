@@ -16,16 +16,20 @@ def orient_sequences( input_file, reference_file=None, alignment_file=None, outp
     """
     Reorient a fasta file so all sequences are in the same direction as their reference
     """
+    log.info("Reorienting all sequences in %s to the direction of their reference" % input_file)
     # Set the output file and type
     output_file = output_file or _get_output_file( input_file )
     output_type = _get_output_type( output_file )
     if valid_file( output_file ):
+        log.info("Found existing output file %s, skipping orientation step" % output_file)
         return output_file
     # Check the input files, and align the input file if needed
     alignment_file = get_alignment_file( input_file, reference_file, alignment_file )
     reversed_seqs = _identify_reversed_sequences( alignment_file )
+    log.info("Identified %s sequences needing Reverse Complementation" % len(reversed_seqs))
     input_records = _parse_input_records( input_file )
     reversed_records = _reverse_records( input_records, reversed_seqs )
+    log.info("Writing out sequences to %s" % output_file)
     _write_output( reversed_records, output_file, output_type )
     return output_file
 

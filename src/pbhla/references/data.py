@@ -8,11 +8,10 @@ import logging, logging.config
 
 from pbcore.io import FastaReader, FastaWriter
 
-from pbhla import __LOG__, __DATA__
+from pbhla import __DATA__
 from pbhla.utils import valid_file
 
-logging.config.fileConfig( __LOG__ )
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 GEN_PATTERN  = '_gen.fasta$'
 CDNA_PATTERN = '_nuc.fasta$'

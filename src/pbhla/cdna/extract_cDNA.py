@@ -40,11 +40,13 @@ def extract_cDNA( input_file, exon_fofn, output=None,
     records = _parse_input_records( input_file )
     fofn = _parse_exon_fofn( exon_fofn )
     loci = _parse_loci( alignment_file )
+    log.info("Extracting cDNA sequences from all records")
     _extract_cDNA( records, loci, fofn, directory )
+    log.info("Collecting all extracted cDNA records into %s" % output)
     _collect_cDNA( directory, output )
 
     # Clean up the directory and return the combined cDNA file
-    #remove_directory( directory )
+    remove_directory( directory )
     return output
 
 def _get_output_file( input_file ):

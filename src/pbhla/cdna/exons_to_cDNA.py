@@ -16,9 +16,11 @@ def exons_to_cDNA( exon_file ):
     output_type = get_file_type( exon_file )
     output_file = _get_output_file( exon_file, output_type )
     records = _parse_exon_records( exon_file, output_type )
+    log.info("Combinging %s exons sequences to cDNA" % len(records))
     if len( records ):
         sorted_records = _sort_records( records )
         cDNA_record = _combine_records( sorted_records )
+        log.info("Writing cDNA sequence out to %s" % output_file)
         write_sequences( cDNA_record, output_file )
 
 def _parse_exon_records( exon_file, output_type ):

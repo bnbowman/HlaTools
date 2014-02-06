@@ -3,22 +3,20 @@
 __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
 
-import os, re
-import logging, logging.config
+import os
+import logging
 
 from pbcore.io import FastqReader, FastqWriter
 
-from pbhla import __LOG__
 from pbhla.utils import valid_file, is_fasta, is_fastq
 
-logging.config.fileConfig( __LOG__ )
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 def get_input_file( input ):
     if os.path.isdir( input ):
         log.info("Input appears to be a directory, looking for sequence files")
         return get_amplicon_analysis_output( input )
-    if valid_file( input ):
+    elif valid_file( input ):
         if is_fasta( input ):
             log.info("Input appears to be a valid Fasta file")
             return input

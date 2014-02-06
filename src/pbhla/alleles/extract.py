@@ -44,10 +44,13 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         log.error( msg )
         raise ValueError( msg )
 
+    log.info('Selecting top sequences from %s according to the "%s" policy' % (input_file, method))
     ordered = _sort_groups( groups )
     selected = list( _select_sequences( ordered ))
     sequences = _parse_input_records( input_file )
+    log.info('Selected %s sequences from %s total for further analysis' % (len(selected), len(sequences)))
     subset = list( _subset_sequences( sequences, selected ))
+    log.info('Writing the selected sequences out to %s' % output_file)
     _write_output( subset, output_file, output_type )
     return output_file
 

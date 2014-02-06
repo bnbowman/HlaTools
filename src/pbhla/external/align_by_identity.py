@@ -2,7 +2,7 @@
 
 import sys, os, logging, tempfile
 
-from pbhla.fasta.utils import fasta_size, write_temp_fasta
+from pbhla.fasta.utils import fasta_size, write_temp_fasta, fasta_size
 from pbhla.sequences.utils import read_sequences
 from pbhla.external.commandline_tools import run_blasr
 from pbhla.io.BlasrIO import BlasrReader, BlasrWriter, pctsimilarity
@@ -21,11 +21,12 @@ def align_by_identity( query, reference_fasta, output=None, format='1' ):
     if output is None:
         basename = '.'.join( query.split('.')[:-1] )
         output = '%s.m%s' % (basename, format)
+    ref_count = fasta_size(reference_fasta)
     # Iterate over each Fasta, aligning individually.
     with BlasrWriter( output ) as handle:
         handle.write_header( 'm1' )
         for record in read_sequences( query ):
-            log.info('Aligning %s by identity to reference set' % record.name)
+            log.info('Aligning %s by identity to %s references' % (record.name, ref_count))
             temp = write_temp_fasta( record )
             alignments = _align_fasta( temp.name, reference_fasta, format )
             if not alignments:
@@ -33,9 +34,7 @@ def align_by_identity( query, reference_fasta, output=None, format='1' ):
                 continue
             alignments = _sort_alignments( alignments )
             alignments = _filter_alignments( alignments )
-            #for alignment in alignments:
-            #    print alignment
-            #    print pctsimilarity( alignment )
+            log.info('Found %s alignments sharing maximum identity with the query' % len(alignments))
             handle.write( alignments[0] )
             os.unlink( temp.name )
     check_output_file( output )

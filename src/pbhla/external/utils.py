@@ -5,7 +5,7 @@ from pbhla.external.commandline_tools import run_blasr, run_muscle
 from pbhla.fasta.utils import fasta_size
 from pbhla.utils import check_output_file, remove_file, valid_file
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 if hasattr(args, 'nproc'):
     nproc = args.nproc
@@ -41,7 +41,7 @@ def align_best_reference(query, reference, output=None):
     output = _get_output_file(query, output, 'm1')
     # Run Blasr
     ref_count = fasta_size(reference)
-    log.info("Aligning query sequences to %s references" % ref_count)
+    log.info("Aligning %s sequences to %s references" % (query, ref_count))
     blasr_args = {'nproc': nproc,
                   'out': output,
                   'bestn': 1,
@@ -63,6 +63,7 @@ def full_align_best_reference(query, reference, output=None):
     output = _get_output_file(query, output, 'm5')
     # Run Blasr
     ref_count = fasta_size(reference)
+    log.info("Aligning %s sequences to %s references" % (query, ref_count))
     blasr_args = {'nproc': nproc,
                   'out': output,
                   'm': 5,

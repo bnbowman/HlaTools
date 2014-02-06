@@ -16,6 +16,7 @@ def summarize_typing( gDNA_align, cDNA_align, output=None ):
     if output is None:
         basename = '.'.join( gDNA_align.split('.')[:-1] )
         output = '%s.typing' % basename
+    log.info("Writing summary of typing information to %s" % output)
     gDNA_data = _parse_alignment( gDNA_align )
     cDNA_data = _parse_alignment( cDNA_align )
     summaries = _summarize_hits( gDNA_data, cDNA_data )
