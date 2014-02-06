@@ -41,6 +41,7 @@ def align_best_reference(query, reference, output=None):
     output = _get_output_file(query, output, 'm1')
     # Run Blasr
     ref_count = fasta_size(reference)
+    log.info("Aligning query sequences to %s references" % ref_count)
     blasr_args = {'nproc': nproc,
                   'out': output,
                   'bestn': 1,

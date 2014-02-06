@@ -44,7 +44,7 @@ def extract_cDNA( input_file, exon_fofn, output=None,
     _collect_cDNA( directory, output )
 
     # Clean up the directory and return the combined cDNA file
-    remove_directory( directory )
+    #remove_directory( directory )
     return output
 
 def _get_output_file( input_file ):

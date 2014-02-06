@@ -15,7 +15,8 @@ logging.config.fileConfig( __LOG__ )
 log = logging.getLogger(__name__)
 
 def get_input_file( input ):
-    if os.path.isdir("Input appears to be a directory, looking for sequence files"):
+    if os.path.isdir( input ):
+        log.info("Input appears to be a directory, looking for sequence files")
         return get_amplicon_analysis_output( input )
     if valid_file( input ):
         if is_fasta( input ):
@@ -34,11 +35,11 @@ def get_input_file( input ):
         raise IOError( msg )
 
 def get_amplicon_analysis_output( directory ):
-    if 'amplicon_analysis.fastq' not in os.path.listdir( directory ):
+    if 'amplicon_analysis.fastq' not in os.listdir( directory ):
         msg = "Directory does not appear to contain Amplicon analysis output!"
         log.error( msg )
         raise IOError( msg )
-    elif 'amplicon_analysis_chimeras_noise.fastq' in os.path.list( directory ):
+    elif 'amplicon_analysis_chimeras_noise.fastq' in os.listdir( directory ):
         msg = 'Chimera/Noise sequence file detected, combining with primary output'
         log.info( msg )
         return combine_amplicon_analysis_files( directory )

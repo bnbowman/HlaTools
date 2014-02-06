@@ -46,6 +46,7 @@ def type_sequences( input, grouping=GROUPING,
 
 if __name__ == '__main__':
     import sys
+    logging.basicConfig( level=logging.INFO )
 
     input = sys.argv[1]
     grouping = sys.argv[2] if len(sys.argv) > 2 else GROUPING
