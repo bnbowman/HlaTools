@@ -50,7 +50,7 @@ class HlaPipeline( object ):
         initialize_logger( log_file )
 
     def __getattr__(self, item):
-        if item in ['min_read_length', 'min_num_reads', 'min_consensus_length', 'max_count']:
+        if item in ['min_read_length', 'max_read_length', 'min_num_reads', 'min_consensus_length', 'max_count']:
             return self._config.getint('DEFAULT', item)
         elif item in ['min_read_score', 'min_snr']:
             return self._config.getfloat('DEFAULT', item)

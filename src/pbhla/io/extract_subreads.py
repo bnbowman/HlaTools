@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 def extract_subreads(input_file, 
                      output_file,
                      min_length,
+                     max_length,
                      min_score,
                      min_snr,
                      max_count,
@@ -20,6 +21,7 @@ def extract_subreads(input_file,
     """
     log.info('Extracting subreads from %s' % os.path.basename(input_file))
     log.debug('\tMinimum Length:\t%s' % min_length)
+    log.debug('\tMaximum Length:\t%s' % max_length)
     log.debug('\tMinimum Score:\t%s' % min_score)
     log.debug('\tMinimum SNR:\t%s' % min_snr)
     log.debug('\tMax Count:\t%s' % max_count)
@@ -31,9 +33,9 @@ def extract_subreads(input_file,
     subreads = []
     for i, filename in enumerate(_iterate_input_files( input_file )):
         if filename.endswith('.bas.h5') or filename.endswith('bax.h5'):
-            subreads += _extract_from_bash5( filename, min_length, min_score, min_snr, white_list )
+            subreads += _extract_from_bash5( filename, min_length, max_length, min_score, min_snr, white_list )
         elif filename.endswith('.fa') or filename.endswith('.fasta'):
-            subreads += _extract_from_fasta( filename, min_length )
+            subreads += _extract_from_fasta( filename, min_length, max_length )
     log.info("Extracted %s subreads from %s files" % (len(subreads), i+1))
 
     if max_count:
@@ -78,7 +80,7 @@ def _iterate_input_files( input_file ):
         log.info( msg )
         raise TypeError( msg )
 
-def _extract_from_bash5( bash5_file, min_length, min_score, min_snr, white_list ):
+def _extract_from_bash5( bash5_file, min_length, max_length, min_score, min_snr, white_list ):
     """
     Extract filtered subreads from a BasH5 or BaxH5 file
     """
@@ -97,13 +99,15 @@ def _extract_from_bash5( bash5_file, min_length, min_score, min_snr, white_list 
         for subread in zmw.subreads:
             if len(subread) < min_length:
                 continue
+            if len(subread) > max_length:
+                continue
             record = FastaRecord( subread.readName, subread.basecalls() )
             records.append( record )
 
     log.info('Found %s subreads that passed filters' % len(records))
     return records
 
-def _extract_from_fasta( fasta_file, min_length ):
+def _extract_from_fasta( fasta_file, min_length, max_length ):
     """
     Extract filtered subreads from a Fasta file
     """
@@ -113,6 +117,8 @@ def _extract_from_fasta( fasta_file, min_length ):
     records = []
     for record in FastaReader( fasta_file ):
         if len(record.sequence) < min_length:
+            continue
+        if len(record.sequence) > max_length:
             continue
         records.append( record )
 
