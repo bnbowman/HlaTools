@@ -122,6 +122,7 @@ def _extract_cDNA( records, loci, fofn, directory ):
         record_directory = os.path.join( directory, name )
         create_directory( record_directory )
         # Find the appropriate Locus and FOFN
+        print fofn
         if locus in fofn:
             exon_fofn = fofn[locus]
         else:

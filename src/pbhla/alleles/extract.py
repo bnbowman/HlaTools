@@ -22,6 +22,8 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
                                                    method=METHOD,
                                                    loci=LOCI ):
     """Pick the top 2 Amplicon Analysis consensus seqs per group from a Fasta"""
+    method = method or METHOD
+    loci = loci or LOCI
 
     # Set the output file if not specified
     output_file = output_file or _get_output_file( input_file )
@@ -122,7 +124,7 @@ def _select_sequences( groups ):
         # Yield the next sequence with a different reference
         for record in the_rest:
             num_reads = get_num_reads( record.qname )
-            if record.tname == first.tname:
+            if record.tname == first.tname and record.nmis == first.nmis:
                 first_reads += get_num_reads( record.qname )
             elif num_reads > (first_reads * MIN_FRAC):
                 yield record.qname

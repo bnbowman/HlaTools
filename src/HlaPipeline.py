@@ -557,10 +557,11 @@ class HlaPipeline( object ):
     def type_hla_sequences(self, sequence_file ):
         log.info('Typing the selected HLA consensus sequences')
         typing = type_sequences( sequence_file,
-                                 self.exon_reference,
-                                 self.locus_reference,
-                                 self.cDNA_reference,
-                                 ['A', 'B', 'C', 'DQB1', 'DRB1'])
+                                 grouping='locus',
+                                 exon_fofn=self.exon_reference,
+                                 genomic_reference=self.locus_reference,
+                                 cDNA_reference=self.cDNA_reference,
+                                 loci=['A', 'B', 'C', 'DQB1', 'DRB1'])
         check_output_file( typing )
         log.info('Finished typing the selected HLA sequences\n')
         return typing

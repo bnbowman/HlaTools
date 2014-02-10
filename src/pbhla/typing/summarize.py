@@ -139,7 +139,7 @@ def _combine_cDNA_hits( cDNA_hits ):
     return 'N/A'
 
 def _write_header( handle ):
-    handle.write('Sequence'.ljust(44))
+    handle.write('Sequence'.ljust(45))
     handle.write('gLen'.ljust(6))
     handle.write('gType'.ljust(21))
     handle.write('gPctId'.ljust(7))
@@ -152,7 +152,7 @@ def _write_header( handle ):
     handle.write('\n')
 
 def _write_summary_line( handle, summary ):
-    handle.write(summary['Sequence'].ljust(44))
+    handle.write(summary['Sequence'].ljust(45))
     handle.write(summary['gLen'].ljust(6))
     handle.write(str(summary['gDNA_Type']).ljust(21))
     handle.write(str(summary['gDNA_PctId']).ljust(7))
