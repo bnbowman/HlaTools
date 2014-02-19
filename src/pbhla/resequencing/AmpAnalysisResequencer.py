@@ -6,6 +6,7 @@ __email__ = 'bbowman@pacificbiosciences.com'
 import os
 
 from pbhla.resequencing.Resequencer import Resequencer
+from pbhla.barcode.utils import get_barcode_reader, get_barcodes
 from pbhla.utils import validate_file
 
 class AmpliconAnalysisResequencer( object ):
@@ -29,22 +30,12 @@ class AmpliconAnalysisResequencer( object ):
     def nproc(self):
         return self.resequencer.nproc
 
-    def __call__(self, data_file, barcode_file, amp_analysis, output=None, barcodes=None):
+    def __call__(self, data_file, barcode_file, amp_analysis, output=None, barcode_string=None):
         data_file = validate_file( data_file )
-        barcode_file = validate_file( barcode_file )
-        barcodes = get_barcodes( barcodes )
+        bc_reader = get_barcode_reader( barcode_file )
+
+        bc_list = get_barcodes( bc_reader, barcode_string )
         print data_file
         print barcode_file
-        print barcodes
-
-def get_barcodes( barcode_string ):
-    if barcode_string is None:
-        return None
-    barcodes = barcode_string.split(',')
-    return [format_barcode(b) for b in barcodes]
-
-def format_barcode( barcode ):
-    if '--' in barcode:
-        return barcode
-    else:
-        return 'F{0}--R{0}'.format( barcode )
+        print amp_analysis
+        print bc_list
