@@ -66,6 +66,13 @@ class Resequencer(object):
         self._logs = None
         self._scripts = None
 
+    @property
+    def setup(self):
+        return self._setup
+
+    @property
+    def nproc(self):
+        return self._nproc
 
     def validate_setup(self):
         """Determine whether we need a setup script, and which environment to use"""
