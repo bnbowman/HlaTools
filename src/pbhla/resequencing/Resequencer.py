@@ -84,22 +84,22 @@ class Resequencer(object):
         # Determine whether we can proceed or not
         if self._setup and need_setup:
             # TODO: Add validation that the setup script works
-            log.info(['SMRT Analysis tools not detected, using supplied '
-                      'SMRT Analysis environment'])
+            log.info('SMRT Analysis tools not detected, using supplied '
+                     'SMRT Analysis environment')
             return True
         elif self._setup and not need_setup:
-            log.info(['SMRT Analysis tools were detected, but using supplied '
-                      'SMRT Analysis environment instead.  Do not pass a ',
-                      '"setup" argument to use local environment'])
+            log.info('SMRT Analysis tools were detected, but using supplied '
+                     'SMRT Analysis environment instead.  Do not pass a '
+                     '"setup" argument to use local environment')
             return True
         elif self._setup is None and not need_setup:
-            log.info(['SMRT Analysis tools detected, using local '
-                      'SMRT Analysis environment'])
+            log.info('SMRT Analysis tools detected, using local '
+                     'SMRT Analysis environment')
             return False
         else:
-            msg = ['Cluster resequencing requires EITHER valid copies of ',
-                   'SMRT Analysis tools in the local path OR the ',
-                   'path to a local SMRT Analysis setup script']
+            msg = 'Cluster resequencing requires EITHER valid copies of ' + \
+                  'SMRT Analysis tools in the local path OR the ' + \
+                  'path to a local SMRT Analysis setup script'
             log.error( msg )
             raise Exception( msg )
 
