@@ -34,4 +34,4 @@ if __name__ == '__main__':
                  args.barcode_file,
                  args.amplicon_analysis,
                  output=args.output,
-                 barcodes=args.barcode_list )
+                 barcode_string=args.barcode_list )
