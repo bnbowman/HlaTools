@@ -25,8 +25,8 @@ from pbhla.phasing.combine import ( combine_amp_analysis,
                                     combine_resequencing,
                                     combine_fastq )
 from pbhla.external.HbarTools import HbarRunner
-from pbhla.external.Resequencer import Resequencer
 from pbhla.external.utils import align_best_reference
+from pbhla.resequencing.Resequencer import Resequencer
 from pbhla.utilities.rename_fastq import rename_resequencing
 from pbhla.utilities.filter_fastq import filter_fastq
 from pbhla.typing.sequences import type_sequences
