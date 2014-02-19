@@ -3,7 +3,7 @@
 __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
 
-#Test
+
 from pbhla.resequencing.AmpAnalysisResequencer import AmpliconAnalysisResequencer
 
 if __name__ == '__main__':
@@ -14,11 +14,11 @@ if __name__ == '__main__':
     add('data_file', metavar='DATA',
         help="BasH5 or FOFN of sequence data")
     add('barcode_file', metavar='BARCODE',
-        help="BasH5 or FOFN of sequence data")
+        help="BcH5 or FOFN of barcode data")
     add('amplicon_analysis', metavar='INPUT',
-        help="BasH5 or FOFN of sequence data")
-    add('data_file', metavar='DATA',
-        help="BasH5 or FOFN of sequence data")
+        help="Fasta/Fastq/Folder of Amplicon Analysis output")
+    add('--barcode_list', metavar='BARCODE_LIST',
+        help="Comma-separated list of barcodes to resequence")
     add('--output', default='resequencing', metavar='DIR',
         help="Specify a directory for intermediate files")
     add('--setup', metavar='SETUP_FILE',
