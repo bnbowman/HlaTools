@@ -3,8 +3,12 @@
 __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
 
+import logging
+
 from pbcore.io.BarcodeH5Reader import BarcodeH5Fofn, BarcodeH5Reader
 from pbhla.utils import validate_file
+
+log = logging.getLogger()
 
 def get_barcode_reader( barcode_file ):
     barcode_file = validate_file( barcode_file )
@@ -29,5 +33,16 @@ def format_barcode( barcode ):
 
 def get_barcodes( bc_reader, bc_string ):
     barcodes = barcode_string_to_list( bc_string )
-    for label in bc_reader.barcodeLabels:
-        print barcodes, label
+
+    # If no barcodes specified, return them all
+    if barcodes is None:
+        return bc_reader.barcodeLabels
+
+    # Otherwise return the intersection and warn if missing
+    bc_list = []
+    for bc in barcodes:
+        if bc in bc_reader.barcodeLabels:
+            bc_list.append( bc )
+        else:
+            log.warn('Barcode "%s" requested but not found, skipping' % bc)
+    return bc_list
