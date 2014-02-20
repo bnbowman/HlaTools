@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
+      <change type="MOVED" beforePath="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\barcode\__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/bash5.py" />
+      <change type="MOVED" beforePath="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\barcode\utils.py" afterPath="$PROJECT_DIR$/src/pbhla/barcodes.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py" afterPath="$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/deployment.xml" afterPath="$PROJECT_DIR$/.idea/deployment.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/barcode/utils.py" afterPath="$PROJECT_DIR$/src/pbhla/barcode/utils.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -73,7 +73,7 @@
       <file leaf-file-name="AmpAnalysisResequencer.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="47" column="27" selection-start="1509" selection-end="1509" vertical-scroll-proportion="0.0" vertical-offset="226" max-vertical-offset="901">
+            <state line="46" column="43" selection-start="1479" selection-end="1479" vertical-scroll-proportion="0.0" vertical-offset="226" max-vertical-offset="901">
               <folding>
                 <element signature="e#98#107#0" expanded="true" />
               </folding>
@@ -81,10 +81,30 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="utils.py" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/barcode/utils.py">
+      <file leaf-file-name="bash5.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/bash5.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="44" column="32" selection-start="1252" selection-end="1252" vertical-scroll-proportion="0.47111112" vertical-offset="430" max-vertical-offset="1105">
+            <state line="43" column="69" selection-start="1408" selection-end="1408" vertical-scroll-proportion="0.74814814" vertical-offset="226" max-vertical-offset="901">
+              <folding>
+                <element signature="e#98#112#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="FofnIO.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/io/FofnIO.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="680">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="barcodes.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/barcodes.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="10" column="0" selection-start="222" selection-end="247" vertical-scroll-proportion="0.0" vertical-offset="430" max-vertical-offset="1105">
               <folding>
                 <element signature="e#98#112#0" expanded="true" />
               </folding>
@@ -131,6 +151,7 @@
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py" />
         <option value="$PROJECT_DIR$/src/pbhla/barcode/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/bash5.py" />
       </list>
     </option>
   </component>
@@ -436,28 +457,6 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="barcode" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="HlaTools" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="HlaTools" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="pbhla" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="annotation" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -526,11 +525,11 @@
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\resequencing" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\data\Class_I" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\data" />
-      <recent name="C:\Users\bbowman\GitHub\HlaTools\src\references\Class_I" />
     </key>
   </component>
   <component name="RunManager">
@@ -898,7 +897,11 @@
       <created>1392853298537</created>
       <updated>1392853298537</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="Added Barcoded read extraction to AAR">
+      <created>1392857049533</created>
+      <updated>1392857049533</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -938,7 +941,7 @@
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875368" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32908913" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24919957" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.185836" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.185836" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -983,7 +986,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="First working commit of ToAmos/ExternalTool Tools" />
     <MESSAGE value="Housekeeping update" />
     <MESSAGE value="First commit of FromAssembly HLA Extraction Tool" />
     <MESSAGE value="Bringing Repo up to date" />
@@ -1008,26 +1010,13 @@
     <MESSAGE value="Fixing RAA argument" />
     <MESSAGE value="Fixing Resequencing logging format" />
     <MESSAGE value="Finished get_barcodes function" />
-    <option name="LAST_COMMIT_MESSAGE" value="Finished get_barcodes function" />
+    <MESSAGE value="Added Barcoded read extraction to AAR" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added Barcoded read extraction to AAR" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="748">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/external/align_by_identity.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="16" column="0" selection-start="466" selection-end="466" vertical-scroll-proportion="0.0" vertical-offset="272" max-vertical-offset="1564">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="563" column="35" selection-start="27694" selection-end="27694" vertical-scroll-proportion="0.0" vertical-offset="9571" max-vertical-offset="10404">
@@ -1325,18 +1314,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/io/FofnIO.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="680">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/barcodes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="10" column="0" selection-start="222" selection-end="247" vertical-scroll-proportion="0.0" vertical-offset="430" max-vertical-offset="1105">
+          <folding>
+            <element signature="e#98#112#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="47" column="27" selection-start="1509" selection-end="1509" vertical-scroll-proportion="0.0" vertical-offset="226" max-vertical-offset="901">
+        <state line="46" column="43" selection-start="1479" selection-end="1479" vertical-scroll-proportion="0.0" vertical-offset="226" max-vertical-offset="901">
           <folding>
             <element signature="e#98#107#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/barcode/utils.py">
+    <entry file="file://$PROJECT_DIR$/src/pbhla/bash5.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="44" column="32" selection-start="1252" selection-end="1252" vertical-scroll-proportion="0.47111112" vertical-offset="430" max-vertical-offset="1105">
+        <state line="43" column="69" selection-start="1408" selection-end="1408" vertical-scroll-proportion="0.74814814" vertical-offset="226" max-vertical-offset="901">
           <folding>
             <element signature="e#98#112#0" expanded="true" />
           </folding>
