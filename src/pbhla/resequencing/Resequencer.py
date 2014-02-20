@@ -37,12 +37,12 @@ from pbhla import __LOG__
 from pbhla.fasta.utils import is_pacbio_record
 from pbhla.utils import which, create_directory, validate_file
 
+logging.config.fileConfig( __LOG__ )
+log = logging.getLogger()
+
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'
 COVERAGE = 200
 CHEMISTRY = 'P4-C2.AllQVsMergingByChannelModel'
-
-logging.config.fileConfig( __LOG__ )
-log = logging.getLogger()
 
 class Resequencer(object):
     """
@@ -138,7 +138,6 @@ class Resequencer(object):
         print process_args
         if self._use_setup:
             log.info('Executing subprocess indirectly via Shell Script')
-            print process_args
             script = self.write_script( process_args, name )
             log_path = self.get_log_path( name )
             with open( log_path, 'w' ) as log_handle:
@@ -210,7 +209,6 @@ class Resequencer(object):
                         '--outputDir=%s' % output_dir,
                         '--outputFofn=%s' % output_fofn,
                         '--filter="ReadWhitelist=%s,MinSRL=1500,MinReadScore=0.8,MaxSRL=3700"' % whitelist_file]
-        print process_args
         self.run_process( process_args, 'FilterPlsH5' )
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn

@@ -10,6 +10,7 @@ from pbhla import __LOG__
 from pbhla.resequencing.Resequencer import Resequencer
 from pbhla.bash5 import get_bash5_reader, filter_zmw_list,  write_zmw_whitelist
 from pbhla.barcodes import get_barcode_reader, get_barcodes, get_barcode_zmws
+from pbhla.fofn import create_baxh5_fofn
 from pbhla.sequences.input import get_input_file
 from pbhla.io.AmpAnalysisIO import AmpliconAnalysisReader
 from pbhla.io.utils import write_records
@@ -59,18 +60,21 @@ class AmpliconAnalysisResequencer( object ):
     def __call__(self, amp_analysis, data_file, barcode_file, barcode_string=None):
         log.info("Beginning Amplicon Analysis resequencing workflow for {0}".format(amp_analysis))
 
-        # Check the validity of the various input files
+        # Pick or create a single file from AA and read it
         amp_analysis_file = get_input_file( amp_analysis )
-        #amp_analysis_file = validate_file( amp_analysis_file )
-        #data_file = validate_file( data_file )
-        #barcode_file = validate_file( barcode_file )
-
-        # Create appropriate readers for our raw sequence and barcode data
         amp_analysis_records = list(AmpliconAnalysisReader(amp_analysis_file))
-        bash5 = get_bash5_reader( data_file )
-        bc_reader = get_barcode_reader( barcode_file )
 
+        # Convert the raw data file into a BaxH5 fofn for use downstream
+        # and create appropriate reader for local access
+        bash5 = get_bash5_reader( data_file )
+        baxh5_file = os.path.join( self.output, 'baxh5.fofn')
+        create_baxh5_fofn( data_file, baxh5_file )
+
+        # Create a Reader for the Barcode data and find the overlap with any
+        # barcodes specified by the user
+        bc_reader = get_barcode_reader( barcode_file )
         bc_list = get_barcodes( bc_reader, barcode_string )
+
         for i, bc in enumerate( bc_list ):
             log.info('Resequencing Barcode {0} (#{1} of {2})'.format(bc, i+1, len(bc_list)))
             output_dir = self.get_output_folder( bc )
@@ -93,7 +97,7 @@ class AmpliconAnalysisResequencer( object ):
             write_zmw_whitelist( bash5, zmw_list, whitelist_file )
 
             # Resequence the selected consensus sequences with the selected ZMWs
-            self.resequencer( data_file,
+            self.resequencer( baxh5_file,
                               whitelist_file,
                               reference_file,
                               output=output_dir )

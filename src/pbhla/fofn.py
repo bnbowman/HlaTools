@@ -16,6 +16,7 @@ def write_sequence_fofn( file_list, fofn_file ):
     return fofn_file
 
 def create_baxh5_fofn( input_file, output_file ):
+    log.info("Converting %s into a FOFN of BaxH5 files" % input_file)
     if input_file.endswith('.fofn'):
         baxh5_files = _parse_fofn( input_file )
     elif input_file.endswith('.bas.h5'):
@@ -28,6 +29,7 @@ def create_baxh5_fofn( input_file, output_file ):
         msg = 'Invalid input filetype "%s"' % input_file
         log.info( msg )
         raise TypeError( msg )
+    log.info("Writing a total of %s BaxH5 files to BaxH5 Fofn" % len(baxh5_files))
     write_list_file( baxh5_files, output_file )
     return output_file
 
