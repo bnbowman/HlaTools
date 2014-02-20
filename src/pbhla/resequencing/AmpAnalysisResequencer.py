@@ -8,11 +8,12 @@ import logging, logging.config
 
 from pbhla import __LOG__
 from pbhla.resequencing.Resequencer import Resequencer
-from pbhla.bash5 import get_bash5_reader, filter_zmw_list
+from pbhla.bash5 import get_bash5_reader, filter_zmw_list,  write_zmw_whitelist
 from pbhla.barcodes import get_barcode_reader, get_barcodes, get_barcode_zmws
 from pbhla.sequences.input import get_input_file
 from pbhla.io.AmpAnalysisIO import AmpliconAnalysisReader
-from pbhla.utils import create_directory
+from pbhla.io.utils import write_records
+from pbhla.utils import create_directory, validate_file
 
 logging.config.fileConfig( __LOG__ )
 log = logging.getLogger( __name__ )
@@ -22,8 +23,11 @@ class AmpliconAnalysisResequencer( object ):
     An object for iterating over all of the barcodes in
     """
 
-    def __init__(self, output, setup=None, nproc=1):
+    def __init__(self, output, setup=None, nproc=1, debug=False):
         """Initialize cross-cluster and object-specific settings"""
+        if debug:
+            log.setLevel( logging.DEBUG )
+            log.debug("TESTING")
         log.info("Initializing Resequencer sub-module")
         self._resequencer = Resequencer(setup, nproc)
 
@@ -55,17 +59,20 @@ class AmpliconAnalysisResequencer( object ):
     def __call__(self, amp_analysis, data_file, barcode_file, barcode_string=None):
         log.info("Beginning Amplicon Analysis resequencing workflow for {0}".format(amp_analysis))
 
+        # Check the validity of the various input files
+        amp_analysis_file = get_input_file( amp_analysis )
+        #amp_analysis_file = validate_file( amp_analysis_file )
+        #data_file = validate_file( data_file )
+        #barcode_file = validate_file( barcode_file )
+
         # Create appropriate readers for our raw sequence and barcode data
+        amp_analysis_records = list(AmpliconAnalysisReader(amp_analysis_file))
         bash5 = get_bash5_reader( data_file )
         bc_reader = get_barcode_reader( barcode_file )
 
-        # Identify and read into memory any consensus sequences
-        amp_analysis_file = get_input_file( amp_analysis )
-        amp_analysis_records = list(AmpliconAnalysisReader(amp_analysis_file))
-
         bc_list = get_barcodes( bc_reader, barcode_string )
         for i, bc in enumerate( bc_list ):
-            log.info('Analyzing Barcode {0} (#{1} of {2})'.format(bc, i+1, len(bc_list)))
+            log.info('Resequencing Barcode {0} (#{1} of {2})'.format(bc, i+1, len(bc_list)))
             output_dir = self.get_output_folder( bc )
 
             # Extract any consensus sequences associated with this barcode
@@ -76,7 +83,19 @@ class AmpliconAnalysisResequencer( object ):
             log.info('{0} of {1} ({2}%) consensus sequences passed all filters'.format(len(filtered_records),
                                                                                        len(record_list),
                                                                                        fraction))
+            reference_file = os.path.join( output_dir, 'reference.fasta' )
+            write_records( filtered_records, reference_file )
 
+            # Identify all high-quality, barcode-specific ZMWs and write them to file
             zmw_list = get_barcode_zmws( bc_reader, bc )
-            zmw_list = filter_zmw_list( bash5, zmw_list, min_snr=3.0 )
+            zmw_list = filter_zmw_list( bash5, zmw_list, min_snr=4.0 )
+            whitelist_file = os.path.join( output_dir, 'whitelist.txt' )
+            write_zmw_whitelist( bash5, zmw_list, whitelist_file )
 
+            # Resequence the selected consensus sequences with the selected ZMWs
+            self.resequencer( data_file,
+                              whitelist_file,
+                              reference_file,
+                              output=output_dir )
+
+            log.info("Finished resequencing Barcode {0}\n".format( bc ))

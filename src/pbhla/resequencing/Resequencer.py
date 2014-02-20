@@ -49,10 +49,14 @@ class Resequencer(object):
     A tool for automatic the resequencing small subsets of a PacBio dataset
     """
 
-    def __init__(self, setup=None, nproc=1):
+    def __init__(self, setup=None, nproc=1, debug=False):
         """Initialize cross-cluster and object-specific settings"""
         self._setup = os.path.abspath( setup ) if setup is not None else None
         self._nproc = nproc
+        self._debug = debug
+        if debug:
+            log.setLevel( logging.DEBUG )
+        log.debug("TESTING")
 
         # Find the various required scripts and determine if
         self.filter_plsh5   = which('filterPlsH5.py') or 'filterPlsH5.py'
@@ -74,9 +78,23 @@ class Resequencer(object):
     def nproc(self):
         return self._nproc
 
+    @property
+    def debug(self):
+        return self._debug
+
+    @property
+    def subprograms_in_path(self):
+        if not validate_file( self.filter_plsh5 ):
+            return False
+        if not validate_file( self.pbalign ):
+            return False
+        if not validate_file( self.variant_caller ):
+            return False
+        return True
+
     def validate_setup(self):
         """Determine whether we need a setup script, and which environment to use"""
-        if all([self.filter_plsh5, self.pbalign, self.variant_caller]):
+        if self.subprograms_in_path:
             need_setup = False
         else:
             need_setup = True
@@ -117,8 +135,10 @@ class Resequencer(object):
 
     def run_process(self, process_args, name):
         log.info("Executing child '%s' process" % name)
+        print process_args
         if self._use_setup:
             log.info('Executing subprocess indirectly via Shell Script')
+            print process_args
             script = self.write_script( process_args, name )
             log_path = self.get_log_path( name )
             with open( log_path, 'w' ) as log_handle:
@@ -129,6 +149,7 @@ class Resequencer(object):
                 p.wait()
         else:
             log.info('Executing subprocess directly via Subprocess')
+            print process_args
             p = subprocess.Popen( process_args )
             p.wait()
         log.info('Child process finished successfully')
@@ -137,7 +158,8 @@ class Resequencer(object):
     def write_script( self, process_args, name ):
         script_path = self.get_script_path( name )
         with open( script_path, 'w') as handle:
-            handle.write('source %s\n' % self._setup)
+            handle.write('export SEYMOUR_HOME=%s\n' % self._setup)
+            handle.write('source %s/etc/setup.sh\n' % self._setup)
             handle.write( ' '.join(process_args) + '\n' )
         return script_path
 
@@ -188,6 +210,7 @@ class Resequencer(object):
                         '--outputDir=%s' % output_dir,
                         '--outputFofn=%s' % output_fofn,
                         '--filter="ReadWhitelist=%s,MinSRL=1500,MinReadScore=0.8,MaxSRL=3700"' % whitelist_file]
+        print process_args
         self.run_process( process_args, 'FilterPlsH5' )
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
@@ -268,11 +291,14 @@ if __name__ == '__main__':
         help="Specify a directory for intermediate files")
     add('--nproc', type=int, default=1, metavar='INT',
         help="Number of processors to use")
+    add('--debug', action='store_true',
+        help="Flag to enable Debug mode")
     args = parser.parse_args()
 
     # Run the specified resequencing process
     resequencer = Resequencer( setup=args.setup,
-                               nproc=args.nproc )
+                               nproc=args.nproc,
+                               debug=args.debug )
     resequencer( args.fofn_file,
                  args.read_file,
                  args.ref_file,

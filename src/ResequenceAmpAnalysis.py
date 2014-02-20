@@ -25,12 +25,15 @@ if __name__ == '__main__':
         help='Path to the SMRT Analysis setup script')
     add('--nproc', type=int, default=1, metavar='INT',
         help="Number of processors to use")
+    add('--debug', action='store_true',
+        help="Flag to enable Debug mode")
     args = parser.parse_args()
 
     # Run the specified resequencing process
     resequencer = AmpliconAnalysisResequencer( args.output,
                                                setup=args.setup,
-                                               nproc=args.nproc )
+                                               nproc=args.nproc,
+                                               debug=args.debug )
     resequencer( args.amplicon_analysis,
                  args.data_file,
                  args.barcode_file,

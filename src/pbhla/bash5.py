@@ -49,3 +49,22 @@ def filter_zmw_list( bash5, zmw_list, min_snr=None ):
                                                                          len(zmw_list),
                                                                          fraction))
     return filtered_list
+
+def get_movie_name( bash5 ):
+    if isinstance( bash5, BasH5Reader ) or \
+       isinstance( bash5, BaxH5Reader ):
+        return bash5[zmw_num]
+    elif isinstance( bash5, BasH5Collection ):
+        movie = bash5.movieNames[0]
+        zmw_name = '{0}/{1}'.format(movie, zmw_num)
+        return bash5[zmw_name]
+    else:
+        raise ValueError
+
+def write_zmw_whitelist( bash5, zmw_list, output_file ):
+    log.info("Writing {0} ZMW names to {1} as a white-list".format(len(zmw_list), output_file))
+    with open( output_file, 'w' ) as handle:
+        for zmw_num in zmw_list:
+            zmw = get_zmw( bash5, zmw_num )
+            handle.write( "{0}\n".format(zmw.zmwName) )
+    return output_file

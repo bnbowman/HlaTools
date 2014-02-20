@@ -7,6 +7,7 @@ from tempfile import NamedTemporaryFile
 
 from pbcore.io.FastaIO import FastaRecord, FastaWriter
 from pbcore.io.FastqIO import FastqRecord, FastqWriter
+from pbhla.io.AmpAnalysisIO import AmpliconAnalysisRecord, AmpliconAnalysisWriter
 from pbhla.utils import get_file_type, check_output_file
 
 log = logging.getLogger()
@@ -90,19 +91,30 @@ def write_records( records, filename ):
         write_fasta_records( records, filename )
     elif all([isinstance(r, FastqRecord) for r in records]):
         write_fastq_records( records, filename )
+    elif all([isinstance(r, AmpliconAnalysisRecord) for r in records]):
+        write_amp_analysis_records( records, filename )
     else:
         msg = 'Invalid sequence record type'
         log.error( msg )
         raise TypeError( msg )
 
 def write_fasta_records( records, filename ):
+    log.info("Writing {0} FastaRecords to {1}".format(len(records), filename))
     with FastaWriter( filename ) as handle:
         for record in records:
             handle.writeRecord( record )
     check_output_file( filename )
 
 def write_fastq_records( records, filename ):
+    log.info("Writing {0} FastqRecords to {1}".format(len(records), filename))
     with FastqWriter( filename ) as handle:
         for record in records:
             handle.writeRecord( record )
+    check_output_file( filename )
+
+def write_amp_analysis_records( records, filename ):
+    log.info("Writing {0} AmpAnalysisRecords to {1}".format(len(records), filename))
+    with AmpliconAnalysisWriter( filename ) as handle:
+        for record in records:
+            handle.write_fasta( record )
     check_output_file( filename )
