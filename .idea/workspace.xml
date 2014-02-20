@@ -29,7 +29,7 @@
       <file leaf-file-name="Resequencer.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="115" column="0" selection-start="4572" selection-end="4572" vertical-scroll-proportion="0.8352713" vertical-offset="1524" max-vertical-offset="5627">
+            <state line="228" column="54" selection-start="9340" selection-end="9340" vertical-scroll-proportion="0.59302324" vertical-offset="3570" max-vertical-offset="5593">
               <folding>
                 <element signature="e#1780#1789#0" expanded="true" />
               </folding>
@@ -960,7 +960,11 @@
       <created>1392884302810</created>
       <updated>1392884302810</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="Resequencing fixed up to Quiver.  New VC requirement breaks consensus however...">
+      <created>1392885856075</created>
+      <updated>1392885856075</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -1045,7 +1049,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="Fixing pathspec issue for ToAmosTool" />
     <MESSAGE value="Attempting to fix ToAmos issues" />
     <MESSAGE value="First commit of new reference data directory" />
     <MESSAGE value="Clean up for new directory org" />
@@ -1070,7 +1073,8 @@
     <MESSAGE value="First Alpha of RAA _almost_ finished" />
     <MESSAGE value="First Alpha of RAA _almost_ finished pt.2 &#10;TODO: Fix the way Reseq tracks paths to tools" />
     <MESSAGE value="Attempt at fixing the Resequencer Sub-Program issue" />
-    <option name="LAST_COMMIT_MESSAGE" value="Attempt at fixing the Resequencer Sub-Program issue" />
+    <MESSAGE value="Resequencing fixed up to Quiver.  New VC requirement breaks consensus however..." />
+    <option name="LAST_COMMIT_MESSAGE" value="Resequencing fixed up to Quiver.  New VC requirement breaks consensus however..." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
@@ -1346,7 +1350,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="115" column="0" selection-start="4572" selection-end="4572" vertical-scroll-proportion="0.8352713" vertical-offset="1524" max-vertical-offset="5627">
+        <state line="228" column="54" selection-start="9340" selection-end="9340" vertical-scroll-proportion="0.59302324" vertical-offset="3570" max-vertical-offset="5593">
           <folding>
             <element signature="e#1780#1789#0" expanded="true" />
           </folding>

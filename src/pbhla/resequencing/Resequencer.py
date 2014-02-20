@@ -59,7 +59,7 @@ class Resequencer(object):
         log.debug("TESTING")
 
         # Find the various required scripts and determine if
-        self.filter_plsh5   = self.validate_program('filterPlsH5.py')
+        self.filter_plsh5   = self.validate_program('filter_plsh5.py')
         self.pbalign        = self.validate_program('pbalign.py')
         self.variant_caller = self.validate_program('variantCaller.py')
         self._use_setup     = self.validate_setup()
@@ -102,7 +102,6 @@ class Resequencer(object):
             log.error( msg )
             raise IOError( msg )
 
-    def validate_setup_program( self, program ):
         # Fallback to the Setup Script if needed
         setup_program = os.path.join( self.setup, 'analysis/bin', program )
         setup_program = validate_file( setup_program )
@@ -112,7 +111,6 @@ class Resequencer(object):
             msg = 'Program "%s" not found in either PATH or SMRT Analysis env' % program
             log.error( msg )
             raise IOError( msg )
-
 
     def validate_setup(self):
         """Determine whether we need a setup script, and which environment to use"""
@@ -230,7 +228,7 @@ class Resequencer(object):
                         data_file,
                         '--outputDir=%s' % output_dir,
                         '--outputFofn=%s' % output_fofn,
-                        '--filter="ReadWhitelist=%s,MinSRL=1500,MinReadScore=0.8,MaxSRL=3700"' % whitelist_file]
+                        '--filter="ReadWhitelist=%s,MinSRL=500,MinReadScore=0.8,MaxSRL=3600"' % whitelist_file]
         self.run_process( process_args, 'FilterPlsH5' )
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
@@ -266,7 +264,7 @@ class Resequencer(object):
         process_args = [self.variant_caller,
                         '--algorithm=quiver',
                         '--verbose',
-                        '--parameterSet=%s' % CHEMISTRY,
+                        #'--parameterSet=%s' % CHEMISTRY,
                         '--numWorkers=%s' % self._nproc,
                         '--reference=%s' % reference_file,
                         '--coverage=%s' % COVERAGE,
