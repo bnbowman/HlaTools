@@ -59,9 +59,9 @@ class Resequencer(object):
         log.debug("TESTING")
 
         # Find the various required scripts and determine if
-        self.filter_plsh5   = which('filterPlsH5.py') or 'filterPlsH5.py'
-        self.pbalign        = which('pbalign.py') or 'pbalign.py'
-        self.variant_caller = which('variantCaller.py') or 'variantCaller.py'
+        self.filter_plsh5   = self.validate_program('filterPlsH5.py')
+        self.pbalign        = self.validate_program('pbalign.py')
+        self.variant_caller = self.validate_program('variantCaller.py')
         self._use_setup     = self.validate_setup()
 
         # Initialize properties to be used for each call
@@ -84,13 +84,34 @@ class Resequencer(object):
 
     @property
     def subprograms_in_path(self):
-        if not validate_file( self.filter_plsh5 ):
+        if self.filter_plsh5.startswith( self.setup ):
             return False
-        if not validate_file( self.pbalign ):
+        if self.pbalign.startswith( self.setup ):
             return False
-        if not validate_file( self.variant_caller ):
+        if self.variant_caller.startswith( self.setup ):
             return False
         return True
+
+    def validate_program(self, program):
+        # First we try to find the program in the local path
+        program = which( program )
+        if program:
+            return program
+        elif program is None and self.setup is None:
+            msg = 'Program "%s" not found in PATH and no SMRT Analysis supplied' % program
+            log.error( msg )
+            raise IOError( msg )
+
+        # Fallback to the Setup Script if needed
+        setup_program = os.path.join( self.setup, 'analysis/bin', program )
+        setup_program = validate_file( setup_program )
+        if setup_program:
+            return setup_program
+        else:
+            msg = 'Program "%s" not found in either PATH or SMRT Analysis env' % program
+            log.error( msg )
+            raise IOError( msg )
+
 
     def validate_setup(self):
         """Determine whether we need a setup script, and which environment to use"""
