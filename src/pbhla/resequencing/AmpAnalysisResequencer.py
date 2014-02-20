@@ -12,6 +12,7 @@ from pbhla.bash5 import get_bash5_reader, filter_zmw_list
 from pbhla.barcodes import get_barcode_reader, get_barcodes, get_barcode_zmws
 from pbhla.sequences.input import get_input_file
 from pbhla.io.AmpAnalysisIO import AmpliconAnalysisReader
+from pbhla.utils import create_directory
 
 logging.config.fileConfig( __LOG__ )
 log = logging.getLogger( __name__ )
@@ -21,10 +22,14 @@ class AmpliconAnalysisResequencer( object ):
     An object for iterating over all of the barcodes in
     """
 
-    def __init__(self, setup=None, nproc=1):
+    def __init__(self, output, setup=None, nproc=1):
         """Initialize cross-cluster and object-specific settings"""
         log.info("Initializing Resequencer sub-module")
         self._resequencer = Resequencer(setup, nproc)
+
+        # Initialize output folder
+        self._output = output
+        create_directory( self.output )
 
     @property
     def resequencer(self):
@@ -38,7 +43,16 @@ class AmpliconAnalysisResequencer( object ):
     def nproc(self):
         return self.resequencer.nproc
 
-    def __call__(self, data_file, barcode_file, amp_analysis, output=None, barcode_string=None):
+    @property
+    def output(self):
+        return self._output
+
+    def get_output_folder(self, barcode):
+        output_dir = os.path.join( self.output, barcode )
+        create_directory( output_dir )
+        return output_dir
+
+    def __call__(self, amp_analysis, data_file, barcode_file, barcode_string=None):
         log.info("Beginning Amplicon Analysis resequencing workflow for {0}".format(amp_analysis))
 
         # Create appropriate readers for our raw sequence and barcode data
@@ -52,6 +66,7 @@ class AmpliconAnalysisResequencer( object ):
         bc_list = get_barcodes( bc_reader, barcode_string )
         for i, bc in enumerate( bc_list ):
             log.info('Analyzing Barcode {0} (#{1} of {2})'.format(bc, i+1, len(bc_list)))
+            output_dir = self.get_output_folder( bc )
 
             # Extract any consensus sequences associated with this barcode
             record_list = [r for r in amp_analysis_records if r.barcode == bc]

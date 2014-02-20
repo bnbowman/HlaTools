@@ -11,12 +11,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     add = parser.add_argument
+    add('amplicon_analysis', metavar='INPUT',
+        help="Fasta/Fastq/Folder of Amplicon Analysis output")
     add('data_file', metavar='DATA',
         help="BasH5 or FOFN of sequence data")
     add('barcode_file', metavar='BARCODE',
         help="BcH5 or FOFN of barcode data")
-    add('amplicon_analysis', metavar='INPUT',
-        help="Fasta/Fastq/Folder of Amplicon Analysis output")
     add('--barcode_list', metavar='BARCODE_LIST',
         help="Comma-separated list of barcodes to resequence")
     add('--output', default='resequencing', metavar='DIR',
@@ -28,10 +28,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Run the specified resequencing process
-    resequencer = AmpliconAnalysisResequencer( setup=args.setup,
+    resequencer = AmpliconAnalysisResequencer( args.output,
+                                               setup=args.setup,
                                                nproc=args.nproc )
-    resequencer( args.data_file,
+    resequencer( args.amplicon_analysis,
+                 args.data_file,
                  args.barcode_file,
-                 args.amplicon_analysis,
-                 output=args.output,
                  barcode_string=args.barcode_list )
