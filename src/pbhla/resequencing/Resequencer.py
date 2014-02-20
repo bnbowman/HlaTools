@@ -92,16 +92,17 @@ class Resequencer(object):
             return False
         return True
 
-    def validate_program(self, program):
+    def validate_program( self, program):
         # First we try to find the program in the local path
-        program = which( program )
-        if program:
-            return program
-        elif program is None and self.setup is None:
+        program_path = which( program )
+        if program_path:
+            return program_path
+        elif program_path is None and self.setup is None:
             msg = 'Program "%s" not found in PATH and no SMRT Analysis supplied' % program
             log.error( msg )
             raise IOError( msg )
 
+    def validate_setup_program( self, program ):
         # Fallback to the Setup Script if needed
         setup_program = os.path.join( self.setup, 'analysis/bin', program )
         setup_program = validate_file( setup_program )

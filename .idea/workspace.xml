@@ -2,10 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py" afterPath="$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py" afterPath="$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/dictionaries/bbowman.xml" afterPath="$PROJECT_DIR$/.idea/dictionaries/bbowman.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/fofn.py" afterPath="$PROJECT_DIR$/src/pbhla/fofn.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -32,7 +29,7 @@
       <file leaf-file-name="Resequencer.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="92" column="19" selection-start="3702" selection-end="3702" vertical-scroll-proportion="1.1081481" vertical-offset="816" max-vertical-offset="5253">
+            <state line="115" column="0" selection-start="4572" selection-end="4572" vertical-scroll-proportion="0.8352713" vertical-offset="1524" max-vertical-offset="5627">
               <folding>
                 <element signature="e#1780#1789#0" expanded="true" />
               </folding>
@@ -43,10 +40,8 @@
       <file leaf-file-name="utils.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="168" column="0" selection-start="4811" selection-end="4811" vertical-scroll-proportion="0.0" vertical-offset="1275" max-vertical-offset="3230">
-              <folding>
-                <element signature="e#0#9#0" expanded="true" />
-              </folding>
+            <state line="168" column="0" selection-start="4811" selection-end="4811" vertical-scroll-proportion="0.0" vertical-offset="2856" max-vertical-offset="3230">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -54,7 +49,7 @@
       <file leaf-file-name="HlaPipeline.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="10" column="37" selection-start="276" selection-end="288" vertical-scroll-proportion="-6.8" vertical-offset="0" max-vertical-offset="10370">
+            <state line="10" column="37" selection-start="276" selection-end="288" vertical-scroll-proportion="0.0" vertical-offset="170" max-vertical-offset="10370">
               <folding />
             </state>
           </provider>
@@ -63,10 +58,8 @@
       <file leaf-file-name="fofn.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/fofn.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="31" column="33" selection-start="1085" selection-end="1085" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1139">
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
-              </folding>
+            <state line="31" column="33" selection-start="1085" selection-end="1085" vertical-scroll-proportion="0.0" vertical-offset="527" max-vertical-offset="1139">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -74,10 +67,8 @@
       <file leaf-file-name="AmpAnalysisResequencer.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="19" column="35" selection-start="697" selection-end="697" vertical-scroll-proportion="0.0" vertical-offset="68" max-vertical-offset="1870">
-              <folding>
-                <element signature="e#98#107#0" expanded="true" />
-              </folding>
+            <state line="19" column="35" selection-start="697" selection-end="697" vertical-scroll-proportion="0.0" vertical-offset="323" max-vertical-offset="1870">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -104,10 +95,7 @@
         <entry file="file://$PROJECT_DIR$/src/pbhla/io/utils.py">
           <provider selected="true" editor-type-id="text-editor">
             <state line="118" column="31" selection-start="4025" selection-end="4025" vertical-scroll-proportion="0.0" vertical-offset="1450" max-vertical-offset="2125">
-              <folding>
-                <element signature="e#71#85#0" expanded="true" />
-                <marker date="1392866735797" expanded="true" signature="3822:4068" placeholder="..." />
-              </folding>
+              <folding />
             </state>
           </provider>
         </entry>
@@ -116,9 +104,7 @@
         <entry file="file://$PROJECT_DIR$/src/pbhla/bash5.py">
           <provider selected="true" editor-type-id="text-editor">
             <state line="64" column="93" selection-start="2410" selection-end="2410" vertical-scroll-proportion="0.0" vertical-offset="583" max-vertical-offset="1275">
-              <folding>
-                <element signature="e#98#112#0" expanded="true" />
-              </folding>
+              <folding />
             </state>
           </provider>
         </entry>
@@ -126,11 +112,8 @@
       <file leaf-file-name="barcodes.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/barcodes.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="18" column="25" selection-start="565" selection-end="565" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1139">
-              <folding>
-                <element signature="e#98#112#0" expanded="true" />
-                <marker date="1392862493860" expanded="true" signature="1549:2015" placeholder="..." />
-              </folding>
+            <state line="18" column="25" selection-start="565" selection-end="565" vertical-scroll-proportion="0.0" vertical-offset="306" max-vertical-offset="1139">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -187,8 +170,8 @@
   <component name="ProjectFrameBounds">
     <option name="x" value="-8" />
     <option name="y" value="-8" />
-    <option name="width" value="1936" />
-    <option name="height" value="1176" />
+    <option name="width" value="1456" />
+    <option name="height" value="876" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -216,6 +199,7 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -536,7 +520,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -669,9 +652,6 @@
       <option name="PARAMETERS" value="" />
       <method />
     </configuration>
-    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
-      <method />
-    </configuration>
     <configuration default="true" type="tests" factoryName="Unittests">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -693,6 +673,9 @@
       <option name="PUREUNITTEST" value="true" />
       <option name="PARAMS" value="" />
       <option name="USE_PARAM" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
       <method />
     </configuration>
     <configuration default="true" type="tests" factoryName="Doctests">
@@ -969,7 +952,15 @@
       <created>1392870189858</created>
       <updated>1392870189858</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="First Alpha of RAA _almost_ finished pt.2 &#10;TODO: Fix the way Reseq tracks paths to tools">
+      <created>1392873270193</created>
+      <updated>1392873270193</updated>
+    </task>
+    <task id="LOCAL-00054" summary="Attempt at fixing the Resequencer Sub-Program issue">
+      <created>1392884302810</created>
+      <updated>1392884302810</updated>
+    </task>
+    <option name="localTasksCounter" value="55" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -993,30 +984,30 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1176" extended-state="6" />
+    <frame x="-8" y="-8" width="1456" height="876" extended-state="6" />
     <editor active="false" />
     <layout>
-      <window_info id="File Transfer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24401914" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="File Transfer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2442953" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3291866" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875368" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.17022412" sideWeight="0.3326791" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3291866" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32797858" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32875368" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32908913" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24919957" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.185836" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1881259" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3291866" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
     </layout>
     <layout-to-restore>
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -1037,9 +1028,9 @@
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24964234" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.17342582" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -1054,8 +1045,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="Attempting to fix wierd ToAmos commit error" />
-    <MESSAGE value="Update to add cDNA cleanup to cDNA/Typing tools" />
     <MESSAGE value="Fixing pathspec issue for ToAmosTool" />
     <MESSAGE value="Attempting to fix ToAmos issues" />
     <MESSAGE value="First commit of new reference data directory" />
@@ -1079,7 +1068,9 @@
     <MESSAGE value="Added AA Record reading and filtering to AAR" />
     <MESSAGE value="Minor refactor of RAA args" />
     <MESSAGE value="First Alpha of RAA _almost_ finished" />
-    <option name="LAST_COMMIT_MESSAGE" value="First Alpha of RAA _almost_ finished" />
+    <MESSAGE value="First Alpha of RAA _almost_ finished pt.2 &#10;TODO: Fix the way Reseq tracks paths to tools" />
+    <MESSAGE value="Attempt at fixing the Resequencer Sub-Program issue" />
+    <option name="LAST_COMMIT_MESSAGE" value="Attempt at fixing the Resequencer Sub-Program issue" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
@@ -1087,37 +1078,27 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/AmpliconAnalysisTyping.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="11" column="38" selection-start="364" selection-end="364" vertical-scroll-proportion="0.0" vertical-offset="187" max-vertical-offset="340">
-          <folding />
-        </state>
+        <state line="11" column="38" selection-start="364" selection-end="364" vertical-scroll-proportion="0.0" vertical-offset="187" max-vertical-offset="340" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="30" column="35" selection-start="1119" selection-end="1119" vertical-scroll-proportion="0.0" vertical-offset="510" max-vertical-offset="680">
-          <folding />
-        </state>
+        <state line="30" column="35" selection-start="1119" selection-end="1119" vertical-scroll-proportion="0.0" vertical-offset="510" max-vertical-offset="680" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/align_by_identity.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="28" column="90" selection-start="1063" selection-end="1063" vertical-scroll-proportion="0.0" vertical-offset="476" max-vertical-offset="1564">
-          <folding />
-        </state>
+        <state line="28" column="90" selection-start="1063" selection-end="1063" vertical-scroll-proportion="0.0" vertical-offset="476" max-vertical-offset="1564" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="133" column="29" selection-start="4987" selection-end="4987" vertical-scroll-proportion="0.0" vertical-offset="2261" max-vertical-offset="3043">
-          <folding />
-        </state>
+        <state line="133" column="29" selection-start="4987" selection-end="4987" vertical-scroll-proportion="0.0" vertical-offset="2261" max-vertical-offset="3043" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/AmpliconAnalysisTyping.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="30" column="33" selection-start="1117" selection-end="1117" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1071">
-          <folding />
-        </state>
+        <state line="30" column="33" selection-start="1117" selection-end="1117" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1071" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/BlasrIO.py">
@@ -1137,23 +1118,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/align_by_identity.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="28" column="90" selection-start="1063" selection-end="1063" vertical-scroll-proportion="0.0" vertical-offset="476" max-vertical-offset="1564">
-          <folding />
-        </state>
+        <state line="28" column="90" selection-start="1063" selection-end="1063" vertical-scroll-proportion="0.0" vertical-offset="476" max-vertical-offset="1564" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="133" column="29" selection-start="4987" selection-end="4987" vertical-scroll-proportion="0.0" vertical-offset="2261" max-vertical-offset="3043">
-          <folding />
-        </state>
+        <state line="133" column="29" selection-start="4987" selection-end="4987" vertical-scroll-proportion="0.0" vertical-offset="2261" max-vertical-offset="3043" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/AmpliconAnalysisTyping.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="13" column="34" selection-start="598" selection-end="598" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1071">
-          <folding />
-        </state>
+        <state line="13" column="34" selection-start="598" selection-end="598" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1071" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/typing/summarize.py">
@@ -1168,9 +1143,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/align_by_identity.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="28" column="90" selection-start="1063" selection-end="1063" vertical-scroll-proportion="0.0" vertical-offset="255" max-vertical-offset="1564">
-          <folding />
-        </state>
+        <state line="28" column="90" selection-start="1063" selection-end="1063" vertical-scroll-proportion="0.0" vertical-offset="255" max-vertical-offset="1564" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/exons_to_cDNA.py">
@@ -1180,9 +1153,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="52" column="69" selection-start="2098" selection-end="2098" vertical-scroll-proportion="0.0" vertical-offset="884" max-vertical-offset="3043">
-          <folding />
-        </state>
+        <state line="52" column="69" selection-start="2098" selection-end="2098" vertical-scroll-proportion="0.0" vertical-offset="884" max-vertical-offset="3043" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/sequences/orientation.py">
@@ -1252,106 +1223,70 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/align_by_identity.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="16" column="0" selection-start="466" selection-end="466" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1462">
-          <folding />
-        </state>
+        <state line="16" column="0" selection-start="466" selection-end="466" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1462" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="21" column="0" selection-start="631" selection-end="631" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="2941">
-          <folding />
-        </state>
+        <state line="21" column="0" selection-start="631" selection-end="631" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="2941" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="121" column="26" selection-start="4294" selection-end="4294" vertical-scroll-proportion="0.0" vertical-offset="1649" max-vertical-offset="2686">
-          <folding />
-        </state>
+        <state line="121" column="26" selection-start="4294" selection-end="4294" vertical-scroll-proportion="0.0" vertical-offset="1649" max-vertical-offset="2686" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/external/ExternalTool.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="27" column="26" selection-start="710" selection-end="710" vertical-scroll-proportion="0.0" vertical-offset="1377" max-vertical-offset="2261">
-          <folding />
-        </state>
+        <state line="27" column="26" selection-start="710" selection-end="710" vertical-scroll-proportion="0.0" vertical-offset="1377" max-vertical-offset="2261" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/sequences/input.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="14" column="16" selection-start="271" selection-end="271" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1037">
-          <folding>
-            <element signature="e#98#107#0" expanded="true" />
-          </folding>
-        </state>
+        <state line="14" column="16" selection-start="271" selection-end="271" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1037" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/CompareTyping.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="111" column="14" selection-start="3695" selection-end="3695" vertical-scroll-proportion="0.0" vertical-offset="902" max-vertical-offset="2023">
-          <folding />
-        </state>
+        <state line="111" column="14" selection-start="3695" selection-end="3695" vertical-scroll-proportion="0.0" vertical-offset="902" max-vertical-offset="2023" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/AmpliconAnalysisTyping.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="14" column="0" selection-start="475" selection-end="475" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="340">
-          <folding />
-        </state>
+        <state line="14" column="0" selection-start="475" selection-end="475" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="340" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="18" column="0" selection-start="683" selection-end="745" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="935">
-          <folding>
-            <element signature="e#24#54#0" expanded="false" />
-          </folding>
-        </state>
+        <state line="18" column="0" selection-start="683" selection-end="745" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="935" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/FofnIO.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="680">
-          <folding />
-        </state>
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="680" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/AmpAnalysisCsvIo.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="40" column="12" selection-start="1189" selection-end="1189" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="1054">
-          <folding>
-            <element signature="e#0#34#0" expanded="false" />
-          </folding>
-        </state>
+        <state line="40" column="12" selection-start="1189" selection-end="1189" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="1054" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/AmpAnalysisCsvUtils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="35" column="53" selection-start="1666" selection-end="1666" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="1547">
-          <folding>
-            <element signature="e#0#28#0" expanded="false" />
-          </folding>
-        </state>
+        <state line="35" column="53" selection-start="1666" selection-end="1666" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="1547" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/barcodes.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="18" column="25" selection-start="565" selection-end="565" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1139">
-          <folding>
-            <element signature="e#98#112#0" expanded="true" />
-            <marker date="1392862493860" expanded="true" signature="1549:2015" placeholder="..." />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="118" column="31" selection-start="4025" selection-end="4025" vertical-scroll-proportion="0.0" vertical-offset="1450" max-vertical-offset="2125">
-          <folding>
-            <element signature="e#71#85#0" expanded="true" />
-            <marker date="1392866735797" expanded="true" signature="3822:4068" placeholder="..." />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1365,9 +1300,7 @@
     <entry file="file://$PROJECT_DIR$/src/pbhla/bash5.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="64" column="93" selection-start="2410" selection-end="2410" vertical-scroll-proportion="0.0" vertical-offset="583" max-vertical-offset="1275">
-          <folding>
-            <element signature="e#98#112#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1380,23 +1313,19 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/logger.cfg">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="675">
-          <folding />
-        </state>
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="675" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="168" column="0" selection-start="4811" selection-end="4811" vertical-scroll-proportion="0.0" vertical-offset="2317" max-vertical-offset="3230">
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="10" column="37" selection-start="276" selection-end="288" vertical-scroll-proportion="-6.8" vertical-offset="0" max-vertical-offset="10370">
+        <state line="10" column="37" selection-start="276" selection-end="288" vertical-scroll-proportion="0.0" vertical-offset="170" max-vertical-offset="10370">
           <folding />
         </state>
       </provider>
@@ -1404,24 +1333,20 @@
     <entry file="file://$PROJECT_DIR$/src/pbhla/fofn.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="31" column="33" selection-start="1085" selection-end="1085" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1139">
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="19" column="35" selection-start="697" selection-end="697" vertical-scroll-proportion="0.0" vertical-offset="68" max-vertical-offset="1870">
-          <folding>
-            <element signature="e#98#107#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="92" column="19" selection-start="3702" selection-end="3702" vertical-scroll-proportion="1.1081481" vertical-offset="816" max-vertical-offset="5253">
+        <state line="115" column="0" selection-start="4572" selection-end="4572" vertical-scroll-proportion="0.8352713" vertical-offset="1524" max-vertical-offset="5627">
           <folding>
             <element signature="e#1780#1789#0" expanded="true" />
           </folding>
