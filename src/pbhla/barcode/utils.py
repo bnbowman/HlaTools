@@ -46,3 +46,15 @@ def get_barcodes( bc_reader, bc_string ):
         else:
             log.warn('Barcode "%s" requested but not found, skipping' % bc)
     return bc_list
+
+def get_barcode_reads( bc_reader, bc ):
+    if isinstance( bc_reader, BarcodeH5Reader ):
+        reads = bc_reader.labeledZmwsFromBarcodeLabel( bc )
+    elif isinstance( bc_reader, BarcodeH5Fofn ):
+        reads = reduce(lambda x,y: x + y,
+                       map(lambda z: z.labeledZmwsFromBarcodeLabel( bc ),
+                           bc_reader._bcH5s))
+    else:
+        raise ValueError
+    log.info("Identified {0} reads from Barcode {1}".format(len(reads), bc))
+    return reads
