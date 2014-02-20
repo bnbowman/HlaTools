@@ -13,8 +13,10 @@ log = logging.getLogger()
 def get_barcode_reader( barcode_file ):
     barcode_file = validate_file( barcode_file )
     if barcode_file.endswith('.fofn'):
+        log.info("Barcode input is Fofn, initializing BarcodeH5Collection")
         return BarcodeH5Fofn( barcode_file )
     elif barcode_file.endswith('.bc.h5'):
+        log.info("Barcode input is BcH5, initializing BarcodeH5Reader")
         return BarcodeH5Reader( barcode_file )
     else:
         raise ValueError

@@ -13,12 +13,15 @@ log = logging.getLogger()
 def get_bash5_reader( bash5_file ):
     bash5_file = validate_file( bash5_file )
     if bash5_file.endswith('.fofn'):
+        log.info("Raw data input is Fofn, initializing BasH5Collection")
         c = BasH5Collection( bash5_file )
         assert len(c.movieNames) == 1       # Currently we only accept single-movies
         return c
     elif bash5_file.endswith('.bas.h5'):
+        log.info("Raw data input is BasH5, initializing BasH5Reader")
         return BasH5Reader( bash5_file )
     elif bash5_file.endswith('.bax.h5'):
+        log.info("Raw data input is BaxH5, initializing BaxH5Reader")
         return BaxH5Reader( bash5_file )
     else:
         raise ValueError
