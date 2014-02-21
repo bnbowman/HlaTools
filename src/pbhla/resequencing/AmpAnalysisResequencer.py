@@ -57,7 +57,7 @@ class AmpliconAnalysisResequencer( object ):
         create_directory( output_dir )
         return output_dir
 
-    def __call__(self, amp_analysis, data_file, barcode_file, barcode_string=None):
+    def __call__(self, amp_analysis, data_file, barcode_file, barcode_string=None, min_snr=None, min_length=None):
         log.info("Beginning Amplicon Analysis resequencing workflow for {0}".format(amp_analysis))
 
         # Pick or create a single file from AA and read it
@@ -92,7 +92,7 @@ class AmpliconAnalysisResequencer( object ):
 
             # Identify all high-quality, barcode-specific ZMWs and write them to file
             zmw_list = get_barcode_zmws( bc_reader, bc )
-            zmw_list = filter_zmw_list( bash5, zmw_list, min_snr=4.0 )
+            zmw_list = filter_zmw_list( bash5, zmw_list, min_snr=min_snr )
             whitelist_file = os.path.join( output_dir, 'whitelist.txt' )
             write_zmw_whitelist( bash5, zmw_list, whitelist_file )
 
@@ -100,6 +100,7 @@ class AmpliconAnalysisResequencer( object ):
             self.resequencer( baxh5_file,
                               whitelist_file,
                               reference_file,
-                              output=output_dir )
+                              output=output_dir,
+                              min_length=min_length )
 
             log.info("Finished resequencing Barcode {0}\n".format( bc ))

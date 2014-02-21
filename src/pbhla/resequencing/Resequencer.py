@@ -59,6 +59,7 @@ class Resequencer(object):
         log.debug("TESTING")
 
         # Find the various required scripts and determine if
+        self.samtools       = self.validate_program('samtools')
         self.filter_plsh5   = self.validate_program('filter_plsh5.py')
         self.pbalign        = self.validate_program('pbalign.py')
         self.variant_caller = self.validate_program('variantCaller.py')
@@ -84,6 +85,8 @@ class Resequencer(object):
 
     @property
     def subprograms_in_path(self):
+        if self.samtools.startswith( self.setup ):
+            return False
         if self.filter_plsh5.startswith( self.setup ):
             return False
         if self.pbalign.startswith( self.setup ):
@@ -155,7 +158,6 @@ class Resequencer(object):
 
     def run_process(self, process_args, name):
         log.info("Executing child '%s' process" % name)
-        print process_args
         if self._use_setup:
             log.info('Executing subprocess indirectly via Shell Script')
             script = self.write_script( process_args, name )
@@ -168,7 +170,6 @@ class Resequencer(object):
                 p.wait()
         else:
             log.info('Executing subprocess directly via Subprocess')
-            print process_args
             p = subprocess.Popen( process_args )
             p.wait()
         log.info('Child process finished successfully')
@@ -198,7 +199,7 @@ class Resequencer(object):
         log.info('Creating cluster-specific whitelist file')
         whitelist_file = os.path.join(self._output, 'whitelist.txt')
         if os.path.exists( whitelist_file ):
-            log.info('Existing whitelist file found, skipping...\n')
+            log.info('Existing whitelist file found, skipping...')
             return whitelist_file
 
         # Parse the individual ZMWs of interest
@@ -216,6 +217,19 @@ class Resequencer(object):
         log.info('Finished writing the whitelist file\n')
         return os.path.abspath( whitelist_file )
 
+    def create_fai( self, reference_file ):
+        log.info('Creating reference-specific index file')
+        index_file = reference_file + '.fai'
+        if os.path.exists( index_file ):
+            log.info('Existing reference detected, skipping...')
+            self._counter += 1
+            return index_file
+        process_args = [self.samtools,
+                        'faidx',
+                        reference_file]
+        self.run_process( process_args, 'SamTools' )
+        log.info('Finished writing the the reference index file')
+        return index_file
 
     def create_rgnh5( self, data_file, whitelist_file ):
         log.info('Creating cluster-specific RngH5 from Whitelist')
@@ -223,22 +237,23 @@ class Resequencer(object):
         output_fofn = os.path.join(self._output, 'region_tables.fofn')
         if os.path.exists( output_dir ) and os.path.exists( output_fofn ):
             log.info('Existing RngH5 detected, skipping...')
+            self._counter += 1
             return output_fofn
         process_args = [self.filter_plsh5, 
                         data_file,
                         '--outputDir=%s' % output_dir,
                         '--outputFofn=%s' % output_fofn,
-                        '--filter="ReadWhitelist=%s,MinSRL=500,MinReadScore=0.8,MaxSRL=3600"' % whitelist_file]
+                        '--filter="ReadWhitelist=%s,MinReadScore=0.75,MaxSRL=3600"' % whitelist_file]
         self.run_process( process_args, 'FilterPlsH5' )
         log.info('Finished writing the cluster-specific RngH5')
         return output_fofn
 
-
-    def run_pbalign( self, data_file, reference_file, rgnh5_file ):
+    def run_pbalign( self, data_file, reference_file, rgnh5_file, min_length ):
         log.info('Creating cluster-specific CmpH5')
         cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
         if os.path.exists( cmph5_file ):
             log.info('Existing CmpH5 detected, skipping...\n')
+            self._counter += 1
             return cmph5_file
         process_args = [self.pbalign,
                         data_file,
@@ -246,10 +261,11 @@ class Resequencer(object):
                         cmph5_file,
                         '--regionTable=%s' % rgnh5_file,
                         '--forQuiver',
+                        '--minLength=%s' % min_length,
                         '--hitPolicy=randombest',
                         '--nproc=%s' % self._nproc]
         self.run_process( process_args, 'CompareSequences')
-        log.info('Finished writing the cluster-specific CmpH5\n')
+        log.info('Finished writing the cluster-specific CmpH5')
         return cmph5_file
 
 
@@ -260,6 +276,7 @@ class Resequencer(object):
         if ( os.path.exists( consensus_fastq ) and
              os.path.isfile( consensus_fasta )):
             log.info('Existing consensus found, skipping...\n')
+            self._counter += 1
             return consensus_fastq, consensus_fasta
         process_args = [self.variant_caller,
                         '--algorithm=quiver',
@@ -272,11 +289,11 @@ class Resequencer(object):
                         '--outputFile=%s' % consensus_fasta,
                         cmph5_file]
         self.run_process( process_args, 'Quiver' )
-        log.info('Finished creating the Quiver consensus\n')
+        log.info('Finished creating the Quiver consensus')
         return consensus_fastq, consensus_fasta
 
 
-    def __call__(self, data_file, read_file, reference_file, output='Resequencing'):
+    def __call__(self, data_file, read_file, reference_file, output='Resequencing', min_length=500):
         # Validate and set-up run-specific values
         self._counter  = 0
         data_file      = validate_file( data_file )
@@ -284,10 +301,11 @@ class Resequencer(object):
         reference_file = validate_file( reference_file )
         self.initialize_output( output )
 
-        # Next we run the 4-step Quiver Process
+        # Next we run the 5-step Quiver Process
         whitelist_file = self.create_whitelist( read_file )
+        self.create_fai( reference_file )
         rgnh5_file = self.create_rgnh5( data_file, whitelist_file )
-        cmph5_file = self.run_pbalign( data_file, reference_file, rgnh5_file )
+        cmph5_file = self.run_pbalign( data_file, reference_file, rgnh5_file, min_length )
         consensus_file = self.run_quiver( cmph5_file, reference_file )
         return consensus_file
 
