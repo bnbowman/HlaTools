@@ -66,10 +66,13 @@ class HlaPipeline( object ):
 
     def _check_domain(self, domain):
         hla_domain = 'HLA-%s' % domain
+        numbered_domain = hla_domain + '1'
         if domain in self._config.sections():
             return domain
         elif hla_domain in self._config.sections():
             return hla_domain
+        elif numbered_domain in self._config.sections():
+            return numbered_domain
         else:
             return None
 
@@ -87,6 +90,7 @@ class HlaPipeline( object ):
 
     def to_be_resequenced(self, domain):
         domain = self._check_domain( domain )
+        print "Reseq", domain
         if domain:
             if self._config.getboolean( domain, 'use_resequencing' ):
                 log.info("Resequencing enabled for %s" % domain)
@@ -423,6 +427,8 @@ class HlaPipeline( object ):
 
             # Check if the source of the current file has a configuration
             source = get_file_source( subread_file )
+            print subread_file
+            print source
             if not self.to_be_phased( source ):
                 continue
 
