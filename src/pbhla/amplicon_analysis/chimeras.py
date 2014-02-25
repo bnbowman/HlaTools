@@ -7,8 +7,8 @@ import os
 import logging
 
 from tempfile import NamedTemporaryFile
-from pbhla.amplicon_analysis.sequence import (AmpliconAnalysisSequenceReader,
-                                              AmpliconAnalysisSequenceWriter)
+from pbhla.io.AmpAnalysisIO import (AmpliconAnalysisReader,
+                                    AmpliconAnalysisWriter)
 from pbhla.external.utils import align_best_reference, multi_sequence_alignment
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.io.alignments import FastaAlignment
@@ -198,12 +198,12 @@ class ChimeraDetector(object):
         good_output = prefix + '.good.' + suffix
 
         log.info("Writing chimeric reads to {0}".format(bad_output))
-        with AmpliconAnalysisSequenceWriter( bad_output ) as writer:
+        with AmpliconAnalysisWriter( bad_output ) as writer:
             for record in self._chimeras:
                 writer.write_record( record )
 
         log.info("Writing non-chimeric reads to {0}".format(good_output))
-        with AmpliconAnalysisSequenceWriter( good_output ) as writer:
+        with AmpliconAnalysisWriter( good_output ) as writer:
             for n, record in self._database.iteritems():
                 writer.write_record( record )
 
@@ -251,7 +251,7 @@ def _write_temp_fasta(sequences):
     Write the current sequence database out to file
     """
     temp = NamedTemporaryFile(suffix='.fasta', delete=False)
-    with AmpliconAnalysisSequenceWriter(temp.name) as writer:
+    with AmpliconAnalysisWriter(temp.name) as writer:
         for record in sequences:
             writer.write_fasta(record)
     return temp.name
@@ -286,7 +286,7 @@ def sorted_sequences( sequence_file ):
     """
     Yield successive reads in descending order of NumReads
     """
-    seqs = list(AmpliconAnalysisSequenceReader( sequence_file ))
+    seqs = list(AmpliconAnalysisReader( sequence_file ))
     for seq in sorted(seqs, key=lambda s: s.num_reads, reverse=True):
         yield seq
 

@@ -162,6 +162,7 @@ class HlaPipeline( object ):
         extract_subreads( args.input_file, 
                           subread_file,
                           min_length=self.min_read_length,
+                          max_length=self.max_read_length,
                           min_score=self.min_read_score,
                           min_snr=self.min_snr,
                           max_count=self.max_count )
@@ -455,7 +456,8 @@ class HlaPipeline( object ):
 
     def run_resequencing( self, baxh5_fofn, renamed_fofn, reference_fofn ):
         log.info("Looking for phased AmpliconAnalysis results")
-        resequencer = Resequencer( baxh5_fofn, self.smrt_path, args.nproc )
+        print self.smrt_path
+        resequencer = Resequencer( self.smrt_path, args.nproc )
         subread_handle = FofnReader( renamed_fofn )
         reference_handle = FofnReader( reference_fofn )
         for subreads, reference in zip(subread_handle, reference_handle):
@@ -471,7 +473,7 @@ class HlaPipeline( object ):
                 log.info('Resequencing output detected for "%s", skipping...' % source)
             else:
                 log.info('Resequencing HBAR contigs from "%s"' % source)
-                resequencer( subreads, reference, output=output_folder )
+                resequencer( baxh5_fofn, subreads, reference, output=output_folder )
         log.info('Finished phasing subreads with Amplicon Analysis\n')
 
     def combine_resequencing_results( self ):

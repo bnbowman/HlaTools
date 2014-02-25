@@ -51,7 +51,7 @@ class Resequencer(object):
 
     def __init__(self, setup=None, nproc=1, debug=False):
         """Initialize cross-cluster and object-specific settings"""
-        self._setup = os.path.abspath( setup ) if setup is not None else None
+        self._setup = self.validate_setup_path( setup ) if setup is not None else None
         self._nproc = nproc
         self._debug = debug
         if debug:
@@ -60,10 +60,15 @@ class Resequencer(object):
 
         # Find the various required scripts and determine if
         self.samtools       = self.validate_program('samtools')
-        self.filter_plsh5   = self.validate_program('filter_plsh5.py')
+        self.filter_plsh5   = self.validate_program('filterPlsH5.py') #or \
+                              #self.validate_program('filter_plsh5.py')
         self.pbalign        = self.validate_program('pbalign.py')
         self.variant_caller = self.validate_program('variantCaller.py')
         self._use_setup     = self.validate_setup()
+
+        log.info( self.filter_plsh5 )
+        log.info( self.pbalign )
+        log.info( self.variant_caller )
 
         # Initialize properties to be used for each call
         self._counter = 0
@@ -95,9 +100,24 @@ class Resequencer(object):
             return False
         return True
 
+    def validate_setup_path(self, setup):
+        setup = os.path.abspath( setup )
+        if setup.endswith('/etc/setup.sh'):
+            setup = setup[:-13]
+            print setup
+        setup_script = os.path.join( setup, 'etc/setup.sh')
+        print setup_script
+        if not validate_file( setup_script ):
+            msg = "Supplied setup-script does not appear to be valid"
+            log.error( msg )
+            raise ValueError( msg )
+        return setup
+
     def validate_program( self, program):
         # First we try to find the program in the local path
         program_path = which( program )
+        print program
+        print program_path
         if program_path:
             return program_path
         elif program_path is None and self.setup is None:
