@@ -11,6 +11,7 @@ from pbhla.filenames import get_file_type
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utils import check_output_file
 from pbhla.record import consensus_size, record_accuracy
+from pbhla.sequences.utils import read_sequences
 
 NPROC = 6
 LOCI = ['A', 'B', 'C', 'DRB1', 'DQB1']
@@ -51,23 +52,27 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         log.error( msg )
         raise ValueError( msg )
 
+    # Read the input sequences and use them to generate our sorting data
+    sequences = read_sequences( input_file )
     if sort == 'num_reads':
-        sort_function = consensus_size
+        sorting_data = {s.name: consensus_size(s) for s in sequences}
     elif sort == 'accuracy':
         assert get_file_type(input_file) == 'fastq'
-        sort_function = record_accuracy
+        sorting_data = {s.name: record_accuracy(s) for s in sequences}
     else:
         msg = "Invalid Sorting Metric: %s" % sort
         log.error( msg )
         raise ValueError( msg )
 
+    log.info('Sorting sequences for selection according to "%s"' % sort)
+    ordered = _sort_groups( groups, sorting_data )
+
     log.info('Selecting top sequences from %s according to the "%s" policy' % (input_file, method))
-    ordered = _sort_groups( groups, sort_function )
     selected = list( _select_sequences( ordered ))
-    sequences = _parse_input_records( input_file )
     log.info('Selected %s sequences from %s total for further analysis' % (len(selected), len(sequences)))
-    subset = list( _subset_sequences( sequences, selected ))
+
     log.info('Writing the selected sequences out to %s' % output_file)
+    subset = list( _subset_sequences( sequences, selected ))
     _write_output( subset, output_file, output_type )
     return output_file
 
@@ -111,18 +116,13 @@ def _group_by_both( alignments, loci ):
             groups[group] = locus_alignments
     return groups
 
-def _sort_groups( groups ):
+def _sort_groups( groups, sorting_data ):
     """Order each group of records individually"""
     ordered = {}
     for locus, group in groups.iteritems():
-        ordered[locus] = _sort_group( group )
+        sorted_records = sorted( group, key=lambda x: sorting_data[x.qname], reverse=True )
+        ordered[locus] = sorted_records
     return ordered
-
-def _sort_group( group, f ):
-    """Order records in a group by their number of reads"""
-    counts = {record: f(record) for record in group}
-    tuples = sorted( counts.iteritems(), key=itemgetter(1), reverse=True )
-    return [t[0] for t in tuples]
 
 def _select_sequences( groups ):
     """Select the top 1-2 sequences for each Locus"""
@@ -139,18 +139,6 @@ def _select_sequences( groups ):
             elif num_reads > (first_reads * MIN_FRAC):
                 yield record.qname
                 break
-
-def _parse_input_records( input_file ):
-    """Parse the input sequence records with the appropriate pbcore Reader"""
-    input_type = get_file_type( input_file )
-    if input_type == 'fasta':
-        return list( FastaReader( input_file ))
-    elif input_type == 'fastq':
-        return list( FastqReader( input_file ))
-    else:
-        msg = 'Input file must be either Fasta or Fastq'
-        log.error( msg )
-        raise TypeError( msg )
 
 def _subset_sequences( sequences, selected ):
     """Subset only the sequences that match"""
