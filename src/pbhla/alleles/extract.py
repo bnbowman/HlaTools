@@ -7,8 +7,10 @@ from pbcore.io.FastaIO import FastaReader
 from pbcore.io.FastqIO import FastqReader, FastqWriter
 from pbhla.fasta.utils import write_fasta, get_num_reads
 from pbhla.external.utils import get_alignment_file
+from pbhla.filenames import get_file_type
 from pbhla.io.BlasrIO import BlasrReader
-from pbhla.utils import get_file_type, check_output_file
+from pbhla.utils import check_output_file
+from pbhla.record import consensus_size, record_accuracy
 
 NPROC = 6
 LOCI = ['A', 'B', 'C', 'DRB1', 'DQB1']
@@ -50,8 +52,9 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         raise ValueError( msg )
 
     if sort == 'num_reads':
-        sort_function = record_size
+        sort_function = consensus_size
     elif sort == 'accuracy':
+        assert get_file_type(input_file) == 'fastq'
         sort_function = record_accuracy
     else:
         msg = "Invalid Sorting Metric: %s" % sort
@@ -59,7 +62,7 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         raise ValueError( msg )
 
     log.info('Selecting top sequences from %s according to the "%s" policy' % (input_file, method))
-    ordered = _sort_groups( groups )
+    ordered = _sort_groups( groups, sort_function )
     selected = list( _select_sequences( ordered ))
     sequences = _parse_input_records( input_file )
     log.info('Selected %s sequences from %s total for further analysis' % (len(selected), len(sequences)))

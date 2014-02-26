@@ -4,11 +4,12 @@ import logging
 
 from pbcore.io.FastaIO import FastaReader
 from pbcore.io.FastqIO import FastqReader, FastqWriter
+from pbhla.filenames import get_file_type
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.utilities.reverse_complement import reverse_complement
 from pbhla.fasta.utils import write_fasta
 from pbhla.external.utils import get_alignment_file
-from pbhla.utils import get_file_type, check_output_file, valid_file
+from pbhla.utils import check_output_file, valid_file
 
 log = logging.getLogger()
 

@@ -2,7 +2,8 @@ import logging
 
 from pbcore.io.FastaIO import FastaRecord, FastaReader, FastaWriter
 from pbcore.io.FastqIO import FastqRecord, FastqReader, FastqWriter
-from pbhla.utils import check_output_file, is_fasta, is_fastq
+from pbhla.filenames import is_fasta, is_fastq
+from pbhla.utils import check_output_file
 
 log = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ import sys, os, logging
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord
 from pbcore.io.FastqIO import FastqReader, FastqRecord
+from pbhla.filenames import get_file_type
 from pbhla.sequences.utils import write_sequences
-from pbhla.utils import get_file_type
 
 log = logging.getLogger()
 

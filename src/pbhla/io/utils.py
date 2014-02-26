@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from pbhla.filenames import get_file_type
 
 __author__ = 'bbowman@pacificbiosciences.com'
 
@@ -8,7 +9,7 @@ from tempfile import NamedTemporaryFile
 from pbcore.io.FastaIO import FastaRecord, FastaWriter
 from pbcore.io.FastqIO import FastqRecord, FastqWriter
 from pbhla.io.AmpAnalysisIO import AmpliconAnalysisRecord, AmpliconAnalysisWriter
-from pbhla.utils import get_file_type, check_output_file
+from pbhla.utils import check_output_file
 
 log = logging.getLogger()
 

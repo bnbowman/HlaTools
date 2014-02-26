@@ -1,9 +1,10 @@
 #! /usr/bin/env python
 
 import logging
+from pbhla.filenames import get_file_type
 
 from pbhla.io.BlasrIO import BlasrReader
-from pbhla.utils import get_file_type, check_output_file
+from pbhla.utils import check_output_file
 
 log = logging.getLogger()
 

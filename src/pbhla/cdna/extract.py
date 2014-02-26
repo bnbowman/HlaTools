@@ -5,8 +5,8 @@ from tempfile import NamedTemporaryFile
 
 from pbcore.io.FastaIO import FastaReader, FastaRecord
 from pbcore.io.FastqIO import FastqReader, FastqRecord
+from pbhla.filenames import get_file_type
 from pbhla.io.BlasrIO import BlasrReader
-from pbhla.utils import get_file_type
 from pbhla.io.utils import parse_locus_dict, get_output_file, get_temp_fasta, write_records
 from pbhla.io.HmmerIO import HmmerDomainReader
 from pbhla.external.commandline_tools import run_hmmsearch

@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from pbhla.filenames import is_fasta, is_fastq
 
 __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
@@ -8,7 +9,7 @@ import logging
 
 from pbcore.io import FastqReader, FastqWriter
 
-from pbhla.utils import valid_file, is_fasta, is_fastq
+from pbhla.utils import valid_file
 
 log = logging.getLogger()
 

@@ -8,8 +8,9 @@ from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbcore.io.FastqIO import FastqReader, FastqWriter
 from pbhla.fasta.utils import fasta_size, write_fasta
 from pbhla.external.utils import get_alignment_file
+from pbhla.filenames import get_file_type
 from pbhla.io.BlasrIO import BlasrReader
-from pbhla.utils import get_file_type, check_output_file
+from pbhla.utils import check_output_file
 
 log = logging.getLogger()
 

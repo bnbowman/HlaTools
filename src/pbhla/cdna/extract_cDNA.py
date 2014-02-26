@@ -3,12 +3,13 @@
 import os, logging
 
 from pbcore.io import FastaReader, FastqReader
+from pbhla.filenames import get_file_type
 
 from pbhla.io.BlasrIO import BlasrReader
 from pbhla.cdna.extract_exons import extract_exons
 from pbhla.cdna.exons_to_cDNA import exons_to_cDNA
 from pbhla.sequences.utils import combine_sequences, write_sequences
-from pbhla.utils import check_output_file, create_directory, get_file_type, remove_directory
+from pbhla.utils import check_output_file, create_directory, remove_directory
 
 log = logging.getLogger()
 

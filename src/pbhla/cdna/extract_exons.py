@@ -6,10 +6,10 @@ from pbcore.io.FastaIO import FastaReader, FastaRecord, FastaWriter
 from pbcore.io.FastqIO import FastqRecord, FastqWriter
 
 from pbhla.external.commandline_tools import run_blasr
+from pbhla.filenames import get_file_type
 from pbhla.utils import (check_output_file, 
                          remove_file, 
                          read_list_file,
-                         get_file_type,
                          count_hits)
 from pbhla.fasta.utils import write_fasta
 from pbhla.io.BlasrIO import BlasrReader
