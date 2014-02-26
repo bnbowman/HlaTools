@@ -98,7 +98,7 @@ def _group_by_barcode( alignments ):
             name = name[7:]
         if name.startswith('_'):
             name = name[1:]
-        barcode = name.split('_')[0]
+        barcode = name.split('_Cluster')[0]
         try:
             groups[barcode].append( alignment )
         except KeyError:
@@ -119,8 +119,10 @@ def _sort_groups( groups, sorting_data ):
     """Order each group of records individually"""
     ordered = {}
     for locus, group in groups.iteritems():
+        print len(group)
         sorted_records = sorted( group, key=lambda x: sorting_data[x.qname], reverse=True )
         ordered[locus] = sorted_records
+        print len(sorted_records)
     return ordered
 
 def _select_sequences( groups ):

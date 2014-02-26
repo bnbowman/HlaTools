@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/dictionaries/bbowman.xml" afterPath="$PROJECT_DIR$/.idea/dictionaries/bbowman.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/typing/summarize.py" afterPath="$PROJECT_DIR$/src/pbhla/typing/summarize.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/alleles/extract.py" afterPath="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -47,11 +46,13 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="summarize.py" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/typing/summarize.py">
+      <file leaf-file-name="extract.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="167" column="0" selection-start="6331" selection-end="6331" vertical-scroll-proportion="0.5186863" vertical-offset="2296" max-vertical-offset="3298">
-              <folding />
+            <state line="95" column="5" selection-start="3501" selection-end="3501" vertical-scroll-proportion="0.49943376" vertical-offset="1174" max-vertical-offset="3060">
+              <folding>
+                <element signature="e#24#38#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -173,11 +174,11 @@
         <option value="$PROJECT_DIR$/src/pbhla/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/filenames.py" />
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/AmpAnalysisResequencer.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
         <option value="$PROJECT_DIR$/src/pbhla/typing/sequences.py" />
         <option value="$PROJECT_DIR$/src/pbhla/sequences/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/sequences/rename.py" />
         <option value="$PROJECT_DIR$/src/pbhla/typing/summarize.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
       </list>
     </option>
   </component>
@@ -1040,7 +1041,11 @@
       <created>1393443377764</created>
       <updated>1393443377764</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary="Fixed occasional typing summary spacing issue">
+      <created>1393452318720</created>
+      <updated>1393452318720</updated>
+    </task>
+    <option name="localTasksCounter" value="67" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -1125,7 +1130,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="Test of AutoCRLF" />
     <MESSAGE value="Fix Argparse options" />
     <MESSAGE value="First commit of Barcode utility module" />
     <MESSAGE value="First commit of AAR with Barcode reading" />
@@ -1150,7 +1154,8 @@
     <MESSAGE value="Fixed sorting of records to go by Pred Acc by default" />
     <MESSAGE value="Fixed the issue where identical sequences caused Quiver to crash" />
     <MESSAGE value="Updated the Typing tools to deal with Quivered sequences" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated the Typing tools to deal with Quivered sequences" />
+    <MESSAGE value="Fixed occasional typing summary spacing issue" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed occasional typing summary spacing issue" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
@@ -1392,15 +1397,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="12" column="48" selection-start="405" selection-end="453" vertical-scroll-proportion="0.0" vertical-offset="1" max-vertical-offset="3026">
-          <folding>
-            <element signature="e#24#38#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/AmpAnalysisIO.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="31" column="25" selection-start="881" selection-end="881" vertical-scroll-proportion="0.0" vertical-offset="893" max-vertical-offset="3519">
@@ -1444,8 +1440,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/typing/summarize.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="167" column="0" selection-start="6331" selection-end="6331" vertical-scroll-proportion="0.5186863" vertical-offset="2296" max-vertical-offset="3298">
+        <state line="177" column="43" selection-start="6785" selection-end="6785" vertical-scroll-proportion="0.576444" vertical-offset="2415" max-vertical-offset="3298">
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="95" column="5" selection-start="3501" selection-end="3501" vertical-scroll-proportion="0.49943376" vertical-offset="1174" max-vertical-offset="3060">
+          <folding>
+            <element signature="e#24#38#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
