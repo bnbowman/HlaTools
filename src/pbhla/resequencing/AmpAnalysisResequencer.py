@@ -89,7 +89,7 @@ class AmpliconAnalysisResequencer( object ):
                                                                                        len(record_list),
                                                                                        fraction))
             reference_file = os.path.join( output_dir, 'reference.fasta' )
-            write_records( filtered_records, reference_file )
+            write_records( unique_records, reference_file )
 
             # Identify all high-quality, barcode-specific ZMWs and write them to file
             zmw_list = get_barcode_zmws( bc_reader, bc )
