@@ -3,8 +3,7 @@
 import logging
 from operator import itemgetter
 
-from pbcore.io.FastaIO import FastaReader
-from pbcore.io.FastqIO import FastqReader, FastqWriter
+from pbcore.io.FastqIO import FastqWriter
 from pbhla.fasta.utils import write_fasta, get_num_reads
 from pbhla.external.utils import get_alignment_file
 from pbhla.filenames import get_file_type

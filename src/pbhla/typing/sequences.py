@@ -8,6 +8,7 @@ from pbhla.external.utils import full_align_best_reference
 from pbhla.external.align_by_identity import align_by_identity
 from pbhla.sequences.orientation import orient_sequences
 from pbhla.sequences.input import get_input_file
+from pbhla.sequences.rename import rename_sequences
 from pbhla.alleles.extract import extract_alleles
 from pbhla.cdna.extract_cDNA import extract_cDNA
 from pbhla.typing.summarize import summarize_typing
@@ -37,8 +38,9 @@ def type_sequences( input, grouping=GROUPING,
     sequence_file = get_input_file( input )
 
     # Finally, run the Typing procedure
-    raw_alignment = full_align_best_reference( sequence_file, genomic_reference )
-    reoriented = orient_sequences( sequence_file, alignment_file=raw_alignment )
+    renamed_file = rename_sequences( sequence_file )
+    raw_alignment = full_align_best_reference( renamed_file, genomic_reference )
+    reoriented = orient_sequences( renamed_file, alignment_file=raw_alignment )
     selected = extract_alleles( reoriented, alignment_file=raw_alignment,
                                             method=grouping,
                                             loci=loci)

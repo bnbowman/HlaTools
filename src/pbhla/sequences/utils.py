@@ -13,7 +13,7 @@ def write_sequences( records, output_file ):
     """
     if isinstance( records, list ) and all([isinstance( r, FastaRecord ) for r in records]):
         write_fasta( records, output_file )
-    elif isinstance( records, list ) and all([isinstance( r, FastaRecord ) for r in records]):
+    elif isinstance( records, list ) and all([isinstance( r, FastqRecord ) for r in records]):
         write_fastq( records, output_file )
     elif isinstance( records, FastaRecord ):
         write_fasta( [records], output_file )
