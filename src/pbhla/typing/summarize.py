@@ -138,39 +138,50 @@ def _combine_cDNA_hits( cDNA_hits ):
         return HlaType( gene=genes[0], field1=field1s[0] )
     return 'N/A'
 
-def _write_header( handle ):
-    handle.write('Sequence'.ljust(45))
+def _write_header( handle, seq_len=45, gtype_len=21, ctype_len=18 ):
+    handle.write('Sequence'.ljust(seq_len))
     handle.write('gLen'.ljust(6))
-    handle.write('gType'.ljust(21))
+    handle.write('gType'.ljust(gtype_len))
     handle.write('gPctId'.ljust(7))
     handle.write('nMis'.ljust(5))
     handle.write('Indel'.ljust(6))
     handle.write('cLen'.ljust(5))
-    handle.write('cType'.ljust(18))
+    handle.write('cType'.ljust(ctype_len))
     handle.write('cPctId'.ljust(7))
     handle.write('Type')
     handle.write('\n')
 
-def _write_summary_line( handle, summary ):
-    handle.write(summary['Sequence'].ljust(45))
+def _write_summary_line( handle, summary, seq_len=45, gtype_len=21, ctype_len=18 ):
+    handle.write(summary['Sequence'].ljust(seq_len))
     handle.write(summary['gLen'].ljust(6))
-    handle.write(str(summary['gDNA_Type']).ljust(21))
+    handle.write(str(summary['gDNA_Type']).ljust(gtype_len))
     handle.write(str(summary['gDNA_PctId']).ljust(7))
     handle.write(summary['gDNA_Mismatch'].ljust(5))
     handle.write(summary['gDNA_Indel'].ljust(6))
     handle.write(summary['cLen'].ljust(5))
-    handle.write(str(summary['cDNA_Type']).ljust(18))
+    handle.write(str(summary['cDNA_Type']).ljust(ctype_len))
     handle.write(str(summary['cDNA_PctId']).ljust(7))
     handle.write(str(summary['Type']))
     handle.write('\n')
 
+def _get_max_field_size( summaries, field_name ):
+    fields = [s[field_name] for s in summaries.itervalues()]
+    return max([len(str(f)) for f in fields]) + 1
+
 def _write_type_summary( summaries, output ):
+
+    # First we iterate over the various fields to find their max sizes
+    seq_len = _get_max_field_size( summaries, 'Sequence')
+    gtype_len = _get_max_field_size( summaries, 'gDNA_Type')
+    ctype_len = _get_max_field_size( summaries, 'cDNA_Type')
+
+    # Using those lengths, we write out the records to file
     with open( output, 'w' ) as handle:
-        _write_header( handle )
+        _write_header( handle, seq_len, gtype_len, ctype_len )
         keys = {k: str(v['gDNA_Type']) for k, v in summaries.iteritems()}
         for key, g_type in sorted(keys.iteritems(), key=itemgetter(1)):
             summary = summaries[key]
-            _write_summary_line( handle, summary )
+            _write_summary_line( handle, summary, seq_len, gtype_len, ctype_len )
 
 if __name__ == '__main__':
     import sys
