@@ -13,6 +13,7 @@ from pbhla.utils import get_file_type, check_output_file
 NPROC = 6
 LOCI = ['A', 'B', 'C', 'DRB1', 'DQB1']
 METHOD = 'locus'
+SORT = 'accuracy'
 MIN_FRAC = 0.15
 
 log = logging.getLogger()
@@ -20,6 +21,7 @@ log = logging.getLogger()
 def extract_alleles( input_file, output_file=None, reference_file=None,
                                                    alignment_file=None,
                                                    method=METHOD,
+                                                   sort=SORT,
                                                    loci=LOCI ):
     """Pick the top 2 Amplicon Analysis consensus seqs per group from a Fasta"""
     method = method or METHOD
@@ -33,6 +35,7 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
     alignment_file = get_alignment_file( input_file, reference_file, alignment_file )
     alignments = list( BlasrReader( alignment_file ))
 
+    # Run the appropriate grouping
     if method == 'locus':
         groups = _group_by_locus( alignments, loci )
     elif method == 'barcode':
@@ -43,6 +46,15 @@ def extract_alleles( input_file, output_file=None, reference_file=None,
         groups = {a.qname: [a] for a in alignments}
     else:
         msg = "Invalid Selection Metric: %s" % method
+        log.error( msg )
+        raise ValueError( msg )
+
+    if sort == 'num_reads':
+        sort_function = record_size
+    elif sort == 'accuracy':
+        sort_function = record_accuracy
+    else:
+        msg = "Invalid Sorting Metric: %s" % sort
         log.error( msg )
         raise ValueError( msg )
 
@@ -103,14 +115,9 @@ def _sort_groups( groups ):
         ordered[locus] = _sort_group( group )
     return ordered
 
-def _sort_group( group ):
+def _sort_group( group, f ):
     """Order records in a group by their number of reads"""
-    # Internal function for simplicity
-    def record_size( record ):
-        return int( record.qname.split('NumReads')[-1] )
-
-    # Count, sort and return
-    counts = {record: record_size(record) for record in group}
+    counts = {record: f(record) for record in group}
     tuples = sorted( counts.iteritems(), key=itemgetter(1), reverse=True )
     return [t[0] for t in tuples]
 

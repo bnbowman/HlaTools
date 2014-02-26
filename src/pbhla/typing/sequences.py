@@ -4,8 +4,7 @@ import logging, logging.config
 
 from pbhla import __LOG__
 from pbhla.references.data import get_exon_reference, get_genomic_reference, get_cDNA_reference
-from pbhla.external.utils import (align_best_reference, 
-                                  full_align_best_reference)
+from pbhla.external.utils import full_align_best_reference
 from pbhla.external.align_by_identity import align_by_identity
 from pbhla.sequences.orientation import orient_sequences
 from pbhla.sequences.input import get_input_file

@@ -59,11 +59,10 @@ class Resequencer(object):
         log.debug("TESTING")
 
         # Find the various required scripts and determine if
-        self.samtools       = self.validate_program('samtools')
-        self.filter_plsh5   = self.validate_program('filterPlsH5.py') #or \
-                              #self.validate_program('filter_plsh5.py')
-        self.pbalign        = self.validate_program('pbalign.py')
-        self.variant_caller = self.validate_program('variantCaller.py')
+        self.samtools       = self.validate_program( ['samtools'] )
+        self.filter_plsh5   = self.validate_program( ['filter_plsh5.py', 'filterPlsH5.py'] )
+        self.pbalign        = self.validate_program( ['pbalign.py'] )
+        self.variant_caller = self.validate_program( ['variantCaller.py'] )
         self._use_setup     = self.validate_setup()
 
         log.info( self.filter_plsh5 )
@@ -113,25 +112,27 @@ class Resequencer(object):
             raise ValueError( msg )
         return setup
 
-    def validate_program( self, program):
+    def validate_program( self, programs):
         # First we try to find the program in the local path
-        program_path = which( program )
-        print program
-        print program_path
-        if program_path:
-            return program_path
-        elif program_path is None and self.setup is None:
-            msg = 'Program "%s" not found in PATH and no SMRT Analysis supplied' % program
+        program_paths = [which(program) for program in programs]
+        program_paths = [path for path in program_paths if path is not None]
+        print programs
+        print program_paths
+        if program_paths:
+            return program_paths[0]
+        elif self.setup is None:
+            msg = 'No program from the set "%s" found in PATH and no SMRT Analysis supplied' % str(programs)
             log.error( msg )
             raise IOError( msg )
 
         # Fallback to the Setup Script if needed
-        setup_program = os.path.join( self.setup, 'analysis/bin', program )
-        setup_program = validate_file( setup_program )
-        if setup_program:
-            return setup_program
+        setup_programs = [os.path.join( self.setup, 'analysis/bin', p ) for p in programs]
+        setup_programs = [validate_file( p ) for p in setup_programs]
+        setup_programs = [path for path in setup_programs if path is not None]
+        if setup_programs:
+            return setup_programs[0]
         else:
-            msg = 'Program "%s" not found in either PATH or SMRT Analysis env' % program
+            msg = 'No program from the set "%s" found in either PATH or SMRT Analysis env' % str(programs)
             log.error( msg )
             raise IOError( msg )
 
@@ -272,7 +273,7 @@ class Resequencer(object):
         log.info('Creating cluster-specific CmpH5')
         cmph5_file = os.path.join( self._output, 'cluster.cmp.h5' )
         if os.path.exists( cmph5_file ):
-            log.info('Existing CmpH5 detected, skipping...\n')
+            log.info('Existing CmpH5 detected, skipping...')
             self._counter += 1
             return cmph5_file
         process_args = [self.pbalign,
@@ -295,7 +296,7 @@ class Resequencer(object):
         consensus_fasta = os.path.join( self._output, 'consensus.fasta')
         if ( os.path.exists( consensus_fastq ) and
              os.path.isfile( consensus_fasta )):
-            log.info('Existing consensus found, skipping...\n')
+            log.info('Existing consensus found, skipping...')
             self._counter += 1
             return consensus_fastq, consensus_fasta
         process_args = [self.variant_caller,

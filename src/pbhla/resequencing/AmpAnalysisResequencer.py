@@ -13,8 +13,8 @@ from pbhla.barcodes import get_barcode_reader, get_barcodes, get_barcode_zmws
 from pbhla.fofn import create_baxh5_fofn
 from pbhla.sequences.input import get_input_file
 from pbhla.io.AmpAnalysisIO import AmpliconAnalysisReader
-from pbhla.io.utils import write_records
-from pbhla.utils import create_directory, validate_file
+from pbhla.io.utils import write_records, get_unique_records
+from pbhla.utils import create_directory
 
 logging.config.fileConfig( __LOG__ )
 log = logging.getLogger( __name__ )
@@ -83,8 +83,9 @@ class AmpliconAnalysisResequencer( object ):
             record_list = [r for r in amp_analysis_records if r.barcode == bc]
             log.info('Identified {0} consensus sequences for Barcode {1}'.format(len(record_list), bc))
             filtered_records = [r for r in record_list if r.num_reads >= 20]
-            fraction = 100 * round(len(filtered_records)/float(len(record_list)), 3)
-            log.info('{0} of {1} ({2}%) consensus sequences passed all filters'.format(len(filtered_records),
+            unique_records = get_unique_records( filtered_records )
+            fraction = 100 * round(len(unique_records)/float(len(record_list)), 3)
+            log.info('{0} of {1} ({2}%) consensus sequences passed all filters'.format(len(unique_records),
                                                                                        len(record_list),
                                                                                        fraction))
             reference_file = os.path.join( output_dir, 'reference.fasta' )

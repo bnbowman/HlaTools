@@ -118,3 +118,21 @@ def write_amp_analysis_records( records, filename ):
         for record in records:
             handle.write_fasta( record )
     check_output_file( filename )
+
+def get_unique_records( records ):
+    """Remove redundant sequences, primarily to avoid confusing Quiver"""
+    sorted_records = sorted(records, key=lambda r: len(r.sequence), reverse=True)
+
+    unique_sequences = []
+    unique_records = []
+    for record in sorted_records:
+        is_unique = True
+        for sequence in unique_sequences:
+            if record.sequence in sequence:
+                is_unique = False
+                break
+        if is_unique:
+            unique_records.append( record )
+            unique_sequences.append( record.sequence )
+
+    return unique_records
