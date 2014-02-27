@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
-import logging, logging.config
+import logging, os
 
-from pbhla import __LOG__
+from pbhla.log import initialize_logger
 from pbhla.references.data import get_exon_reference, get_genomic_reference, get_cDNA_reference
 from pbhla.external.utils import full_align_best_reference
 from pbhla.external.align_by_identity import align_by_identity
@@ -16,7 +16,6 @@ from pbhla.typing.summarize import summarize_typing
 GROUPINGS = ['locus', 'allele', 'both', 'all']
 GROUPING = 'both'
 
-logging.config.fileConfig( __LOG__ )
 log = logging.getLogger()
 
 def type_sequences( input, grouping=GROUPING,
@@ -27,6 +26,8 @@ def type_sequences( input, grouping=GROUPING,
     """
     Pick the top Amplicon Analysis consensus seqs from a Fasta by Nreads
     """
+    log_file = get_log_file( input )
+    initialize_logger( log, log_file=log_file )
 
     # First, get any references not specified by the user
     grouping = grouping or GROUPING
@@ -49,3 +50,13 @@ def type_sequences( input, grouping=GROUPING,
     cDNA_alignment = align_by_identity( cDNA_file, cDNA_reference )
     typing = summarize_typing( gDNA_alignment, cDNA_alignment )
     return typing
+
+def get_output_dir( input ):
+    if os.path.isdir( input ):
+        return input
+    else:
+        return os.path.split( input )[0]
+
+def get_log_file( input ):
+    dir = get_output_dir( input )
+    return os.path.join(dir, 'amp_analysis_typing.log')

@@ -4,7 +4,7 @@ __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
 
 import os, re
-import logging, logging.config
+import logging
 
 from pbcore.io import FastaReader, FastaWriter
 
@@ -24,28 +24,28 @@ EXON_REF = os.path.join( __DATA__, 'exons.fofn')
 
 def get_genomic_reference():
     if valid_file( GEN_REF ):
-        log.info('Using existing Genomic Reference fasta')
+        logging.info('Using existing Genomic Reference fasta')
         return GEN_REF
     else:
-        log.info('Creating new Genomic Reference fasta')
+        logging.info('Creating new Genomic Reference fasta')
         create_genomic_reference()
         return get_genomic_reference()
 
 def get_cDNA_reference():
     if valid_file( CDNA_REF ):
-        log.info('Using existing cDNA Reference fasta')
+        logging.info('Using existing cDNA Reference fasta')
         return CDNA_REF
     else:
-        log.info('Creating new cDNA Reference fasta')
+        logging.info('Creating new cDNA Reference fasta')
         create_cDNA_reference()
         return get_cDNA_reference()
 
 def get_exon_reference():
     if valid_file( EXON_REF ):
-        log.info('Using existing Exon Reference fofn')
+        logging.info('Using existing Exon Reference fofn')
         return EXON_REF
     else:
-        log.info('Creating new Exon Reference fofn')
+        logging.info('Creating new Exon Reference fofn')
         create_exon_fofns()
         create_exon_reference()
         return get_exon_reference()
