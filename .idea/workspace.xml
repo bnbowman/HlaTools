@@ -1,23 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="Reorganizing setup to separate required from optional packages">
-      <change type="DELETED" beforePath="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\logger.cfg" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/align/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/align/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/alleles/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/alleles/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/amplicon_analysis/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/amplicon_analysis/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/amplicons/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/amplicons/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/annotation/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/annotation/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/cdna/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/cdna/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/external/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/external/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/fasta/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/fasta/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/io/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/io/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/phasing/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/phasing/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/references/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/references/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/resequencing/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/resequencing/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/sequences/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/sequences/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/typing/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/typing/__init__.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/utilities/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/utilities/__init__.py" />
+    <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/__init__.py" afterPath="$PROJECT_DIR$/src/pbhla/__init__.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -107,7 +92,7 @@
       <file leaf-file-name="__init__.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/pbhla/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="28" column="23" selection-start="1765" selection-end="1765" vertical-scroll-proportion="0.5390713" vertical-offset="0" max-vertical-offset="883">
+            <state line="21" column="28" selection-start="1279" selection-end="1279" vertical-scroll-proportion="0.40430352" vertical-offset="0" max-vertical-offset="883">
               <folding />
             </state>
           </provider>
@@ -1174,7 +1159,11 @@
       <created>1393890498475</created>
       <updated>1393890498475</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="Update various __init__ files to remove redundant __version__ tags">
+      <created>1393890535397</created>
+      <updated>1393890535397</updated>
+    </task>
+    <option name="localTasksCounter" value="73" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -1259,7 +1248,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="Finished get_barcodes function" />
     <MESSAGE value="Added Barcoded read extraction to AAR" />
     <MESSAGE value="Added ZMW filtering to AAR" />
     <MESSAGE value="Added AA Record reading and filtering to AAR" />
@@ -1284,7 +1272,8 @@
     <MESSAGE value="Update logging to use new code" />
     <MESSAGE value="Reorganizing setup to separate required from optional packages" />
     <MESSAGE value="Fix set-up bug with __file__ and changed the reference.data code dependent on it" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix set-up bug with __file__ and changed the reference.data code dependent on it" />
+    <MESSAGE value="Update various __init__ files to remove redundant __version__ tags" />
+    <option name="LAST_COMMIT_MESSAGE" value="Update various __init__ files to remove redundant __version__ tags" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
@@ -1600,7 +1589,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="28" column="23" selection-start="1765" selection-end="1765" vertical-scroll-proportion="0.5390713" vertical-offset="0" max-vertical-offset="883">
+        <state line="21" column="28" selection-start="1279" selection-end="1279" vertical-scroll-proportion="0.40430352" vertical-offset="0" max-vertical-offset="883">
           <folding />
         </state>
       </provider>
