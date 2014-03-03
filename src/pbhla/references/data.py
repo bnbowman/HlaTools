@@ -8,7 +8,7 @@ import logging
 
 from pbcore.io import FastaReader, FastaWriter
 
-from pbhla import __DATA__
+import pbhla.data
 from pbhla.utils import valid_file
 
 log = logging.getLogger()
@@ -18,9 +18,10 @@ CDNA_PATTERN = '_nuc.fasta$'
 EXON_FASTA_PAT = '_exon\d+.fasta$'
 EXON_FOFN_PAT = '_exons.fofn$'
 
-GEN_REF  = os.path.join( __DATA__, 'genomic.fasta')
-CDNA_REF = os.path.join( __DATA__, 'cDNA.fasta')
-EXON_REF = os.path.join( __DATA__, 'exons.fofn')
+DATA_PATH = os.path.dirname( pbhla.data.__file__ )
+GEN_REF  = os.path.join( DATA_PATH, 'genomic.fasta')
+CDNA_REF = os.path.join( DATA_PATH, 'cDNA.fasta')
+EXON_REF = os.path.join( DATA_PATH, 'exons.fofn')
 
 def get_genomic_reference():
     if valid_file( GEN_REF ):
@@ -50,7 +51,7 @@ def get_exon_reference():
         create_exon_reference()
         return get_exon_reference()
 
-def list_data_files( end_pattern, root=__DATA__ ):
+def list_data_files( end_pattern, root=DATA_PATH ):
     for root, dirs, files in os.walk( root ):
         for filename in files:
             if re.search( end_pattern, filename ):
@@ -73,7 +74,7 @@ def create_cDNA_reference():
     return CDNA_REF
 
 def create_exon_fofns():
-    for root, dirs, files in os.walk( __DATA__ ):
+    for root, dirs, files in os.walk( DATA_PATH ):
         if 'exons' in dirs:
             exon_path = os.path.join( root, 'exons' )
             locus = os.path.split( root )[1]
