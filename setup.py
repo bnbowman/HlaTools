@@ -10,6 +10,19 @@ __VERSION__ = globals["__VERSION__"]
 
 DESC = 'Tools for analyzing HLA data from SMRT sequencing'
 
+required = [
+    "pbcore >= 0.8.0",
+    "pypeflow >= 0.1.1",
+    "pbtools.pbdagcon >= 0.2.3",
+    "PhasingTools >= 0.1.0"
+]
+
+extras = {
+    "ClassII": [
+        "HBAR-DTK >= 0.1.5"
+    ]
+}
+
 setup(
     name = 'HlaTools',
     version=__VERSION__,
@@ -21,10 +34,6 @@ setup(
     packages = find_packages('src'),
     package_dir = {'':'src'},
     zip_safe = False,
-    install_requires=[
-        "PhasingTools >= 0.1.0",
-        "pbcore >= 0.8.0",
-        "pypeflow >= 0.1.1",
-        "pbtools.pbdagcon >= 0.2.3"
-    ]
+    install_requires = required,
+    extras_require = extras
 )
