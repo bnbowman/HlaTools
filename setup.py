@@ -11,6 +11,7 @@ __VERSION__ = globals["__VERSION__"]
 DESC = 'Tools for analyzing HLA data from SMRT sequencing'
 
 required = [
+    "numpy >= 1.7.0"
     "pbcore >= 0.8.0",
     "pypeflow >= 0.1.1",
     "pbtools.pbdagcon >= 0.2.3",
