@@ -10,15 +10,15 @@ is important.
 
 For the primary tools provided by the HlaTools package, we require 5 other
 python packages as dependencies:
-Numpy:        http://www.numpy.org/
-PBcore:       http://github/PacificBiosciences/pbcore.git
-PypeFlow:     http://github/cschin/pypeFLOW.git
-PBdagcon:     http://github/PacificBiosciences/pbdagcon.git
-PhasingTools: http://github/bnbowman/PhasingTools.git
+`Numpy:        http://www.numpy.org/`
+`PBcore:       http://github/PacificBiosciences/pbcore.git`
+`PypeFlow:     http://github/cschin/pypeFLOW.git`
+`PBdagcon:     http://github/PacificBiosciences/pbdagcon.git`
+`PhasingTools: http://github/bnbowman/PhasingTools.git`
 
 All 5 packages can be quickly and easily installed with pip:
-$ pip install numpy             # For NumPy, which is in PyPi
-$ pip install git+<GitHub URL>  # For all other packages
+`$ pip install numpy             # For NumPy, which is in PyPi`
+`$ pip install git+<GitHub URL>  # For all other packages`
 
 ## Optional Requirements ##
 
