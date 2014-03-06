@@ -10,6 +10,12 @@ __VERSION__ = globals["__VERSION__"]
 
 DESC = 'Tools for analyzing HLA data from SMRT sequencing'
 
+scripts = [
+    "src/AmpliconAnalysisTyping.py",
+    "src/ResequenceAmpAnalysis.py",
+    "src/CompareTyping.py"
+]
+
 required = [
     "numpy >= 1.7.0",
     "pbcore >= 0.8.0",
@@ -35,6 +41,7 @@ setup(
     packages = find_packages('src'),
     package_dir = {'':'src'},
     zip_safe = False,
+    scripts = scripts,
     install_requires = required,
     extras_require = extras
 )
