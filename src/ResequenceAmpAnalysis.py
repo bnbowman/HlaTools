@@ -3,7 +3,6 @@
 __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
 
-
 from pbhla.resequencing.AmpAnalysisResequencer import AmpliconAnalysisResequencer
 
 if __name__ == '__main__':

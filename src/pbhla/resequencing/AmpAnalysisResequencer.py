@@ -4,9 +4,8 @@ __author__ = 'Brett Bowman'
 __email__ = 'bbowman@pacificbiosciences.com'
 
 import os
-import logging, logging.config
+import logging
 
-from pbhla import __LOG__
 from pbhla.resequencing.Resequencer import Resequencer
 from pbhla.bash5 import get_bash5_reader, filter_zmw_list,  write_zmw_whitelist
 from pbhla.barcodes import get_barcode_reader, get_barcodes, get_barcode_zmws
@@ -16,8 +15,7 @@ from pbhla.io.AmpAnalysisIO import AmpliconAnalysisReader
 from pbhla.io.utils import write_records, get_unique_records
 from pbhla.utils import create_directory
 
-logging.config.fileConfig( __LOG__ )
-log = logging.getLogger( __name__ )
+log = logging.getLogger()
 
 class AmpliconAnalysisResequencer( object ):
     """
