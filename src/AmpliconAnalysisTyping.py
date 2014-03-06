@@ -9,8 +9,8 @@ if __name__ == '__main__':
     add = parser.add_argument
     add('amplicon_analysis', metavar='INPUT',
         help="Fasta/Fastq/Folder of Amplicon Analysis output")
-    add('-g', '--grouping', metavar='METHOD', default='all',
-        help="BasH5 or FOFN of sequence data")
+    add('-g', '--grouping', metavar='METHOD', default='both',
+        help="Method of selecting output sequences {locus, barcode, both, all} default=both")
     add('-e', '--exon_reference', metavar='REFERENCE', default=None,
         help='Dictionary file of Locus-specific exon references')
     add('-n', '--nucleotide_reference', metavar='FASTA', default=None,
