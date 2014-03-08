@@ -9,6 +9,9 @@ log = logging.getLogger()
 def count_hits( filename ):
     return len( list( BlasrReader( filename )))
 
+def get_barcode( record ):
+    return record.name.split('_')[0][7:]
+
 def get_base_sequence_name( name ):
     name = name.split()[0]
     if name.endswith('|quiver'):
