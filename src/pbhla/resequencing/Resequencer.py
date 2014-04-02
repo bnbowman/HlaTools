@@ -33,11 +33,9 @@ import logging, logging.config
 import subprocess
 
 from pbcore.io.FastaIO import FastaReader
-from pbhla import __LOG__
 from pbhla.fasta.utils import is_pacbio_record
 from pbhla.utils import which, create_directory, validate_file
 
-logging.config.fileConfig( __LOG__ )
 log = logging.getLogger()
 
 PULSE_METRICS = 'DeletionQV,IPD,InsertionQV,PulseWidth,QualityValue,MergeQV,SubstitutionQV,DeletionTag'

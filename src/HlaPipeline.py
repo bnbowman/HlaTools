@@ -47,7 +47,7 @@ class HlaPipeline( object ):
 
         # Initialize logging
         log_file = os.path.join( args.output, "HLA_Pipeline.log" )
-        initialize_logger( log_file )
+        initialize_logger( log, log_file=log_file )
 
     def __getattr__(self, item):
         if item in ['min_read_length', 'max_read_length', 'min_num_reads', 'min_consensus_length', 'max_count']:
