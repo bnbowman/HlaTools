@@ -49,6 +49,11 @@ class HlaPipeline( object ):
         log_file = os.path.join( args.output, "HLA_Pipeline.log" )
         initialize_logger( log, log_file=log_file )
 
+    @property
+    def loci(self):
+        sections = [s for s in self._config.sections() if s != "Global"]
+        return [s[4:] if s.startswith('HLA-') else s for s in sections]
+
     def __getattr__(self, item):
         if item in ['min_read_length', 'max_read_length', 'min_num_reads', 'min_consensus_length', 'max_count']:
             return self._config.getint('DEFAULT', item)
@@ -61,7 +66,6 @@ class HlaPipeline( object ):
 
     def config(self, domain, item):
         domain = self._check_domain( domain )
-        print domain, item
         return self._config.get( domain, item )
 
     def _check_domain(self, domain):
@@ -75,6 +79,7 @@ class HlaPipeline( object ):
             return numbered_domain
         else:
             return None
+
 
     def to_be_phased(self, domain):
         domain = self._check_domain( domain )
@@ -563,13 +568,14 @@ class HlaPipeline( object ):
         return typing_sequences
 
     def type_hla_sequences(self, sequence_file ):
+        print self.loci
         log.info('Typing the selected HLA consensus sequences')
         typing = type_sequences( sequence_file,
                                  grouping='locus',
                                  exon_fofn=self.exon_reference,
                                  genomic_reference=self.locus_reference,
                                  cDNA_reference=self.cDNA_reference,
-                                 loci=['A', 'B', 'C', 'DPA', 'DQA', 'DQB1', 'DRB1'])
+                                 loci=self.loci)
         check_output_file( typing )
         log.info('Finished typing the selected HLA sequences\n')
         return typing

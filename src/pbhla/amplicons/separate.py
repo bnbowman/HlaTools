@@ -89,7 +89,7 @@ def get_file_locus( filepath ):
     parts = filename.split('_')
     return parts[1]
 
-def _separate_amplicons2( file_list, reference_fasta, locus):
+def _separate_amplicons( file_list, reference_fasta, locus):
     """
     Separate the 5' and 3' aligned subreads for a given locus
     """

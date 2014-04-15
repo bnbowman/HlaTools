@@ -7,7 +7,7 @@ import logging
 from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbhla.io.BlasrIO import BlasrReader
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 def separate_amplicons( subread_file, alignment_file ):
     """
@@ -26,13 +26,17 @@ def _parse_alignment( alignment ):
     log.info("Parsing subread locations from alignment data")
     locations = {}
     for entry in BlasrReader( alignment ):
+        if '/' in entry.qname:
+            qname = '/'.join( entry.qname.split('/')[:-1] )
+        else:
+            qname = entry.qname
         if entry.tstrand == '1':
             start = int(entry.tlength) - int(entry.tend)
             end = int(entry.tlength) - int(entry.tstart)
         else:
             start = int(entry.tstart)
             end = int(entry.tend)
-        locations[entry.qname] = (start, end)
+        locations[qname] = (start, end)
     return locations
 
 def _calculate_medians( locations ):
@@ -50,8 +54,6 @@ def _identify_centroids( locations, medians ):
     max_pos = max([e for s, e in locations.itervalues()])
     mid_pos = (min_pos + max_pos) / 2
     five_prime, three_prime = _split_medians( medians, mid_pos )
-    #five_prime_center = _calculate_centroid( five_prime )
-    #three_prime_center = _calculate_centroid( three_prime )
     five_prime_center = (min_pos + mid_pos) / 2
     three_prime_center = (max_pos + mid_pos) / 2
     return (five_prime_center, three_prime_center)
@@ -104,7 +106,6 @@ def _assign_reads( medians, centroids ):
             assignments['3p'].add( read )
     return assignments
 
-
 def _write_assigned_reads( input_fasta, assignments ):
     """
     Write out subreads to the appropriate file
@@ -118,6 +119,7 @@ def _write_assigned_reads( input_fasta, assignments ):
         output_file = "%s_%s.fasta" % (root_name, group)
         output_files.append( output_file )
         writers[group] = FastaWriter( output_file )
+
     # Write each record to it's appropriate group(s)
     for record in FastaReader( input_fasta ):
         name = record.name.split()[0]
@@ -125,6 +127,7 @@ def _write_assigned_reads( input_fasta, assignments ):
             if name in assignments[group]:
                 writers[group].writeRecord( record )
                 break
+
     # Close all of the output writers
     for group in writers:
         writers[group].close()
@@ -136,5 +139,5 @@ if __name__ == '__main__':
     subread_file = sys.argv[1]
     alignment_file = sys.argv[2]
 
-    logging.basicConfig( stream=sys.stdout )
+    #logging.basicConfig( stream=sys.stdout )
     separate_amplicons( subread_file, alignment_file )

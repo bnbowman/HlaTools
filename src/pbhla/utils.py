@@ -6,6 +6,11 @@ from pbhla.io.BlasrIO import BlasrReader
 
 log = logging.getLogger()
 
+def is_fastq( filename ):
+    if filename.endswith('.fastq') or filename.endswith('.fq'):
+        return True
+    return False
+
 def count_hits( filename ):
     return len( list( BlasrReader( filename )))
 
