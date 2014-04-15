@@ -569,7 +569,7 @@ class HlaPipeline( object ):
                                  exon_fofn=self.exon_reference,
                                  genomic_reference=self.locus_reference,
                                  cDNA_reference=self.cDNA_reference,
-                                 loci=['A', 'B', 'C', 'DQB1', 'DRB1'])
+                                 loci=['A', 'B', 'C', 'DPA', 'DQA', 'DQB1', 'DRB1'])
         check_output_file( typing )
         log.info('Finished typing the selected HLA sequences\n')
         return typing

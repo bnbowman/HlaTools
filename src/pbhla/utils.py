@@ -12,6 +12,12 @@ def count_hits( filename ):
 def get_barcode( record ):
     return record.name.split('_')[0][7:]
 
+def get_file_source( filename ):
+    base_name = os.path.basename( filename )
+    root_name = base_name.split('.')[0]
+    parts = root_name.split('_')
+    return parts[1]
+
 def get_base_sequence_name( name ):
     name = name.split()[0]
     if name.endswith('|quiver'):

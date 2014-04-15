@@ -69,6 +69,18 @@ class HlaType( object ):
     def suffix( self ):
         return self._suffix
 
+    @property
+    def cDNA_type( self ):
+        """
+        Output a string representation of this HLA type out to the 6-digit level
+        """
+        typing = 'HLA-%s*%02d' % (self.gene, self.field1)
+        if self.field2 is not None:
+            typing += ':%02d' % self.field2
+        if self.field3 is not None:
+            typing += ':%02d' % self.field3
+        return typing
+
     def __str__( self ):
         """
         Output a string representation of this HLA type

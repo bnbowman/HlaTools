@@ -84,7 +84,7 @@ def _add_cDNA_summary( summary, cDNA_data, query ):
         cDNA_hits = cDNA_data[query]
         summary['cLen'] = cDNA_hits[0].qlength
         if len( cDNA_hits ) == 1:
-            summary['cDNA_Type'] = HlaType.from_string( cDNA_hits[0].tname )
+            summary['cDNA_Type'] = HlaType.from_string( cDNA_hits[0].tname ).cDNA_type
             summary['cDNA_PctId'] = round(float(cDNA_hits[0].pctsimilarity), 2)
         elif len( cDNA_hits ) >= 2:
             summary['cDNA_Type'] = _combine_cDNA_hits( cDNA_hits )
@@ -106,11 +106,6 @@ def _add_consensus_type( summary ):
         summary['Type'] = summary['gDNA_Type']
     elif summary['gDNA_PctId'] == 100.0:
         summary['Type'] = summary['gDNA_Type']
-    #elif ( summary['gDNA_Type'].gene   == summary['cDNA_Type'].gene   and
-    #       summary['gDNA_Type'].field1 == summary['cDNA_Type'].field1 and
-    #       summary['gDNA_Type'].field2 == summary['cDNA_Type'].field2 and
-    #       summary['gDNA_Type'].field3 == summary['cDNA_Type'].field3):
-    #    summary['Type'] = summary['gDNA_Type']
     elif summary['gDNA_PctId'] != 100.0 and summary['cDNA_PctId'] == 100.0:
         summary['Type'] = summary['cDNA_Type']
         summary['Notes'].append( 'Possible novel genomic sequence' )
@@ -128,7 +123,7 @@ def _combine_cDNA_hits( cDNA_hits ):
     field2s = list( set( [t.field2 for t in types] ))
     field3s = list( set( [t.field3 for t in types] ))
     if len(field3s) == 1:
-        return HlaType( gene=genes[0], field1=field1s[0], 
+        return HlaType( gene=genes[0], field1=field1s[0],
                                        field2=field2s[0],
                                        field3=field3s[0] )
     elif len(field2s) == 1:
