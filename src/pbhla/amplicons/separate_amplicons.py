@@ -17,6 +17,9 @@ def separate_amplicons( subread_file, alignment_file ):
     medians = _calculate_medians( locations )
     centroids = _identify_centroids( locations, medians )
     assignments = _assign_reads( medians, centroids )
+    for i, v in assignments.iteritems():
+        print i, len(v)
+        print list(v)[:10]
     _write_assigned_reads( subread_file, assignments )
 
 def _parse_alignment( alignment ):
@@ -27,7 +30,7 @@ def _parse_alignment( alignment ):
     locations = {}
     for entry in BlasrReader( alignment ):
         if '/' in entry.qname:
-            qname = '/'.join( entry.qname.split('/')[:-1] )
+            qname = '/'.join( entry.qname.split('/')[0:3] )
         else:
             qname = entry.qname
         if entry.tstrand == '1':

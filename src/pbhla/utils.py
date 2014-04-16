@@ -2,10 +2,26 @@ import os
 import shutil
 import logging
 
-from pbcore.io import FastqReader
+from pbcore.io import FastqReader, FastqWriter, FastqRecord
 from pbhla.io.BlasrIO import BlasrReader
 
 log = logging.getLogger()
+
+def write_fastq( fasta_records, output_file):
+    """
+    Write a FastaRecord, or list of records, out to file
+    """
+    with FastqWriter( output_file ) as handle:
+        if isinstance( fasta_records, FastqRecord ):
+            handle.writeRecord( fasta_records )
+        elif isinstance( fasta_records, list):
+            for record in fasta_records:
+                handle.writeRecord( record )
+        else:
+            msg = "Input Record(s) type not recognized"
+            log.error( msg )
+            raise TypeError( msg )
+    check_output_file( output_file )
 
 def consensus_filetype( file_list ):
     if all([is_fastq(f) for f in file_list]):
