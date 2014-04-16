@@ -2,14 +2,43 @@ import os
 import shutil
 import logging
 
+from pbcore.io import FastqReader
 from pbhla.io.BlasrIO import BlasrReader
 
 log = logging.getLogger()
+
+def consensus_filetype( file_list ):
+    if all([is_fastq(f) for f in file_list]):
+        return 'fastq'
+    elif all([is_fasta(f) for f in file_list]):
+        return 'fasta'
+    else:
+        raise ValueError
+
+def is_fasta( filename ):
+    if filename.endswith('.fa') or filename.endswith('.fasta'):
+        return True
+    return False
 
 def is_fastq( filename ):
     if filename.endswith('.fastq') or filename.endswith('.fq'):
         return True
     return False
+
+def read_fastq_dict( fastq_input ):
+    records = {}
+    if isinstance( fastq_input, str ):
+        for rec in FastqReader( fastq_input ):
+            name = rec.name.strip().split()[0]
+            assert name not in records
+            records[name] = rec
+    elif isinstance( fastq_input, list ):
+        for filename in fastq_input:
+            for rec in FastqReader( filename ):
+                name = rec.name.strip().split()[0]
+                assert name not in records
+                records[name] = rec
+    return records
 
 def count_hits( filename ):
     return len( list( BlasrReader( filename )))

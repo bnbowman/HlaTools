@@ -3,14 +3,16 @@ import logging, subprocess
 from pbhla.utils import check_output_file
 
 log = logging.getLogger()
+log.setLevel( logging.INFO )
 
 def run_blasr(query, reference, args, verbose=False):
     command_args = create_blasr_command(query, reference, args)
     if verbose:
         log_command( command_args )
     execute_command( command_args )
-    if 'out' in command_args:
-        check_output_file( command_args['out'] )
+    if '-out' in command_args:
+        check_output_file( args['out'] )
+    return args['out']
 
 def run_muscle( args ):
     command_args = create_muscle_command( args )

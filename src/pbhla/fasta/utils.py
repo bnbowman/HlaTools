@@ -15,11 +15,19 @@ def get_num_reads( record_name ):
     assert 'NumReads' in record_name, record_name
     return int(record_name.split('NumReads')[1])
 
-def read_fasta_dict( fasta_file ):
+def read_fasta_dict( fasta_input ):
     records = {}
-    for rec in FastaReader( fasta_file ):
-        name = rec.name.strip().split()[0]
-        records[name] = rec
+    if isinstance( fasta_input, str ):
+        for rec in FastaReader( fasta_input ):
+            name = rec.name.strip().split()[0]
+            assert name not in records
+            records[name] = rec
+    elif isinstance( fasta_input, list ):
+        for filename in fasta_input:
+            for rec in FastaReader( filename ):
+                name = rec.name.strip().split()[0]
+                assert name not in records
+                records[name] = rec
     return records
 
 def is_pacbio_fasta( fasta_file ):
@@ -120,11 +128,6 @@ def extract_sequence(fasta, names):
             if r.name in names:
                 output.append(r)
         return output
-
-def is_fasta( filename ):
-    if filename.endswith('.fa') or filename.endswith('.fasta'):
-        return True
-    return False
 
 def copy_fasta( fasta, destination, name=None ):
     with FastaWriter( destination ) as handle:
