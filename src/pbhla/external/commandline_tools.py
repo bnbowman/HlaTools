@@ -10,8 +10,8 @@ def run_blasr(query, reference, args, verbose=False):
     if verbose:
         log_command( command_args )
     execute_command( command_args )
-    if '-out' in command_args:
-        check_output_file( args['out'] )
+    #if '-out' in command_args:
+    #    check_output_file( args['out'] )
     return args['out']
 
 def run_muscle( args ):

@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import os, logging
+import logging
 from operator import itemgetter
 
 from pbhla.io.BlasrIO import BlasrReader

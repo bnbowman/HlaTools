@@ -119,7 +119,6 @@ def _sort_groups( groups, sorting_data ):
     """Order each group of records individually"""
     ordered = {}
     for locus, group in groups.iteritems():
-        print sorting_data
         sorted_records = sorted( group, key=lambda x: sorting_data[x.qname], reverse=True )
         ordered[locus] = sorted_records
     return ordered

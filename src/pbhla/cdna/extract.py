@@ -67,8 +67,6 @@ def cdna_from_record( record, hmm ):
     Extract the cDNA sequence from a single record
     """
     # Write the record to file and search
-    print record.name
-    print hmm
     temp_fasta = get_temp_fasta( record )
     temp_hmm_output = NamedTemporaryFile()
     hmmsearch_args = {'domE': 1e-10,
@@ -123,15 +121,12 @@ def parse_exon_slices( hmm_output_file ):
     ends = {}
     exons = []
     for hit in HmmerDomainReader( hmm_output_file ):
-        print hit.qname, hit.tname, hit.qlen, hit.qstart, hit.qend, hit.tstart, hit.tend
         start = hit.tstart - hit.qstart
         end = hit.tend + (hit.qlen - hit.qend)
-        print end-start
         exons.append( (hit.qname, slice(start, end)) )
         #starts[hit.qname] = min( start, starts.get(hit.qname, 10000))
         #ends[hit.qname] = max( end, ends.get(hit.qname, 0))
     #exons = [(name, slice(starts[name], ends[name])) for name in starts]
-    print exons
     return sorted(exons, key=lambda x: x[0])
 
 def _parse_input_records( input_file ):

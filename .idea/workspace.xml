@@ -2,11 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2c489c8-7e9c-4721-96d4-dc3a3a6c9025" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/pbhla/amplicons/merge2.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/HlaPipeline.py" afterPath="$PROJECT_DIR$/src/HlaPipeline.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/external/commandline_tools.py" afterPath="$PROJECT_DIR$/src/pbhla/external/commandline_tools.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/alleles/extract.py" afterPath="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/amplicons/merge.py" afterPath="$PROJECT_DIR$/src/pbhla/amplicons/merge.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py" afterPath="$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/utils.py" afterPath="$PROJECT_DIR$/src/pbhla/utils.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/vcs.xml" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/cdna/extract.py" afterPath="$PROJECT_DIR$/src/pbhla/cdna/extract.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/pbhla/typing/summarize.py" afterPath="$PROJECT_DIR$/src/pbhla/typing/summarize.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="HlaTools.iws" />
@@ -33,27 +34,25 @@
       <file leaf-file-name="utils.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="19" column="13" selection-start="582" selection-end="582" vertical-scroll-proportion="-12.92" vertical-offset="0" max-vertical-offset="3672">
-              <folding>
-                <element signature="e#0#9#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="separate_amplicons.py" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="30" column="16" selection-start="855" selection-end="855" vertical-scroll-proportion="0.575188" vertical-offset="0" max-vertical-offset="2516">
+            <state line="54" column="42" selection-start="1687" selection-end="1687" vertical-scroll-proportion="0.0" vertical-offset="391" max-vertical-offset="3587">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="merge.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/merge.py">
+      <file leaf-file-name="separate_amplicons.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="60" column="36" selection-start="2072" selection-end="2072" vertical-scroll-proportion="0.0" vertical-offset="510" max-vertical-offset="2295">
+            <state line="65" column="9" selection-start="2089" selection-end="2089" vertical-scroll-proportion="0.0" vertical-offset="578" max-vertical-offset="2516">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="merge2.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/merge2.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="47" column="26" selection-start="1658" selection-end="1658" vertical-scroll-proportion="0.4461153" vertical-offset="443" max-vertical-offset="3043">
               <folding>
                 <element signature="e#98#112#0" expanded="true" />
               </folding>
@@ -61,10 +60,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="extract.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
+      <file leaf-file-name="commandline_tools.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/external/commandline_tools.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="63" column="26" selection-start="2348" selection-end="2348" vertical-scroll-proportion="0.0" vertical-offset="247" max-vertical-offset="2873">
+            <state line="84" column="46" selection-start="2742" selection-end="2744" vertical-scroll-proportion="-23.44" vertical-offset="808" max-vertical-offset="1581">
               <folding />
             </state>
           </provider>
@@ -73,7 +72,34 @@
       <file leaf-file-name="sequences.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="8" column="36" selection-start="338" selection-end="338" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1139">
+            <state line="34" column="68" selection-start="1319" selection-end="1319" vertical-scroll-proportion="0.0" vertical-offset="1" max-vertical-offset="952">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="extract.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="125" column="32" selection-start="4595" selection-end="4595" vertical-scroll-proportion="-13.68" vertical-offset="1613" max-vertical-offset="2856">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="merge.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/merge.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="69" column="48" selection-start="2430" selection-end="2430" vertical-scroll-proportion="-5.52" vertical-offset="899" max-vertical-offset="2159">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="HlaPipeline.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="445" column="44" selection-start="21134" selection-end="21134" vertical-scroll-proportion="0.0" vertical-offset="7565" max-vertical-offset="10608">
               <folding />
             </state>
           </provider>
@@ -82,27 +108,7 @@
       <file leaf-file-name="orientation.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/pbhla/sequences/orientation.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="93" column="7" selection-start="3499" selection-end="3499" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="2023">
-              <folding>
-                <element signature="e#24#38#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="extract_exons.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract_exons.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="116" column="49" selection-start="4074" selection-end="4074" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2822">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="extract_cDNA.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="42" column="40" selection-start="1640" selection-end="1640" vertical-scroll-proportion="0.0" vertical-offset="255" max-vertical-offset="2669">
+            <state line="93" column="7" selection-start="3499" selection-end="3499" vertical-scroll-proportion="0.0" vertical-offset="1581" max-vertical-offset="2023">
               <folding />
             </state>
           </provider>
@@ -126,8 +132,6 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/src/pbhla/cdna/extract_cDNA.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/barcode/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/amplicon_analysis/sequence.py" />
         <option value="$PROJECT_DIR$/src/pbhla/io/AmpAnalysisIO.py" />
         <option value="$PROJECT_DIR$/src/pbhla/barcodes.py" />
@@ -167,16 +171,18 @@
         <option value="$PROJECT_DIR$/src/FetchChimeraScores.py" />
         <option value="$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py" />
         <option value="$PROJECT_DIR$/src/pbhla/typing/HlaTypes.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/typing/summarize.py" />
         <option value="$PROJECT_DIR$/src/pbhla/locus.py" />
-        <option value="$PROJECT_DIR$/src/HlaPipeline.py" />
         <option value="$PROJECT_DIR$/src/pbhla/amplicons/separate.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/external/commandline_tools.py" />
         <option value="$PROJECT_DIR$/src/pbhla/fasta/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/utils.py" />
         <option value="$PROJECT_DIR$/src/pbhla/amplicons/merge.py" />
-        <option value="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
         <option value="$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/external/commandline_tools.py" />
+        <option value="$PROJECT_DIR$/src/HlaPipeline.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/typing/summarize.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/cdna/extract.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/alleles/extract.py" />
+        <option value="$PROJECT_DIR$/src/pbhla/amplicons/merge2.py" />
       </list>
     </option>
   </component>
@@ -346,6 +352,28 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="external" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="HlaTools" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="HlaTools" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="pbhla" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="cdna" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -432,6 +460,7 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\amplicons" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\data" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\typing" />
       <recent name="C:\Users\bbowman\GitHub\HlaTools\src\pbhla\external" />
@@ -530,6 +559,9 @@
       <option name="PARAMETERS" value="" />
       <method />
     </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
+      <method />
+    </configuration>
     <configuration default="true" type="tests" factoryName="Unittests">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -551,9 +583,6 @@
       <option name="PUREUNITTEST" value="true" />
       <option name="PARAMS" value="" />
       <option name="USE_PARAM" value="false" />
-      <method />
-    </configuration>
-    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
       <method />
     </configuration>
     <configuration default="true" type="tests" factoryName="Doctests">
@@ -974,7 +1003,11 @@
       <created>1397613485660</created>
       <updated>1397613485660</updated>
     </task>
-    <option name="localTasksCounter" value="89" />
+    <task id="LOCAL-00089" summary="Working version of Merge script">
+      <created>1397680806062</created>
+      <updated>1397680806062</updated>
+    </task>
+    <option name="localTasksCounter" value="90" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -1008,7 +1041,7 @@
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24866879" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.16483517" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14468865" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.17022412" sideWeight="0.3326791" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.12727273" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -1042,9 +1075,9 @@
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24919957" sideWeight="0.49934298" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.17465389" sideWeight="0.67026496" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
     </layout-to-restore>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -1059,7 +1092,6 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
-    <MESSAGE value="Reorganizing some utility functions" />
     <MESSAGE value="Updating calls to reorganized utility functions" />
     <MESSAGE value="Fixed sorting of records to go by Pred Acc by default" />
     <MESSAGE value="Fixed the issue where identical sequences caused Quiver to crash" />
@@ -1084,22 +1116,15 @@
     <MESSAGE value="Fixed a bug where the cDNA typings would be overly-specific" />
     <MESSAGE value="First commit of amplicon merging" />
     <MESSAGE value="More merge work" />
-    <option name="LAST_COMMIT_MESSAGE" value="More merge work" />
+    <MESSAGE value="Working version of Merge script" />
+    <option name="LAST_COMMIT_MESSAGE" value="Working version of Merge script" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <option name="time" value="1" />
+    </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/pbhla/sequences/input.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="14" column="0" selection-start="281" selection-end="281" vertical-scroll-proportion="0.0" vertical-offset="175" max-vertical-offset="1054" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/filenames.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="22" column="32" selection-start="650" selection-end="650" vertical-scroll-proportion="0.42074075" vertical-offset="90" max-vertical-offset="765" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/record.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="24" column="0" selection-start="689" selection-end="689" vertical-scroll-proportion="0.0" vertical-offset="70" max-vertical-offset="544" />
@@ -1228,14 +1253,14 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="11" column="36" selection-start="444" selection-end="444" vertical-scroll-proportion="0.0" vertical-offset="187" max-vertical-offset="731" />
-      </provider>
       <provider editor-type-id="com.intellij.persistence.database.editor.CsvTableFileEditorProvider">
         <state />
       </provider>
       <provider editor-type-id="MarkdownPreviewEditor">
         <state />
+      </provider>
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="11" column="36" selection-start="444" selection-end="444" vertical-scroll-proportion="0.0" vertical-offset="187" max-vertical-offset="731" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/utils.py">
@@ -1251,11 +1276,6 @@
     <entry file="file://$PROJECT_DIR$/src/pbhla/io/BlasrIO.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2142" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/AmpliconAnalysisTyping.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="12" column="91" selection-start="454" selection-end="454" vertical-scroll-proportion="0.0" vertical-offset="204" max-vertical-offset="544" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/resequencing/Resequencer.py">
@@ -1278,11 +1298,6 @@
         <state line="72" column="26" selection-start="1806" selection-end="1806" vertical-scroll-proportion="0.0" vertical-offset="153" max-vertical-offset="2652" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/summarize.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="93" column="41" selection-start="3338" selection-end="3338" vertical-scroll-proportion="0.0" vertical-offset="901" max-vertical-offset="3213" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/separate_sequences.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="-0.61024845" vertical-offset="393" max-vertical-offset="1037" />
@@ -1290,66 +1305,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/separate.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="39" column="32" selection-start="1409" selection-end="1409" vertical-scroll-proportion="0.0" vertical-offset="457" max-vertical-offset="4998">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="9" column="44" selection-start="245" selection-end="250" vertical-scroll-proportion="0.0" vertical-offset="153" max-vertical-offset="10608">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/external/commandline_tools.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="32" column="16" selection-start="1035" selection-end="1035" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1615">
-          <folding>
-            <marker date="1397609690936" expanded="true" signature="-1:-1" placeholder="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="19" column="13" selection-start="582" selection-end="582" vertical-scroll-proportion="-12.92" vertical-offset="0" max-vertical-offset="3672">
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/merge.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="60" column="36" selection-start="2072" selection-end="2072" vertical-scroll-proportion="0.0" vertical-offset="510" max-vertical-offset="2295">
-          <folding>
-            <element signature="e#98#112#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="63" column="26" selection-start="2348" selection-end="2348" vertical-scroll-proportion="0.0" vertical-offset="247" max-vertical-offset="2873">
-          <folding />
-        </state>
+        <state line="39" column="32" selection-start="1409" selection-end="1409" vertical-scroll-proportion="0.0" vertical-offset="457" max-vertical-offset="4998" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/exons_to_cDNA.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="27" column="19" selection-start="973" selection-end="973" vertical-scroll-proportion="0.08108108" vertical-offset="311" max-vertical-offset="1190">
-          <folding />
-        </state>
+        <state line="27" column="19" selection-start="973" selection-end="973" vertical-scroll-proportion="0.08108108" vertical-offset="311" max-vertical-offset="1190" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/fasta/utils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="69" column="45" selection-start="2193" selection-end="2193" vertical-scroll-proportion="1.4699248" vertical-offset="0" max-vertical-offset="2601">
-          <folding>
-            <element signature="e#0#9#0" expanded="false" />
-          </folding>
-        </state>
+        <state line="69" column="45" selection-start="2193" selection-end="2193" vertical-scroll-proportion="1.4699248" vertical-offset="0" max-vertical-offset="2601" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract_exons.py">
@@ -1366,26 +1332,91 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
+    <entry file="file://$PROJECT_DIR$/src/pbhla/sequences/orientation.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="8" column="36" selection-start="338" selection-end="338" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1139">
+        <state line="93" column="7" selection-start="3499" selection-end="3499" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="2023">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/sequences/orientation.py">
+    <entry file="file://$PROJECT_DIR$/src/HlaPipeline.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="93" column="7" selection-start="3499" selection-end="3499" vertical-scroll-proportion="0.0" vertical-offset="102" max-vertical-offset="2023">
+        <state line="445" column="44" selection-start="21134" selection-end="21134" vertical-scroll-proportion="0.0" vertical-offset="7565" max-vertical-offset="10608">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="65" column="9" selection-start="2089" selection-end="2089" vertical-scroll-proportion="0.0" vertical-offset="578" max-vertical-offset="2516">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="54" column="42" selection-start="1687" selection-end="1687" vertical-scroll-proportion="0.0" vertical-offset="391" max-vertical-offset="3587">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/AmpliconAnalysisTyping.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="26" column="21" selection-start="1186" selection-end="1186" vertical-scroll-proportion="0.5688546" vertical-offset="0" max-vertical-offset="777">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/external/commandline_tools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="84" column="46" selection-start="2742" selection-end="2744" vertical-scroll-proportion="-23.44" vertical-offset="808" max-vertical-offset="1581">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/cdna/extract.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="78" column="18" selection-start="2694" selection-end="2699" vertical-scroll-proportion="0.3324709" vertical-offset="899" max-vertical-offset="2975">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/summarize.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="15" column="11" selection-start="387" selection-end="388" vertical-scroll-proportion="0.32988358" vertical-offset="0" max-vertical-offset="3298">
           <folding>
             <element signature="e#24#38#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/separate_amplicons.py">
+    <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/merge.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="30" column="16" selection-start="855" selection-end="855" vertical-scroll-proportion="0.575188" vertical-offset="0" max-vertical-offset="2516">
+        <state line="69" column="48" selection-start="2430" selection-end="2430" vertical-scroll-proportion="-5.52" vertical-offset="899" max-vertical-offset="2159">
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/typing/sequences.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="34" column="68" selection-start="1319" selection-end="1319" vertical-scroll-proportion="0.0" vertical-offset="1" max-vertical-offset="952">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/alleles/extract.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="125" column="32" selection-start="4595" selection-end="4595" vertical-scroll-proportion="-13.68" vertical-offset="1613" max-vertical-offset="2856">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pbhla/amplicons/merge2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="47" column="26" selection-start="1658" selection-end="1658" vertical-scroll-proportion="0.4461153" vertical-offset="443" max-vertical-offset="3043">
+          <folding>
+            <element signature="e#98#112#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

@@ -449,7 +449,7 @@ class HlaPipeline( object ):
                                  'minLength': self.config(source, 'min_read_length'),
                                  'minReadScore': self.config(source, 'min_read_score'),
                                  'minSnr': self.config(source, 'min_snr'),
-                                 #'maxPhasingReads': self.config(source, 'max_phasing_reads'),
+                                 'maxPhasingReads': self.config(source, 'max_phasing_reads'),
                                  'noClustering': self.config(source, 'disable_clustering')}
                 analyzer.run( args.input_file, output_folder, analyzer_args )
         log.info('Finished phasing subreads with Amplicon Analysis\n')
