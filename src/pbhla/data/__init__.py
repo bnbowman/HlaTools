@@ -29,3 +29,21 @@
 #################################################################################
 
 # Author: Brett Bowman
+
+import os
+from pkg_resources import Requirement, resource_filename
+
+def _get_abs_path(fname):
+    return resource_filename(Requirement.parse('HlaTools'),'/pbhla/data/%s' % fname)
+
+def get_genomic_fasta():
+    return _get_abs_path('genomic.fasta')
+
+def get_cDNA_fasta():
+    return _get_abs_path('cDNA.fasta')
+
+def get_exon_fofn():
+    return _get_abs_path('exons.fofn')
+
+def get_data_path():
+    return os.path.dirname( get_genomic_fasta() )

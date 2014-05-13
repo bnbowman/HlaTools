@@ -8,7 +8,7 @@ import logging
 
 from pbcore.io import FastaReader, FastaWriter
 
-import pbhla.data
+from pbhla import data
 from pbhla.utils import valid_file
 
 log = logging.getLogger()
@@ -18,10 +18,10 @@ CDNA_PATTERN = '_nuc.fasta$'
 EXON_FASTA_PAT = '_exon\d+.fasta$'
 EXON_FOFN_PAT = '_exons.fofn$'
 
-DATA_PATH = os.path.dirname( pbhla.data.__file__ )
-GEN_REF  = os.path.join( DATA_PATH, 'genomic.fasta')
-CDNA_REF = os.path.join( DATA_PATH, 'cDNA.fasta')
-EXON_REF = os.path.join( DATA_PATH, 'exons.fofn')
+DATA_PATH = data.get_data_path()
+GEN_REF  = data.get_genomic_fasta()
+CDNA_REF = data.get_cDNA_fasta()
+EXON_REF = data.get_exon_fofn()
 
 def get_genomic_reference():
     if valid_file( GEN_REF ):
@@ -95,6 +95,9 @@ def create_exon_reference():
             handle.write( '%s\t%s\n' % (locus, filepath) )
 
 if __name__ == '__main__':
+    print "START"
+    print GEN_REF
+    print DATA_PATH
     print get_genomic_reference()
     print get_cDNA_reference()
     print get_exon_reference()
