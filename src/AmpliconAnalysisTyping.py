@@ -17,11 +17,14 @@ if __name__ == '__main__':
         help='File of FASTA sequences from nucleotide references')
     add('-c', '--cDNA_reference', metavar='FASTA', default=None,
         help='File of FASTA sequences from cDNA references')
+    add('-t', '--trim', metavar='INT', default=0, type=int,
+        help='Number of bases to trim from the ends of sequences before typing')
     add('--debug', action='store_true',
         help="Flag to enable Debug mode")
     args = parser.parse_args()
 
-    type_sequences( args.amplicon_analysis, args.grouping,
-                                            args.exon_reference,
-                                            args.nucleotide_reference,
-                                            args.cDNA_reference )
+    type_sequences( args.amplicon_analysis, grouping=args.grouping,
+                                            exon_fofn=args.exon_reference,
+                                            genomic_reference=args.nucleotide_reference,
+                                            cDNA_reference=args.cDNA_reference,
+                                            trim=args.trim )

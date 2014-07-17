@@ -10,6 +10,7 @@ from pbhla.sequences.orientation import orient_sequences
 from pbhla.sequences.input import get_input_file
 from pbhla.sequences.rename import rename_sequences
 from pbhla.alleles.extract import extract_alleles
+from pbhla.alleles.trim import trim_alleles
 from pbhla.cdna.extract_cDNA import extract_cDNA
 from pbhla.typing.summarize import summarize_typing
 
@@ -22,6 +23,7 @@ def type_sequences( input, grouping=GROUPING,
                            exon_fofn=None,
                            genomic_reference=None,
                            cDNA_reference=None,
+                           trim=0,
                            loci=None):
     """
     Pick the top Amplicon Analysis consensus seqs from a Fasta by Nreads
@@ -45,8 +47,9 @@ def type_sequences( input, grouping=GROUPING,
     selected = extract_alleles( reoriented, alignment_file=raw_alignment,
                                             method=grouping,
                                             loci=loci)
-    gDNA_alignment = full_align_best_reference( selected, genomic_reference )
-    cDNA_file = extract_cDNA( selected, exon_fofn, alignment_file=gDNA_alignment )
+    trimmed = trim_alleles( selected, trim=trim )
+    gDNA_alignment = full_align_best_reference( trimmed, genomic_reference )
+    cDNA_file = extract_cDNA( trimmed, exon_fofn, alignment_file=gDNA_alignment )
     cDNA_alignment = align_by_identity( cDNA_file, cDNA_reference )
     typing = summarize_typing( gDNA_alignment, cDNA_alignment )
     return typing
