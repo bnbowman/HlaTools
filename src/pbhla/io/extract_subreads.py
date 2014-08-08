@@ -30,20 +30,34 @@ def extract_subreads(input_file,
     if white_list:
         white_list = set( _parse_white_list( white_list ))
 
-    subreads = []
+    output_prefix = os.path.dirname( output_file )
+    output_file_list = []
+
+    subread_count = 0
     for i, filename in enumerate(_iterate_input_files( input_file )):
+
+        curr_output = os.path.join( output_prefix, 'subreads_%s.fasta' % (i+1) )
         if filename.endswith('.bas.h5') or filename.endswith('bax.h5'):
-            subreads += _extract_from_bash5( filename, min_length, max_length, min_score, min_snr, white_list )
+            subreads = _extract_from_bash5( filename, min_length, max_length, min_score, min_snr, white_list )
         elif filename.endswith('.fa') or filename.endswith('.fasta'):
-            subreads += _extract_from_fasta( filename, min_length, max_length )
-    log.info("Extracted %s subreads from %s files" % (len(subreads), i+1))
+            subreads = _extract_from_fasta( filename, min_length, max_length )
 
-    if max_count:
-        subreads = _subset_subreads( subreads, max_count )
+        with FastaWriter( curr_output ) as writer:
+            for record in subreads:
+                writer.writeRecord( record )
 
-    with FastaWriter( output_file ) as writer:
-        for record in subreads:
-            writer.writeRecord( record )
+        subread_count += len(subreads)
+        output_file_list.append( curr_output )
+    log.info("Extracted %s subreads from %s files" % (subread_count, i+1))
+
+    log.info( "Writing FOFN of subread files" )
+    with open( output_file, 'w' ) as handle:
+        for filename in output_file_list:
+            handle.write( filename + '\n' )
+
+    # TODO: Fix MaxCount function
+    #if max_count:
+    #    subreads = _subset_subreads( subreads, max_count )
 
     log.info("Finished extracting subreads")
     return output_file

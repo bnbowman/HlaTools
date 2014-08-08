@@ -14,17 +14,19 @@ if __name__ == '__main__':
         help="Fasta/Fastq/Folder of Amplicon Analysis output")
     add('data_file', metavar='DATA',
         help="BasH5 or FOFN of sequence data")
-    add('barcode_file', metavar='BARCODE',
+    add('-b', '--barcode_file', metavar='BARCODE',
         help="BcH5 or FOFN of barcode data")
     add('-s', '--setup', metavar='SETUP_FILE',
         help='Path to the SMRT Analysis setup script')
     add('-l', '--min_length', metavar='INT',
-        type=int, default=500,
+        type=int, default=3000,
         help='Minimum subread length to use for resequencing')
     add('-r', '--min_snr', metavar='FLOAT',
-        type=float, default=4.0,
+        type=float, default=3.0,
         help='Minimum Signal-To-Noise Ratio to use for resequencing')
-    add('-b', '--barcode_list', metavar='BARCODE_LIST',
+    add('-w', '--whitelist', metavar='FILE', default=None,
+        help='Whitelist of ZMWs to use for resequencing')
+    add('--barcode_list', metavar='BARCODE_LIST',
         help="Comma-separated list of barcodes to resequence")
     add('-o', '--output', default='resequencing', metavar='DIR',
         help="Specify a directory for intermediate files")
@@ -41,7 +43,8 @@ if __name__ == '__main__':
                                                debug=args.debug )
     resequencer( args.amplicon_analysis,
                  args.data_file,
-                 args.barcode_file,
+                 barcode_file=args.barcode_file,
                  barcode_string=args.barcode_list,
                  min_length=args.min_length,
-                 min_snr=args.min_snr )
+                 min_snr=args.min_snr,
+                 whitelist_file=args.whitelist )

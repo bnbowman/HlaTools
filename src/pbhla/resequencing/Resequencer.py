@@ -59,7 +59,7 @@ class Resequencer(object):
         # Find the various required scripts and determine if
         self.samtools       = self.validate_program( ['samtools'] )
         self.filter_plsh5   = self.validate_program( ['filter_plsh5.py', 'filterPlsH5.py'] )
-        self.pbalign        = self.validate_program( ['pbalign.py'] )
+        self.pbalign        = self.validate_program( ['pbalign'] )
         self.variant_caller = self.validate_program( ['variantCaller.py'] )
         self._use_setup     = self.validate_setup()
 
@@ -199,7 +199,8 @@ class Resequencer(object):
         with open( script_path, 'w') as handle:
             handle.write('export SEYMOUR_HOME=%s\n' % self._setup)
             handle.write('source %s/etc/setup.sh\n' % self._setup)
-            handle.write( ' '.join(process_args) + '\n' )
+            arg_string = ' '.join([str(arg) for arg in process_args])
+            handle.write( arg_string + '\n' )
         return script_path
 
 
@@ -216,6 +217,9 @@ class Resequencer(object):
 
     def create_whitelist( self, read_file ):
         log.info('Creating cluster-specific whitelist file')
+        if read_file.endswith('.txt') or read_file.endswith('.zmws'):
+            log.info('Whitelist is already in a valid format, skipping...')
+            return read_file
         whitelist_file = os.path.join(self._output, 'whitelist.txt')
         if os.path.exists( whitelist_file ):
             log.info('Existing whitelist file found, skipping...')
@@ -281,9 +285,9 @@ class Resequencer(object):
                         '--regionTable=%s' % rgnh5_file,
                         '--forQuiver',
                         '--minLength=%s' % min_length,
-                        '--hitPolicy=randombest',
+                        '--hitPolicy=allbest',
                         '--nproc=%s' % self._nproc]
-        self.run_process( process_args, 'CompareSequences')
+        self.run_process( process_args, 'PBAlign')
         log.info('Finished writing the cluster-specific CmpH5')
         return cmph5_file
 

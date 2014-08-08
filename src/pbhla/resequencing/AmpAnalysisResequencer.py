@@ -55,13 +55,30 @@ class AmpliconAnalysisResequencer( object ):
         create_directory( output_dir )
         return output_dir
 
-    def __call__(self, amp_analysis, data_file, barcode_file, barcode_string=None, min_snr=None, min_length=None):
-        log.info("Beginning Amplicon Analysis resequencing workflow for {0}".format(amp_analysis))
+    def do_resequencing(self, data_file, amp_analysis_records, min_length, whitelist_file ):
+        log.info('Resequencing supplied Amplicon Analysis sequences')
+        output_dir = self.get_output_folder( "amp_analysis_resequencing" )
 
-        # Pick or create a single file from AA and read it
-        amp_analysis_file = get_input_file( amp_analysis )
-        amp_analysis_records = list(AmpliconAnalysisReader(amp_analysis_file))
+        # Convert the raw data file into a BaxH5 fofn for use downstream
+        # and create appropriate reader for local access
+        bash5 = get_bash5_reader( data_file )
+        baxh5_file = os.path.join( self.output, 'baxh5.fofn')
+        create_baxh5_fofn( data_file, baxh5_file )
 
+        # Extract any consensus sequences associated with this barcode
+        log.info('Identified {0} consensus sequences to resequence'.format(len(amp_analysis_records)))
+        reference_file = os.path.join( output_dir, 'reference.fasta' )
+        write_records( amp_analysis_records, reference_file )
+
+        # Resequence the selected consensus sequences with the selected ZMWs
+        self.resequencer( baxh5_file,
+                          whitelist_file,
+                          reference_file,
+                          output=output_dir,
+                          min_length=min_length )
+        log.info("Finished resequencing supplied Amplicon Analysis sequences\n")
+
+    def do_barcoded_resequencing(self, data_file, amp_analysis_records, barcode_file, barcode_string, min_snr, min_length ):
         # Convert the raw data file into a BaxH5 fofn for use downstream
         # and create appropriate reader for local access
         bash5 = get_bash5_reader( data_file )
@@ -103,3 +120,15 @@ class AmpliconAnalysisResequencer( object ):
                               min_length=min_length )
 
             log.info("Finished resequencing Barcode {0}\n".format( bc ))
+
+    def __call__(self, amp_analysis, data_file, barcode_file=None, barcode_string=None, min_snr=None, min_length=None, whitelist_file=None):
+        log.info("Beginning Amplicon Analysis resequencing workflow for {0}".format(amp_analysis))
+
+        # Pick or create a single file from AA and read it
+        amp_analysis_file = get_input_file( amp_analysis )
+        amp_analysis_records = list(AmpliconAnalysisReader(amp_analysis_file))
+
+        if barcode_file is None:
+            self.do_resequencing( data_file, amp_analysis_records, min_length, whitelist_file )
+        else:
+            self.do_barcoded_resequencing( data_file, amp_analysis_records, barcode_file, barcode_string, min_snr, min_length )

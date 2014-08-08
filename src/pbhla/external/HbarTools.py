@@ -50,6 +50,7 @@ class HbarRunner( object ):
     def run_hbar(self):
         self.log.info("Running HBAR Workflow")
         hbar_args = ["HBAR_WF2.py", self.config_output]
+        print hbar_args
         with open(self.log_file, 'w') as log_handle:
             subprocess.check_call( hbar_args, stdout=log_handle )
         self.log.info("HBAR completed successfully")

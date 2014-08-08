@@ -27,4 +27,5 @@ if __name__ == '__main__':
                                             exon_fofn=args.exon_reference,
                                             genomic_reference=args.nucleotide_reference,
                                             cDNA_reference=args.cDNA_reference,
-                                            trim=args.trim )
+                                            trim=args.trim,
+                                            debug=args.debug )

@@ -16,7 +16,8 @@ log = logging.getLogger()
 def extract_cDNA( input_file, exon_fofn, output=None,
                                          directory=None,
                                          reference_file=None, 
-                                         alignment_file=None ):
+                                         alignment_file=None,
+                                         debug=False ):
     """
     Extract the cDNA sequences from a mixed Fasta
     """
@@ -47,7 +48,8 @@ def extract_cDNA( input_file, exon_fofn, output=None,
     _collect_cDNA( directory, output )
 
     # Clean up the directory and return the combined cDNA file
-    remove_directory( directory )
+    if not debug:
+        remove_directory( directory )
     return output
 
 def _get_output_file( input_file ):
@@ -81,8 +83,8 @@ def _parse_loci( blasr_file ):
             continue
         # Parse the locus from either Tokai or IMGT references
         reference = entry.tname.split('*')[0]
-        if reference.startswith('HLA-'):
-            locus = reference[-1]
+        if reference.startswith('HLA-DPB2'):
+            locus = 'DPB1'
         else:
             locus = reference.split('_')[1]
         # Save the Locus/Sequence pair unless duplicate

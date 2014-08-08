@@ -24,7 +24,8 @@ def type_sequences( input, grouping=GROUPING,
                            genomic_reference=None,
                            cDNA_reference=None,
                            trim=0,
-                           loci=None):
+                           loci=None,
+                           debug=False ):
     """
     Pick the top Amplicon Analysis consensus seqs from a Fasta by Nreads
     """
@@ -49,7 +50,7 @@ def type_sequences( input, grouping=GROUPING,
                                             loci=loci)
     trimmed = trim_alleles( selected, trim=trim )
     gDNA_alignment = full_align_best_reference( trimmed, genomic_reference )
-    cDNA_file = extract_cDNA( trimmed, exon_fofn, alignment_file=gDNA_alignment )
+    cDNA_file = extract_cDNA( trimmed, exon_fofn, alignment_file=gDNA_alignment, debug=debug )
     cDNA_alignment = align_by_identity( cDNA_file, cDNA_reference )
     typing = summarize_typing( gDNA_alignment, cDNA_alignment )
     return typing

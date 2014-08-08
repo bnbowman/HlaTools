@@ -3,7 +3,7 @@ import os
 import logging
 import ConfigParser
 
-from pbcore.io.FastaIO import FastaReader
+from pbcore.io.FastaIO import FastaReader, FastaWriter
 from pbphase.AmpliconAnalyzer import AmpliconAnalyzer
 
 from pbhla.log import initialize_logger
@@ -30,6 +30,7 @@ from pbhla.resequencing.Resequencer import Resequencer
 from pbhla.utilities.rename_fastq import rename_resequencing
 from pbhla.utilities.filter_fastq import filter_fastq
 from pbhla.typing.sequences import type_sequences
+from pbhla.fasta.rename_subreads import write_renaming_key
 from pbhla.utils import *
 
 log = logging.getLogger()
@@ -80,7 +81,6 @@ class HlaPipeline( object ):
         else:
             return None
 
-
     def to_be_phased(self, domain):
         domain = self._check_domain( domain )
         if domain:
@@ -111,13 +111,13 @@ class HlaPipeline( object ):
 
     def run( self ):
         baxh5 = _create_baxh5_fofn( args.input_file, args.output )
-        raw_subreads = self.extract_subread_data()
+        subread_fofn = self.extract_subread_data()
 
         # First we assemble the supplied data via HGAP / HBAR
-        input_fofn = self.create_hbar_input_fofn( raw_subreads )
+        input_fofn = self.create_hbar_input_fofn( subread_fofn )
         contig_file = self.run_hbar_assembly( input_fofn )
         renamed_subreads = self.export_hbar_subreads()
-        renaming_key = self.create_renaming_key( raw_subreads, renamed_subreads )
+        renaming_key = self.create_renaming_key( subread_fofn, renamed_subreads )
 
         # Second align the subreads and contigs to various references ...
         subread_contig_dict = self.align_subreads_to_contigs( renamed_subreads, contig_file )
@@ -162,36 +162,30 @@ class HlaPipeline( object ):
         """
         log.info('Looking for raw subread data')
         # Dump all valid reads from the above files
-        subread_file = self.get_filepath( "subreads", "all_subreads.fasta" )
-        if valid_file( subread_file ):
-            log.info("Using existing subread file\n")
-            return subread_file
+        subread_fofn = self.get_filepath( "subreads", "all_subreads.fofn" )
+        if valid_file( subread_fofn ):
+            log.info("Using existing subread fofn\n")
+            return subread_fofn
 
         log.info('No subread data found, extracting from input file(s)')
         extract_subreads( args.input_file, 
-                          subread_file,
+                          subread_fofn,
                           min_length=self.min_read_length,
                           max_length=self.max_read_length,
                           min_score=self.min_read_score,
                           min_snr=self.min_snr,
                           max_count=self.max_count )
-        check_output_file( subread_file )
+        check_output_file( subread_fofn )
         log.info('Finished extracting subread data from input\n')
-        return subread_file
+        return subread_fofn
 
-    def create_hbar_input_fofn( self, subread_file ):
+    def create_hbar_input_fofn( self, subread_fofn ):
         """
         Create a input FOFN for HBAR pointing to the raw subread data
         """
         log.info('Looking for HBAR input FOFN')
         input_fofn = self.get_filepath( 'HBAR', 'input.fofn' )
-        if valid_file( input_fofn ):
-            log.info('Using existing HBAR input FOFN file\n')
-            return input_fofn
-
-        log.info("No HBAR input FOFN found, creating from subread data")
-        with open( input_fofn, 'w' ) as handle:
-            handle.write( os.path.abspath( subread_file ))
+        copy_file( subread_fofn, input_fofn )
         log.info('Finished creating input fofn\n')
         return input_fofn
 
@@ -202,6 +196,7 @@ class HlaPipeline( object ):
         log.info('Looking for HBAR-assembled HLA contigs')
         output = self.get_filepath( "HBAR", "3-CA/9-terminator/asm.utg.fasta" )
         contig_file = self.get_filepath( "references", "all_contigs.fasta" )
+        print input_fofn
         if valid_file( output ):
             log.info("Using existing HBAR contig file")
         else: # Run HGAP
@@ -230,15 +225,17 @@ class HlaPipeline( object ):
 
         log.info("No renamed subread file found, exporting from HBAR output...")
         fasta_folder = self.get_filepath( 'HBAR', '0-fasta_files' )
-        for entry in os.listdir( fasta_folder ):
-            if entry.endswith('_q.fa'):
-                hbar_fasta = os.path.join( fasta_folder, entry )
-                copy_file( hbar_fasta, renamed_subreads )
+        with FastaWriter( renamed_subreads ) as handle:
+            for entry in os.listdir( fasta_folder ):
+                if entry.endswith('_q.fa'):
+                    hbar_fasta = os.path.join( fasta_folder, entry )
+                    for record in FastaReader( hbar_fasta ):
+                        handle.writeRecord( record )
         check_output_file( renamed_subreads )
         log.info('Finished exporting HBAR-renamed subreads\n')
         return renamed_subreads
 
-    def create_renaming_key(self, raw_subreads, renamed_subreads ):
+    def create_renaming_key(self, subread_fofn, renamed_subreads ):
         """
         Create a key for translating HBAR subread names to canonical PacBio names
         """
@@ -247,24 +244,8 @@ class HlaPipeline( object ):
         if valid_file( renaming_key ):
             log.info('Using existing subread renaming key\n')
             return renaming_key
-
         log.info("No subread renaming key round, creating one...")
-        # Compare the two files to make sure they're equivalent
-        raw_count = fasta_size( raw_subreads )
-        new_count = fasta_size( renamed_subreads )
-        try:
-            assert raw_count == new_count 
-        except AssertionError:
-            msg = 'The number of raw subreads (%s) does not ' % raw_count + \
-                  'match the number of renamed reads (%s)' % new_count
-            log.info( msg )
-            raise ValueError( msg )
-        # Write out the pairs of names to file
-        with open( renaming_key, 'w') as handle:
-            for raw, renamed in zip( FastaReader(raw_subreads), FastaReader(renamed_subreads) ):
-                raw_name = raw.name.split()[0]
-                new_name = renamed.name.split()[0]
-                handle.write('%s\t%s\n' % (new_name, raw_name))
+        write_renaming_key( subread_fofn, renamed_subreads, renaming_key )
         check_output_file( renaming_key )
         log.info("Finished creating subread renaming key\n")
         return renaming_key
@@ -427,7 +408,7 @@ class HlaPipeline( object ):
 
     def run_amp_analysis( self, renamed_fofn ):
         log.info("Looking for phased AmpliconAnalysis results")
-        analyzer = AmpliconAnalyzer( self.smrt_path, args.nproc )
+        analyzer = AmpliconAnalyzer( self.smrt_path, args.nproc, 'AmpliconAnalysis' )
         for subread_file in FofnReader( renamed_fofn ):
 
             # Check if the source of the current file has a configuration
