@@ -11,9 +11,8 @@ __VERSION__ = globals["__VERSION__"]
 DESC = 'Tools for analyzing HLA data from SMRT sequencing'
 
 scripts = [
+    "src/HlaPipeline.py",
     "src/AmpliconAnalysisTyping.py",
-    "src/ResequenceAmpAnalysis.py",
-    "src/CompareTyping.py"
 ]
 
 required = [
