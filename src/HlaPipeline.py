@@ -404,7 +404,7 @@ class HlaPipeline( object ):
         log.info("No renamed FOFN found, creating...")
         rename_fofn( subread_fofn, renamed_fofn, renaming_key )
         log.info("Finished renaming subread files\n")
-        return renamed_fofn
+        return renaming_key
 
     def run_amp_analysis( self, renamed_fofn ):
         log.info("Looking for phased AmpliconAnalysis results")
