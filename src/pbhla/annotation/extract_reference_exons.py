@@ -15,7 +15,7 @@ def extract_exons( afa_file, info_file):
 
     with open( output_fofn, 'w' ) as fofn_handle:
         for exon in _select_exons( regions ):
-            output_file = _get_output_file( info_file, exon )
+            output_file = _get_output_file( locus, exon )
             with FastaWriter( output_file ) as output:
                 for record in _extract_fasta_region( records, exon ):
                     if len(set(record.sequence)) == 1:
@@ -40,10 +40,9 @@ def _select_exons( regions ):
         if region[0].lower().startswith('exon'):
             yield region
 
-def _get_output_file( info_file, region ):
-    basename = info_file[:-5]
+def _get_output_file( locus, region ):
     region_name = region[0]
-    return '%s_%s.fasta' % (basename, region_name)
+    return '%s_%s.fasta' % (locus, region_name)
 
 def _extract_fasta_region( records, region ):
     name, start, end = region
