@@ -46,4 +46,4 @@ def get_exon_fofn():
     return _get_abs_path('exons.fofn')
 
 def get_data_path():
-    return os.path.dirname( get_genomic_fasta() )
+    return os.path.dirname( _get_abs_path('README.txt') )

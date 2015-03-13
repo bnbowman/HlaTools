@@ -13,7 +13,7 @@ from pbhla.record import consensus_size, record_accuracy
 from pbhla.sequences.utils import read_sequences
 
 NPROC = 6
-LOCI = ['A', 'B', 'C', 'DRB1', 'DQB1']
+LOCI = ['A', 'B', 'C', 'DPA1', 'DPB1', 'DQA1', 'DQB1', 'DRB1', 'DQB1']
 METHOD = 'locus'
 SORT = 'accuracy'
 MIN_FRAC = 0.15

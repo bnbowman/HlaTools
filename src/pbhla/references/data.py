@@ -53,7 +53,7 @@ def get_exon_reference():
 
 def list_data_files( end_pattern, root=DATA_PATH ):
     for root, dirs, files in os.walk( root ):
-        for filename in files:
+        for filename in sorted(files):
             if re.search( end_pattern, filename ):
                 yield os.path.join(root, filename)
 
