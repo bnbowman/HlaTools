@@ -17,7 +17,7 @@ def consensus_size( record ):
         log.error( msg )
         raise ValueError( msg )
 
-def record_accuracy( record, precision=4 ):
+def record_accuracy( record, precision=7 ):
     assert hasattr( record, 'quality' )
     p_values = [quality_to_p(qv) for qv in record.quality]
     average = sum(p_values)/len(p_values)
